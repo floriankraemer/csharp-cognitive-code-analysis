@@ -3,6 +3,7 @@
 using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
+
 public class ConsoleTextReport
 {
     public void RenderMetrics(Collection<CognitiveMetrics> metricsCollection)

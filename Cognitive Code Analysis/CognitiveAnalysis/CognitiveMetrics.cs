@@ -56,6 +56,7 @@ public class CognitiveMetrics
         this.ClassName = className;
         this.FilePath = filePath;
         this.methodSignature = signature;
+        this.methodLineNumber = methodLineNumber;
         this.ifCount = ifCount;
         this.elseCount = elseCount;
         this.loopCount = loopCount;
