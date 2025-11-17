@@ -1,10 +1,14 @@
-﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
+﻿using System.Collections.ObjectModel;
+
+using CognitiveCodeAnalysis.CognitiveAnalysis;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-using System.Collections.ObjectModel;
+using Newtonsoft.Json.Linq;
+
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CognitiveCodeAnalysis
 {
@@ -15,7 +19,7 @@ namespace CognitiveCodeAnalysis
             var files = new List<string>();
             var metricsCollection = new Collection<CognitiveMetrics>();
 
-            foreach (var directory in directories)
+            foreach (string directory in directories)
             {
                 if (!Directory.Exists(directory)) {
                     continue;
@@ -24,7 +28,7 @@ namespace CognitiveCodeAnalysis
                 files.AddRange(Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories));
             }
 
-            foreach (var file in files)
+            foreach (string file in files)
             {
                 string fileContent = File.ReadAllText(file);
                 SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
@@ -37,8 +41,8 @@ namespace CognitiveCodeAnalysis
                     string fullClassName = GetFullyQualifiedClassName(classNode);
 
                     // Find all methods in the class
-                    var methodNodes = classNode.Members.OfType<MethodDeclarationSyntax>();
-                    foreach (var methodNode in methodNodes)
+                    IEnumerable<MethodDeclarationSyntax> methodNodes = classNode.Members.OfType<MethodDeclarationSyntax>();
+                    foreach (MethodDeclarationSyntax methodNode in methodNodes)
                     {
                         int ifCount = methodNode.DescendantNodes()
                             .OfType<IfStatementSyntax>()
@@ -91,12 +95,12 @@ namespace CognitiveCodeAnalysis
             return metricsCollection;
         }
 
+        // Combine namespace, containing types, and class name
         private static string GetFullyQualifiedClassName(ClassDeclarationSyntax classNode)
         {
             IEnumerable<string> containingTypes = collectNestedClasses(classNode);
             IEnumerable<string> namespaceParts = collectNamespaceParts(classNode);
 
-            // Combine namespace, containing types, and class name
             return string.Join(".", namespaceParts
                 .Concat(containingTypes)
                 .Append(classNode.Identifier.Text)
@@ -106,22 +110,22 @@ namespace CognitiveCodeAnalysis
 
         private static IEnumerable<string> collectNestedClasses(ClassDeclarationSyntax classNode)
         {
-            // Collect containing types (nested classes)
             return classNode.Ancestors()
                 .OfType<ClassDeclarationSyntax>()
                 .Reverse()
                 .Select(c => c.Identifier.Text);
         }
 
+        // Collect namespace parts (including file-scoped namespaces)
         private static IEnumerable<string> collectNamespaceParts(ClassDeclarationSyntax classNode)
         {
-            // Collect namespace parts (including file-scoped namespaces)
             return classNode.Ancestors()
                 .OfType<NamespaceDeclarationSyntax>()
                 .Select(n => n.Name.ToString())
                 .Concat(classNode.Ancestors()
-                                .OfType<FileScopedNamespaceDeclarationSyntax>()
-                                .Select(ns => ns.Name.ToString()))
+                    .OfType<FileScopedNamespaceDeclarationSyntax>()
+                    .Select(ns => ns.Name.ToString())
+                )
                 .Reverse();
         }
     }

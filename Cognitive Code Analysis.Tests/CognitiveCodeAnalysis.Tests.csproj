@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Cognitive Code Analysis\CognitiveCodeAnalysis.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Fixtures\" />
+  </ItemGroup>
+
 </Project>
