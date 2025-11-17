@@ -1,16 +1,58 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq;
 
 using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public class ConsoleTextReport
+public class ConsoleTextReport : ReportInterface
 {
+    private readonly bool _groupByClass;
+
+    public ConsoleTextReport(bool groupByClass = true)
+    {
+        _groupByClass = groupByClass;
+    }
+
     public void RenderMetrics(Collection<CognitiveMetrics> metricsCollection)
     {
+        if (_groupByClass)
+        {
+            RenderMetricsGrouped(metricsCollection);
+            return;
+        }
+
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
             RenderMetrics(metrics);
+        }
+    }
+
+    private void RenderMetricsGrouped(Collection<CognitiveMetrics> metricsCollection)
+    {
+        var groupedByClass = metricsCollection
+            .GroupBy(m => new { m.ClassName, m.FilePath })
+            .OrderBy(g => g.Key.ClassName);
+
+        foreach (var classGroup in groupedByClass)
+        {
+            var classMetrics = classGroup.ToList();
+            var firstMetric = classMetrics.First();
+
+            AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(firstMetric.ClassName)}");
+            AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
+
+            Table table = new();
+            table = AddTableHeaders(table);
+            table.ShowRowSeparators();
+
+            foreach (var metrics in classMetrics)
+            {
+                table = AddTableRow(table, metrics);
+            }
+
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
         }
     }
 
@@ -29,7 +71,7 @@ public class ConsoleTextReport
     private static Table AddTableRow(Table table, CognitiveMetrics metrics)
     {
         table.AddRow(
-            "L" + metrics.methodLineNumber.ToString() + " " + Markup.Escape(metrics.methodSignature),
+            "L" + metrics.methodLineNumber.ToString() + " " + Markup.Escape(metrics.MethodName),
             ColorizeScore(metrics.TotalScore()),
             metrics.linesOfCode.ToString(),
             metrics.ifCount.ToString() + " (" + metrics.ifScore.ToString("F3") + ")",

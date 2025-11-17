@@ -17,7 +17,6 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
 
     private static CognitiveMetrics calculateMetric(CognitiveMetrics metrics, KeyValuePair<string, MetricConfiguration> keyValuePair)
     {
-        // Skip if metric is not enabled
         if (!keyValuePair.Value.Enabled)
         {
             return metrics;
