@@ -10,5 +10,7 @@ public class CognitiveConfiguration
     public bool ShowCyclomaticComplexity { get; set; }
     public bool ShowDetailedCognitiveMetrics { get; set; }
     public bool GroupByClass { get; set; }
+    public bool CountElseAsNesting { get; set; } = false;
+    public bool CountElseIfAsNesting { get; set; } = false;
     public Dictionary<string, MetricConfiguration> Metrics { get; set; } = new();
 }
