@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -6,7 +6,7 @@ using CognitiveCodeAnalysis.Configuration;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace CognitiveCodeAnalysis;
+namespace CognitiveCodeAnalysis.Commands;
 
 internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 {
@@ -23,11 +23,11 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        FileFinder finder = new FileFinder();
-        CognitiveCodeAnalyser analyser = new CognitiveCodeAnalyser();
+        FileFinder finder = new();
+        CognitiveCodeAnalyser analyser = new ();
         CognitiveConfiguration configuration = ConfigurationLoader.Load();
-        ConsoleTextReport reporter = new ConsoleTextReport(configuration.GroupByClass);
-        ScoreCalculator calculator = new ScoreCalculator(configuration);
+        ConsoleTextReport reporter = new(configuration.GroupByClass);
+        ScoreCalculator calculator = new(configuration);
 
         var searchPath = settings.SourcePath ?? GetDefaultFixturesPath();
         string absoluteSearchPath = Path.GetFullPath(searchPath);

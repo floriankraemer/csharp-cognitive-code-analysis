@@ -1,4 +1,4 @@
-﻿using CognitiveCodeAnalysis;
+﻿using CognitiveCodeAnalysis.Commands;
 using Spectre.Console.Cli;
 
 var app = new CommandApp<AnalyseCommand>();
