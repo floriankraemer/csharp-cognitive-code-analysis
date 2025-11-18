@@ -40,41 +40,45 @@ public class CognitiveCodeAnalyser
                         .OfType<TryStatementSyntax>()
                         .Count();
 
-                    int parameterCount = methodNode.ParameterList.Parameters.Count;
-
-                    int linesOfCode = methodNode.GetLocation()
-                                                .GetLineSpan()
-                                                .EndLinePosition.Line
-                                    - methodNode.GetLocation()
-                                                .GetLineSpan()
-                                                .StartLinePosition.Line + 1;
-
-                    string signature = methodNode.Modifiers.ToString() + " " +
-                                        methodNode.ReturnType.ToString() + " " +
-                                        methodNode.Identifier.Text +
-                                        methodNode.ParameterList.ToString();
-
-                    int nestingLevels = CalculateNestingLevels(methodNode, configuration);
-
                     metricsCollection.Add(new CognitiveMetrics(
                         methodName: methodNode.Identifier.Text,
                         className: fullClassName,
                         filePath: file,
-                        signature: signature,
+                        signature: GetFullSignature(methodNode),
                         methodLineNumber: methodNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
                         ifCount: ifCount,
-                        argumentCount: parameterCount,
-                        linesOfCode: linesOfCode,
+                        argumentCount: methodNode.ParameterList.Parameters.Count,
+                        linesOfCode: GetLinesOfCode(methodNode),
                         elseCount: elseCount,
                         tryCatchCount: tryCount,
                         returnCount: methodNode.DescendantNodes().OfType<ReturnStatementSyntax>().Count(),
-                        nestingLevels: nestingLevels
+                        nestingLevels: CalculateNestingLevels(methodNode, configuration)
                     ));
                 }
             }
         }
 
         return metricsCollection;
+    }
+
+    private static string GetFullSignature(MethodDeclarationSyntax methodNode)
+    {
+        string signature = methodNode.Modifiers.ToString() + " " +
+                           methodNode.ReturnType.ToString() + " " +
+                           methodNode.Identifier.Text +
+                           methodNode.ParameterList.ToString();
+        return signature;
+    }
+
+    private static int GetLinesOfCode(MethodDeclarationSyntax methodNode)
+    {
+        int linesOfCode = methodNode.GetLocation()
+                .GetLineSpan()
+                .EndLinePosition.Line
+            - methodNode.GetLocation()
+                .GetLineSpan()
+                .StartLinePosition.Line + 1;
+        return linesOfCode;
     }
 
     // Combine namespace, containing types, and class name
