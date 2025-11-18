@@ -1,8 +1,10 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.Reflection;
+
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
+
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -10,26 +12,38 @@ namespace CognitiveCodeAnalysis.Commands;
 
 internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 {
+    private const int Success = 0;
+    private const int Error = 1;
+
     public sealed class Settings : CommandSettings
     {
-        [Description("Path to search for c# files. Defaults to Fixtures folder.")]
+        [Description("Path to search for c# files. Defaults to current path.")]
         [CommandArgument(0, "[searchPath]")]
         public string? SourcePath { get; init; }
 
         [Description("Load a custom configuration")]
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
+
+        [Description("Report type. Defaults to console.")]
+        [CommandOption("-r|--report-type")]
+        [DefaultValue("ConsoleText")]
+        public string? ReportType { get; init; }
+
+        [Description("Output file")]
+        [CommandOption("-o|--output-file")]
+        public string? OutputFile { get; init; }
     }
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        // How to inject this via DI?
         FileFinder finder = new();
-        CognitiveCodeAnalyser analyser = new ();
+        CognitiveCodeAnalyser analyser = new();
         CognitiveConfiguration configuration = ConfigurationLoader.Load();
-        ConsoleTextReport reporter = new(configuration.GroupByClass);
         ScoreCalculator calculator = new(configuration);
 
-        var searchPath = settings.SourcePath ?? GetDefaultFixturesPath();
+        var searchPath = settings.SourcePath ?? GetCurrentDirectory();
         string absoluteSearchPath = Path.GetFullPath(searchPath);
 
         AnsiConsole.MarkupLine($"[cyan]Analyzing C# files in:[/] [green]{Markup.Escape(absoluteSearchPath)}[/]");
@@ -39,26 +53,75 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
         if (files.Count == 0)
         {
-            AnsiConsole.MarkupLine("[yellow]No C# files found in the specified directory.[/]");
-            return 0;
+            AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSearchPath}.[/]");
+
+            return Success;
         }
 
-        Collection<CognitiveMetrics> metricsCollection = analyser.AnalyzeFiles(files, configuration);
+        RenderReport(
+            settings: settings,
+            configuration: configuration,
+            metricsCollection: AnalyseCsharpFiles(analyser, configuration, calculator, files)
+        );
 
-        // Calculate scores for each metric
+        return Success;
+    }
+
+    private static CognitiveMetricsCollection AnalyseCsharpFiles(
+        CognitiveCodeAnalyser analyser,
+        CognitiveConfiguration configuration,
+        ScoreCalculator calculator,
+        List<string> files
+    ) {
+        CognitiveMetricsCollection metricsCollection = analyser.AnalyzeFiles(files, configuration);
+
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
             calculator.CalculateScores(metrics);
         }
 
-        reporter.RenderMetrics(metricsCollection);
-
-        return 0;
+        return metricsCollection;
     }
 
-    private static string GetDefaultFixturesPath()
+    private static void RenderReport(
+        Settings settings,
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection metricsCollection
+    ) {
+        string reportType = settings.ReportType ?? "ConsoleText";
+        string outputFile = settings.OutputFile ?? "cognitive-analysis-report";
+
+        // Add .html extension if report type is Html and no extension is provided
+        if (reportType == "Html" && !outputFile.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+        {
+            outputFile += ".html";
+        }
+
+        ReportInterface reporter = reportType switch
+        {
+            "ConsoleText" => new ConsoleTextReport(configuration.GroupByClass, configuration.ScoreThreshold),
+            "Html" => new HtmlReport(outputFile, configuration.GroupByClass),
+            _ => throw new ArgumentException($"Invalid report type: {reportType}")
+        };
+
+        reporter.RenderMetrics(metricsCollection);
+
+        if (reportType == "Html")
+        {
+            string fullPath = Path.GetFullPath(outputFile);
+            AnsiConsole.MarkupLine($"[green]HTML report generated:[/] {Markup.Escape(fullPath)}");
+        }
+    }
+
+    private static string GetCurrentDirectory()
     {
-        string fixturesPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Cognitive Code Analysis.Tests", "Fixtures");
-        return Path.GetFullPath(fixturesPath);
+        string? directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+        if (directory == null)
+        {
+            throw new InvalidOperationException("Unable to determine the executing assembly's directory.");
+        }
+
+        return directory;
     }
 }

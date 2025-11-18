@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using CognitiveCodeAnalysis.Configuration;
+﻿using CognitiveCodeAnalysis.Configuration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,9 +7,9 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class CognitiveCodeAnalyser
 {
-    public Collection<CognitiveMetrics> AnalyzeFiles(List<string> files, CognitiveConfiguration configuration)
+    public CognitiveMetricsCollection AnalyzeFiles(List<string> files, CognitiveConfiguration configuration)
     {
-        var metricsCollection = new Collection<CognitiveMetrics>();
+        var metricsCollection = new CognitiveMetricsCollection();
 
         foreach (string file in files)
         {

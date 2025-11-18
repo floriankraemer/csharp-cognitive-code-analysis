@@ -1,23 +1,15 @@
-﻿using System.Collections.ObjectModel;
-
-using Spectre.Console;
+﻿using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public class ConsoleTextReport : ReportInterface
+public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold = 0.0) : ReportInterface
 {
-    private readonly bool _groupByClass;
-
-    public ConsoleTextReport(bool groupByClass = true)
+    public void RenderMetrics(CognitiveMetricsCollection metricsCollection)
     {
-        _groupByClass = groupByClass;
-    }
-
-    public void RenderMetrics(Collection<CognitiveMetrics> metricsCollection)
-    {
-        if (_groupByClass)
+        if (groupByClass)
         {
             RenderMetricsGrouped(metricsCollection);
+            RenderSummary(metricsCollection);
             return;
         }
 
@@ -25,9 +17,11 @@ public class ConsoleTextReport : ReportInterface
         {
             RenderMetrics(metrics);
         }
+
+        RenderSummary(metricsCollection);
     }
 
-    private void RenderMetricsGrouped(Collection<CognitiveMetrics> metricsCollection)
+    private void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection)
     {
         var groupedByClass = metricsCollection
             .GroupBy(m => new { m.ClassName, m.FilePath })
@@ -35,8 +29,8 @@ public class ConsoleTextReport : ReportInterface
 
         foreach (var classGroup in groupedByClass)
         {
-            var classMetrics = classGroup.ToList();
-            var firstMetric = classMetrics.First();
+            List<CognitiveMetrics> classMetrics = classGroup.ToList();
+            CognitiveMetrics firstMetric = classMetrics.First();
 
             AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(firstMetric.ClassName)}");
             AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
@@ -45,7 +39,7 @@ public class ConsoleTextReport : ReportInterface
             table = AddTableHeaders(table);
             table.ShowRowSeparators();
 
-            foreach (var metrics in classMetrics)
+            foreach (CognitiveMetrics metrics in classMetrics)
             {
                 table = AddTableRow(table, metrics);
             }
@@ -67,16 +61,18 @@ public class ConsoleTextReport : ReportInterface
         AnsiConsole.WriteLine();
     }
 
-    private static Table AddTableRow(Table table, CognitiveMetrics metrics)
-    {
+    private static Table AddTableRow(
+        Table table,
+        CognitiveMetrics metrics
+    ) {
         table.AddRow(
-            "L" + metrics.methodLineNumber.ToString() + " " + Markup.Escape(metrics.MethodName),
+            "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
             ColorizeScore(metrics.TotalScore()),
             metrics.linesOfCode.ToString(),
-            metrics.ifCount.ToString() + " (" + metrics.ifScore.ToString("F3") + ")",
-            metrics.argumentCount.ToString() + " (" + metrics.argumentScore.ToString("F3") + ")",
-            metrics.nestingLevels.ToString() + " (" + metrics.nestingScore.ToString("F3") + ")",
-            metrics.returnCount.ToString() + " (" + metrics.returnScore.ToString("F3") + ")"
+            metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
+            metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
+            metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
+            metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")"
         );
 
         return table;
@@ -116,5 +112,22 @@ public class ConsoleTextReport : ReportInterface
         table.AddColumn("Returns");
 
         return table;
+    }
+
+    private void RenderSummary(CognitiveMetricsCollection metricsCollection)
+    {
+        if (metricsCollection.Count == 0)
+        {
+            return;
+        }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[bold cyan]Summary:[/]");
+
+        AnsiConsole.MarkupLine($"[blue]Total Classes Processed:[/] {metricsCollection.GetTotalClasses()}");
+        AnsiConsole.MarkupLine($"[blue]Total Methods Processed:[/] {metricsCollection.GetTotalMethods()}");
+        AnsiConsole.MarkupLine($"[yellow]Classes with Methods Exceeding Threshold:[/] {metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} ({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)");
+        AnsiConsole.MarkupLine($"[yellow]Methods Exceeding Threshold:[/] {metricsCollection.GetMethodsExceedingThreshold(scoreThreshold)} ({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)");
+        AnsiConsole.MarkupLine($"Threshold: {scoreThreshold:F3}");
     }
 }

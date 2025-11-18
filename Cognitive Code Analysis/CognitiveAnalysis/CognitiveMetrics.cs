@@ -68,7 +68,7 @@ public class CognitiveMetrics
         this.nestingLevels = nestingLevels;
     }
 
-    public Double TotalScore()
+    public double TotalScore()
     {
         return ifScore + elseScore + loopScore + switchScore + tryCatchScore + returnScore + argumentScore + nestingScore;
     }
