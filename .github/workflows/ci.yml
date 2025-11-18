@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore "Cognitive Code Analysis.sln"
+    
+    - name: Build
+      run: dotnet build "Cognitive Code Analysis.sln" --no-restore --configuration Release
+    
+    - name: Run tests
+      run: dotnet test "Cognitive Code Analysis.sln" --no-build --configuration Release --verbosity normal
