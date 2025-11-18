@@ -1,5 +1,8 @@
 ﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
+/// <summary>
+/// Represents the cognitive metrics for a method.
+/// </summary>
 public class CognitiveMetrics
 {
     // Metadata
