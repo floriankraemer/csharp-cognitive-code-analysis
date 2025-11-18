@@ -1,4 +1,5 @@
 ﻿using CognitiveCodeAnalysis.Configuration;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,17 +10,17 @@ public class CognitiveCodeAnalyser
 {
     public CognitiveMetricsCollection AnalyzeFiles(List<string> files, CognitiveConfiguration configuration)
     {
-        var metricsCollection = new CognitiveMetricsCollection();
+        CognitiveMetricsCollection metricsCollection = [];
 
         foreach (string file in files)
         {
             string fileContent = File.ReadAllText(file);
             SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
-            var root = tree.GetRoot();
+            SyntaxNode root = tree.GetRoot();
 
             // Find all classes
-            var classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-            foreach (var classNode in classNodes)
+            IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            foreach (ClassDeclarationSyntax classNode in classNodes)
             {
                 string fullClassName = GetFullyQualifiedClassName(classNode);
 
@@ -112,7 +113,7 @@ public class CognitiveCodeAnalyser
 
     private static int CalculateNestingLevels(MethodDeclarationSyntax methodNode, CognitiveConfiguration configuration)
     {
-        var body = methodNode.Body;
+        BlockSyntax? body = methodNode.Body;
         if (body == null)
         {
             // Expression-bodied methods have no body block
@@ -121,6 +122,7 @@ public class CognitiveCodeAnalyser
 
         int maxDepth = 0;
         CalculateNestingDepth(body, 0, ref maxDepth, null, configuration);
+
         return maxDepth;
     }
 
@@ -152,7 +154,7 @@ public class CognitiveCodeAnalyser
     private static void ProcessBlockSyntax(BlockSyntax block, int currentDepth, ref int maxDepth, CognitiveConfiguration configuration)
     {
         // BlockSyntax nodes don't increase nesting depth, just process children
-        foreach (var child in block.ChildNodes())
+        foreach (SyntaxNode child in block.ChildNodes())
         {
             CalculateNestingDepth(child, currentDepth, ref maxDepth, block, configuration);
         }
@@ -162,7 +164,7 @@ public class CognitiveCodeAnalyser
     {
         int depthForElse = CalculateElseDepth(currentDepth, ref maxDepth, configuration);
 
-        foreach (var child in elseClause.ChildNodes())
+        foreach (SyntaxNode child in elseClause.ChildNodes())
         {
             int childDepth = GetChildDepthForElse(child, currentDepth, depthForElse, configuration);
             CalculateNestingDepth(child, childDepth, ref maxDepth, elseClause, configuration);
@@ -197,7 +199,7 @@ public class CognitiveCodeAnalyser
 
         maxDepth = Math.Max(maxDepth, depthForIf);
 
-        foreach (var child in ifStatement.ChildNodes())
+        foreach (SyntaxNode child in ifStatement.ChildNodes())
         {
             CalculateNestingDepth(child, depthForIf, ref maxDepth, ifStatement, configuration);
         }
@@ -222,7 +224,7 @@ public class CognitiveCodeAnalyser
 
     private static void ProcessChildNodes(SyntaxNode node, int currentDepth, ref int maxDepth, CognitiveConfiguration configuration)
     {
-        foreach (var child in node.ChildNodes())
+        foreach (SyntaxNode child in node.ChildNodes())
         {
             CalculateNestingDepth(child, currentDepth, ref maxDepth, node, configuration);
         }

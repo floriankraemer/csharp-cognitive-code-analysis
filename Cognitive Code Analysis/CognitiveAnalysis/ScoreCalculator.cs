@@ -9,13 +9,13 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
     {
         foreach (KeyValuePair<string, MetricConfiguration> keyValuePair in configuration.Metrics)
         {
-            metrics = calculateMetric(metrics, keyValuePair);
+            metrics = CalculateMetric(metrics, keyValuePair);
         }
 
         return metrics;
     }
 
-    private static CognitiveMetrics calculateMetric(CognitiveMetrics metrics, KeyValuePair<string, MetricConfiguration> keyValuePair)
+    private static CognitiveMetrics CalculateMetric(CognitiveMetrics metrics, KeyValuePair<string, MetricConfiguration> keyValuePair)
     {
         if (!keyValuePair.Value.Enabled)
         {
@@ -24,7 +24,7 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
 
         string metricField = keyValuePair.Key;
 
-        var countField = metrics.GetType().GetField(metricField);
+        FieldInfo? countField = metrics.GetType().GetField(metricField);
         if (countField == null)
         {
             return metrics;

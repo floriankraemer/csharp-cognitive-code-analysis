@@ -24,7 +24,7 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
     private void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection)
     {
         var groupedByClass = metricsCollection
-            .GroupBy(m => new { m.ClassName, m.FilePath })
+            .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
             .OrderBy(g => g.Key.ClassName);
 
         foreach (var classGroup in groupedByClass)
@@ -78,6 +78,11 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
         return table;
     }
 
+    /// <summary>
+    /// Colorizes the metric score based on thresholds.
+    /// </summary>
+    /// <param name="score"></param>
+    /// <returns></returns>
     private static string ColorizeScore(double score)
     {
         (double, string)[] colorMap =
@@ -124,10 +129,24 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[bold cyan]Summary:[/]");
 
-        AnsiConsole.MarkupLine($"[blue]Total Classes Processed:[/] {metricsCollection.GetTotalClasses()}");
-        AnsiConsole.MarkupLine($"[blue]Total Methods Processed:[/] {metricsCollection.GetTotalMethods()}");
-        AnsiConsole.MarkupLine($"[yellow]Classes with Methods Exceeding Threshold:[/] {metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} ({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)");
-        AnsiConsole.MarkupLine($"[yellow]Methods Exceeding Threshold:[/] {metricsCollection.GetMethodsExceedingThreshold(scoreThreshold)} ({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)");
+        AnsiConsole.MarkupLine(
+            $"[blue]Total Classes Processed:[/] "
+            + $"{metricsCollection.GetTotalClasses()}"
+        );
+        AnsiConsole.MarkupLine(
+            $"[blue]Total Methods Processed:[/] "
+            + $"{metricsCollection.GetTotalMethods()}"
+        );
+        AnsiConsole.MarkupLine(
+            $"[yellow]Classes with Methods Exceeding Threshold:[/] "
+            + $"{metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} "
+            + "({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)"
+        );
+        AnsiConsole.MarkupLine(
+            $"[yellow]Methods Exceeding Threshold:[/] "
+            + $"{metricsCollection.GetMethodsExceedingThreshold(scoreThreshold)} "
+            + $"({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)"
+        );
         AnsiConsole.MarkupLine($"Threshold: {scoreThreshold:F3}");
     }
 }
