@@ -195,7 +195,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         AnsiConsole.MarkupLine(
             $"[yellow]Classes with Methods Exceeding Threshold:[/] "
             + $"{metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} "
-            + "({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)"
+            + $"({metricsCollection.GetClassesPercentage(scoreThreshold):F1}%)"
         );
         AnsiConsole.MarkupLine(
             $"[yellow]Methods Exceeding Threshold:[/] "

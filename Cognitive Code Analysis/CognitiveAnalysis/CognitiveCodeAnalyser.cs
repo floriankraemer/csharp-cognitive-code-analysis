@@ -8,8 +8,16 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class CognitiveCodeAnalyser
 {
-    public CognitiveMetricsCollection AnalyzeFiles(List<string> files, CognitiveConfiguration configuration)
-    {
+    /// <summary>
+    /// Takes a list of C# source code files and analyzes them to extract cognitive metrics for each method.
+    /// </summary>
+    /// <param name="files"></param>
+    /// <param name="configuration"></param>
+    /// <returns></returns>
+    public CognitiveMetricsCollection AnalyzeFiles(
+        List<string> files,
+        CognitiveConfiguration configuration
+    ) {
         CognitiveMetricsCollection metricsCollection = [];
 
         foreach (string file in files)
@@ -18,20 +26,32 @@ public class CognitiveCodeAnalyser
             SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
             SyntaxNode root = tree.GetRoot();
 
-            // Find all classes
-            IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-            foreach (ClassDeclarationSyntax classNode in classNodes)
-            {
-                metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file);
-            }
+            metricsCollection = AnalyseClasses(configuration, root, metricsCollection, file);
         }
 
         return metricsCollection;
     }
 
-    private CognitiveMetricsCollection ExtractMetricsFromClasses(CognitiveConfiguration configuration, ClassDeclarationSyntax classNode,
-        CognitiveMetricsCollection metricsCollection, string file)
-    {
+    private CognitiveMetricsCollection AnalyseClasses(
+        CognitiveConfiguration configuration,
+        SyntaxNode root,
+        CognitiveMetricsCollection metricsCollection, string file
+    ) {
+        IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        foreach (ClassDeclarationSyntax classNode in classNodes)
+        {
+            metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file);
+        }
+
+        return metricsCollection;
+    }
+
+    private CognitiveMetricsCollection ExtractMetricsFromClasses(
+        CognitiveConfiguration configuration,
+        ClassDeclarationSyntax classNode,
+        CognitiveMetricsCollection metricsCollection,
+        string file
+    ) {
         string fullClassName = GetFullyQualifiedClassName(classNode);
 
         // Find all methods in the class
@@ -88,7 +108,11 @@ public class CognitiveCodeAnalyser
                 .StartLinePosition.Line + 1;
     }
 
-    // Combine namespace, containing types, and class name
+    /// <summary>
+    /// Combine namespace, containing types, and class name
+    /// </summary>
+    /// <param name="classNode"></param>
+    /// <returns></returns>
     private static string GetFullyQualifiedClassName(ClassDeclarationSyntax classNode)
     {
         IEnumerable<string> containingTypes = CollectNestedClasses(classNode);
@@ -125,9 +149,10 @@ public class CognitiveCodeAnalyser
     private static int CalculateNestingLevels(MethodDeclarationSyntax methodNode, CognitiveConfiguration configuration)
     {
         BlockSyntax? body = methodNode.Body;
+
+        // Expression-bodied methods have no body block
         if (body == null)
         {
-            // Expression-bodied methods have no body block
             return 0;
         }
 
@@ -167,8 +192,12 @@ public class CognitiveCodeAnalyser
         ProcessChildNodes(node, currentDepth, ref maxDepth, configuration);
     }
 
-    private static void ProcessBlockSyntax(BlockSyntax block, int currentDepth, ref int maxDepth, CognitiveConfiguration configuration)
-    {
+    private static void ProcessBlockSyntax(
+        BlockSyntax block,
+        int currentDepth,
+        ref int maxDepth,
+        CognitiveConfiguration configuration
+    ) {
         // BlockSyntax nodes don't increase nesting depth, just process children
         foreach (SyntaxNode child in block.ChildNodes())
         {
@@ -297,15 +326,7 @@ public class CognitiveCodeAnalyser
             return false;
         }
 
-        // Check for increment/decrement operations (++ and --)
-        if (allNodes.OfType<PostfixUnaryExpressionSyntax>()
-            .Any(e => e.Kind() == SyntaxKind.PostIncrementExpression || e.Kind() == SyntaxKind.PostDecrementExpression))
-        {
-            return false;
-        }
-
-        if (allNodes.OfType<PrefixUnaryExpressionSyntax>()
-            .Any(e => e.Kind() == SyntaxKind.PreIncrementExpression || e.Kind() == SyntaxKind.PreDecrementExpression))
+        if (!IsIncrementDecrementOperation(allNodes))
         {
             return false;
         }
@@ -341,6 +362,28 @@ public class CognitiveCodeAnalyser
         }
 
         // If none of the above side effects are found, consider the method pure
+        return true;
+    }
+
+    /// <summary>
+    /// Check for increment/decrement operations (++ and --)
+    /// </summary>
+    /// <param name="allNodes"></param>
+    /// <returns></returns>
+    private static bool IsIncrementDecrementOperation(IEnumerable<SyntaxNode> allNodes)
+    {
+        if (allNodes.OfType<PostfixUnaryExpressionSyntax>()
+            .Any(e => e.Kind() == SyntaxKind.PostIncrementExpression || e.Kind() == SyntaxKind.PostDecrementExpression))
+        {
+            return false;
+        }
+
+        if (allNodes.OfType<PrefixUnaryExpressionSyntax>()
+            .Any(e => e.Kind() == SyntaxKind.PreIncrementExpression || e.Kind() == SyntaxKind.PreDecrementExpression))
+        {
+            return false;
+        }
+
         return true;
     }
 

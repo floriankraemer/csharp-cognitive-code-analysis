@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Text;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -175,5 +175,3 @@ public class HtmlReport : ReportInterface
         return System.Net.WebUtility.HtmlEncode(text);
     }
 }
-
-

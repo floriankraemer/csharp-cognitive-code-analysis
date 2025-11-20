@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Reflection;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -105,7 +104,7 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
     private static string GetCurrentDirectory()
     {
-        string? directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        string? directory = Path.GetDirectoryName(AppContext.BaseDirectory);
 
         if (directory == null)
         {

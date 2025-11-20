@@ -20,8 +20,8 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
-    /// Builds and configures services with IOptions<CognitiveConfiguration> pattern.
-    /// Returns a service provider that can be used to resolve IOptions<CognitiveConfiguration>.
+    /// Builds and configures services with IOptions&lt;CognitiveConfiguration&gt; pattern.
+    /// Returns a service provider that can be used to resolve IOptions&lt;CognitiveConfiguration&gt;.
     /// </summary>
     public static IServiceProvider ConfigureServices()
     {
@@ -47,7 +47,7 @@ public static class ConfigurationLoader
     {
         return new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false)
             .Build();
     }
 }
