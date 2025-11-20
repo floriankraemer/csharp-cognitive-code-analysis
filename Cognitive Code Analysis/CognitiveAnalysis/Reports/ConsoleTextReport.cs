@@ -1,19 +1,23 @@
-﻿using Spectre.Console;
+﻿using CognitiveCodeAnalysis.Configuration;
+using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold = 0.0) : ReportInterface
+public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInterface
 {
     public void RenderMetrics(CognitiveMetricsCollection metricsCollection)
     {
-        if (groupByClass)
+        // Filter metrics if ShowOnlyMethodsExceedingThreshold is enabled
+        CognitiveMetricsCollection filteredCollection = FilterMetrics(metricsCollection);
+
+        if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(metricsCollection);
+            RenderMetricsGrouped(filteredCollection);
             RenderSummary(metricsCollection);
             return;
         }
 
-        foreach (CognitiveMetrics metrics in metricsCollection)
+        foreach (CognitiveMetrics metrics in filteredCollection)
         {
             RenderMetrics(metrics);
         }
@@ -30,6 +34,13 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
         foreach (var classGroup in groupedByClass)
         {
             List<CognitiveMetrics> classMetrics = classGroup.ToList();
+
+            // Skip classes with no metrics (after filtering)
+            if (classMetrics.Count == 0)
+            {
+                continue;
+            }
+
             CognitiveMetrics firstMetric = classMetrics.First();
 
             AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(firstMetric.ClassName)}");
@@ -47,6 +58,32 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
         }
+    }
+
+    /// <summary>
+    /// Filters the metrics collection based on ShowOnlyMethodsExceedingThreshold configuration.
+    /// </summary>
+    /// <param name="metricsCollection">The original metrics collection</param>
+    /// <returns>Filtered metrics collection</returns>
+    private CognitiveMetricsCollection FilterMetrics(CognitiveMetricsCollection metricsCollection)
+    {
+        if (!configuration.ShowOnlyMethodsExceedingThreshold)
+        {
+            return metricsCollection;
+        }
+
+        double scoreThreshold = configuration.ScoreThreshold;
+        CognitiveMetricsCollection filtered = new();
+
+        foreach (CognitiveMetrics metrics in metricsCollection)
+        {
+            if (metrics.TotalScore() > scoreThreshold)
+            {
+                filtered.Add(metrics);
+            }
+        }
+
+        return filtered;
     }
 
     private static void RenderMetrics(CognitiveMetrics metrics)
@@ -72,10 +109,23 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
             metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
             metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
-            metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")"
+            metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")",
+            FormatPureStatus(metrics.IsPure)
         );
 
         return table;
+    }
+
+    /// <summary>
+    /// Formats the pure method status with a checkmark or cross icon.
+    /// </summary>
+    /// <param name="isPure">True if the method is pure, false otherwise</param>
+    /// <returns>Formatted string with UTF-8 icon</returns>
+    private static string FormatPureStatus(bool isPure)
+    {
+        return isPure
+            ? "[green]✓[/]"  // Green checkmark
+            : "[red]✗[/]";    // Red cross
     }
 
     /// <summary>
@@ -115,6 +165,10 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
         table.AddColumn("Arguments");
         table.AddColumn("Nesting");
         table.AddColumn("Returns");
+        table.AddColumn("Pure");
+
+        // Center the Pure column
+        table.Columns[^1].Alignment = Justify.Center;
 
         return table;
     }
@@ -128,6 +182,7 @@ public class ConsoleTextReport(bool groupByClass = true, double scoreThreshold =
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[bold cyan]Summary:[/]");
+        double scoreThreshold = configuration.ScoreThreshold;
 
         AnsiConsole.MarkupLine(
             $"[blue]Total Classes Processed:[/] "

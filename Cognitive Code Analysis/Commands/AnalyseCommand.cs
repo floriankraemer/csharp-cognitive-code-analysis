@@ -13,7 +13,6 @@ namespace CognitiveCodeAnalysis.Commands;
 internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 {
     private const int Success = 0;
-    private const int Error = 1;
 
     public sealed class Settings : CommandSettings
     {
@@ -43,7 +42,7 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
         CognitiveConfiguration configuration = ConfigurationLoader.Load();
         ScoreCalculator calculator = new(configuration);
 
-        var searchPath = settings.SourcePath ?? GetCurrentDirectory();
+        string searchPath = settings.SourcePath ?? GetCurrentDirectory();
         string absoluteSearchPath = Path.GetFullPath(searchPath);
 
         AnsiConsole.MarkupLine($"[cyan]Analyzing C# files in:[/] [green]{Markup.Escape(absoluteSearchPath)}[/]");
@@ -91,26 +90,17 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
         string reportType = settings.ReportType ?? "ConsoleText";
         string outputFile = settings.OutputFile ?? "cognitive-analysis-report";
 
-        // Add .html extension if report type is Html and no extension is provided
-        if (reportType == "Html" && !outputFile.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
-        {
-            outputFile += ".html";
-        }
-
         ReportInterface reporter = reportType switch
         {
-            "ConsoleText" => new ConsoleTextReport(configuration.GroupByClass, configuration.ScoreThreshold),
+            "ConsoleText" => new ConsoleTextReport(configuration),
             "Html" => new HtmlReport(outputFile, configuration.GroupByClass),
             _ => throw new ArgumentException($"Invalid report type: {reportType}")
         };
 
         reporter.RenderMetrics(metricsCollection);
 
-        if (reportType == "Html")
-        {
-            string fullPath = Path.GetFullPath(outputFile);
-            AnsiConsole.MarkupLine($"[green]HTML report generated:[/] {Markup.Escape(fullPath)}");
-        }
+        string fullPath = Path.GetFullPath(outputFile);
+        AnsiConsole.MarkupLine($"[green]{reportType} report generated:[/] {Markup.Escape(fullPath)}");
     }
 
     private static string GetCurrentDirectory()

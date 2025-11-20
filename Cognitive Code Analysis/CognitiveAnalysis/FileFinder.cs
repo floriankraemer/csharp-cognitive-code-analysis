@@ -1,4 +1,4 @@
-﻿namespace CognitiveCodeAnalysis;
+﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class FileFinder
 {

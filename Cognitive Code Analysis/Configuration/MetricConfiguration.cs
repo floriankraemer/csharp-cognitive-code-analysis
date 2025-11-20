@@ -1,4 +1,4 @@
-namespace CognitiveCodeAnalysis.Configuration;
+﻿namespace CognitiveCodeAnalysis.Configuration;
 
 public class MetricConfiguration
 {
@@ -6,4 +6,3 @@ public class MetricConfiguration
     public double Scale { get; set; }
     public bool Enabled { get; set; }
 }
-

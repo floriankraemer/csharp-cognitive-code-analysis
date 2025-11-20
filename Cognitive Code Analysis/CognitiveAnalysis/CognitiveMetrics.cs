@@ -38,6 +38,8 @@ public class CognitiveMetrics
     public int nestingLevels = 0;
     public double nestingScore = 0;
 
+    public bool IsPure { get; set; } = false;
+
     public CognitiveMetrics(
         string methodName,
         string className,
@@ -52,7 +54,8 @@ public class CognitiveMetrics
         int returnCount = 0,
         int argumentCount = 0,
         int linesOfCode = 0,
-        int nestingLevels = 0
+        int nestingLevels = 0,
+        bool isPure = false
     )
     {
         this.MethodName = methodName;
@@ -69,6 +72,7 @@ public class CognitiveMetrics
         this.argumentCount = argumentCount;
         this.linesOfCode = linesOfCode;
         this.nestingLevels = nestingLevels;
+        this.IsPure = isPure;
     }
 
     public double TotalScore()

@@ -15,8 +15,10 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
         return metrics;
     }
 
-    private static CognitiveMetrics CalculateMetric(CognitiveMetrics metrics, KeyValuePair<string, MetricConfiguration> keyValuePair)
-    {
+    private static CognitiveMetrics CalculateMetric(
+        CognitiveMetrics metrics,
+        KeyValuePair<string, MetricConfiguration> keyValuePair
+    ) {
         if (!keyValuePair.Value.Enabled)
         {
             return metrics;
@@ -37,13 +39,16 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
         }
 
         double count = Convert.ToDouble(countValue);
-        double score = CalculateLogWeight(count, keyValuePair.Value.Threshold, keyValuePair.Value.Scale);
+        double score = CalculateLogWeight(
+            value: count,
+            threshold: keyValuePair.Value.Threshold,
+            scale: keyValuePair.Value.Scale
+        );
 
         // Set score to field with same name but "Score" suffix (e.g., "ifCount" -> "ifScore", "nestingLevels" -> "nestingScore")
         string scoreFieldName = metricField.Replace("Count", "Score").Replace("Levels", "Score");
         FieldInfo? scoreField = metrics.GetType().GetField(scoreFieldName);
 
-        // Only set if the field exists and is of type double (to avoid setting int fields with double values)
         if (scoreField != null && scoreField.FieldType == typeof(double))
         {
             scoreField.SetValue(metrics, score);
