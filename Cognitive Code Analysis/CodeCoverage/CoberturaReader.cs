@@ -18,6 +18,10 @@ public class CoberturaReader : CoverageReaderInterface
     {
         XElement coverageElement = LoadXmlData(filePath);
 
+        // Get source paths from the coverage XML
+        List<string> sourcePaths = GetSourcePaths(coverageElement);
+        string? baseSourcePath = sourcePaths.FirstOrDefault();
+
         List<Coverage> coverageList = [];
 
         // Process all packages
@@ -36,6 +40,9 @@ public class CoberturaReader : CoverageReaderInterface
                     ? className
                     : $"{packageName}.{className}";
 
+                // Construct absolute file path
+                string absoluteFilePath = ConstructAbsolutePath(fileName, baseSourcePath);
+
                 // Get class-level metrics
                 int classLinesCovered = ParseIntAttribute(classElement, "lines-covered", 0);
                 int classLinesTotal = ParseIntAttribute(classElement, "lines-valid", 0);
@@ -47,7 +54,7 @@ public class CoberturaReader : CoverageReaderInterface
                 coverageList.Add(new Coverage
                 {
                     FullyQualifiedClassName = fullyQualifiedClassName,
-                    FilePath = fileName,
+                    FilePath = absoluteFilePath,
                     MethodName = string.Empty,
                     MethodLineNumber = 0,
                     LinesCovered = classLinesCovered,
@@ -77,7 +84,7 @@ public class CoberturaReader : CoverageReaderInterface
                     coverageList.Add(new Coverage
                     {
                         FullyQualifiedClassName = fullyQualifiedClassName,
-                        FilePath = fileName,
+                        FilePath = absoluteFilePath,
                         MethodName = methodName,
                         MethodLineNumber = methodLineNumber,
                         LinesCovered = methodLinesCovered,
@@ -91,6 +98,69 @@ public class CoberturaReader : CoverageReaderInterface
         }
 
         return coverageList;
+    }
+
+    /// <summary>
+    /// Gets the source paths from the coverage XML element.
+    /// </summary>
+    private static List<string> GetSourcePaths(XElement coverageElement)
+    {
+        List<string> sourcePaths = [];
+        XElement? sourcesElement = coverageElement.Element("sources");
+        if (sourcesElement != null)
+        {
+            foreach (XElement sourceElement in sourcesElement.Elements("source"))
+            {
+                string? sourcePath = sourceElement.Value;
+                if (!string.IsNullOrEmpty(sourcePath))
+                {
+                    sourcePaths.Add(sourcePath);
+                }
+            }
+        }
+        return sourcePaths;
+    }
+
+    /// <summary>
+    /// Constructs an absolute file path from a relative filename and base source path.
+    /// </summary>
+    private static string ConstructAbsolutePath(string fileName, string? baseSourcePath)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return string.Empty;
+        }
+
+        // If already absolute, return as is
+        if (Path.IsPathRooted(fileName))
+        {
+            return Path.GetFullPath(fileName);
+        }
+
+        // If we have a base source path, combine it with the filename
+        if (!string.IsNullOrEmpty(baseSourcePath))
+        {
+            try
+            {
+                // Normalize the base source path
+                string normalizedBase = Path.GetFullPath(baseSourcePath);
+                return Path.GetFullPath(Path.Combine(normalizedBase, fileName));
+            }
+            catch
+            {
+                // If path combination fails, try to use the filename as-is
+            }
+        }
+
+        // Fallback: try to resolve relative to current directory
+        try
+        {
+            return Path.GetFullPath(fileName);
+        }
+        catch
+        {
+            return fileName;
+        }
     }
 
     /// <summary>

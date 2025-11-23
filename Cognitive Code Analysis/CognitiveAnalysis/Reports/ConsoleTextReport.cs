@@ -10,22 +10,26 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         // Filter metrics if ShowOnlyMethodsExceedingThreshold is enabled
         CognitiveMetricsCollection filteredCollection = FilterMetrics(metricsCollection);
 
+        // Check if any metrics have coverage data (check original collection, not filtered)
+        bool hasCoverageData = metricsCollection.Any(m =>
+            m.LineCoveragePercentage.HasValue || m.BranchCoveragePercentage.HasValue);
+
         if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(filteredCollection);
+            RenderMetricsGrouped(filteredCollection, hasCoverageData);
             RenderSummary(metricsCollection);
             return;
         }
 
         foreach (CognitiveMetrics metrics in filteredCollection)
         {
-            RenderMetrics(metrics);
+            RenderMetrics(metrics, hasCoverageData);
         }
 
         RenderSummary(metricsCollection);
     }
 
-    private void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection)
+    private void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection, bool hasCoverageData)
     {
         var groupedByClass = metricsCollection
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
@@ -47,12 +51,12 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
 
             Table table = new();
-            table = AddTableHeaders(table);
+            table = AddTableHeaders(table, hasCoverageData);
             table.ShowRowSeparators();
 
             foreach (CognitiveMetrics metrics in classMetrics)
             {
-                table = AddTableRow(table, metrics);
+                table = AddTableRow(table, metrics, hasCoverageData);
             }
 
             AnsiConsole.Write(table);
@@ -86,13 +90,13 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         return filtered;
     }
 
-    private static void RenderMetrics(CognitiveMetrics metrics)
+    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData)
     {
         RenderMetricsSummary(metrics);
 
         Table table = new();
-        table = AddTableHeaders(table);
-        table = AddTableRow(table, metrics);
+        table = AddTableHeaders(table, hasCoverageData);
+        table = AddTableRow(table, metrics, hasCoverageData);
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -100,9 +104,11 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
 
     private static Table AddTableRow(
         Table table,
-        CognitiveMetrics metrics
+        CognitiveMetrics metrics,
+        bool hasCoverageData
     ) {
-        table.AddRow(
+        var rowData = new List<string>
+        {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
             ColorizeScore(metrics.TotalScore),
             metrics.linesOfCode.ToString(),
@@ -111,7 +117,14 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
             metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")",
             FormatPureStatus(metrics.IsPure)
-        );
+        };
+
+        if (hasCoverageData)
+        {
+            rowData.Add(FormatCoverage(metrics));
+        }
+
+        table.AddRow(rowData.ToArray());
 
         return table;
     }
@@ -126,6 +139,63 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         return isPure
             ? "[green]✓[/]"  // Green checkmark
             : "[red]✗[/]";    // Red cross
+    }
+
+    /// <summary>
+    /// Formats coverage percentages for display.
+    /// Shows both line and branch coverage if available, or "n/a" if no coverage data.
+    /// </summary>
+    /// <param name="metrics">The cognitive metrics with coverage data</param>
+    /// <returns>Formatted string with coverage percentages, or "n/a" if no coverage</returns>
+    private static string FormatCoverage(CognitiveMetrics metrics)
+    {
+        bool hasLineCoverage = metrics.LineCoveragePercentage.HasValue;
+        bool hasBranchCoverage = metrics.BranchCoveragePercentage.HasValue;
+
+        if (!hasLineCoverage && !hasBranchCoverage)
+        {
+            return "[dim]n/a[/]";
+        }
+
+        var parts = new List<string>();
+
+        if (hasLineCoverage)
+        {
+            double lineCoverage = metrics.LineCoveragePercentage!.Value;
+            string lineColor = GetCoverageColor(lineCoverage);
+            parts.Add($"[{lineColor}]Line: {lineCoverage:F1}%[/]");
+        }
+
+        if (hasBranchCoverage)
+        {
+            double branchCoverage = metrics.BranchCoveragePercentage!.Value;
+            string branchColor = GetCoverageColor(branchCoverage);
+            parts.Add($"[{branchColor}]Branch: {branchCoverage:F1}%[/]");
+        }
+
+        return string.Join(" | ", parts);
+    }
+
+    /// <summary>
+    /// Gets the color for coverage percentage based on thresholds.
+    /// Green >= 80%, Yellow >= 50%, Red < 50%
+    /// </summary>
+    /// <param name="coverage">Coverage percentage (0-100)</param>
+    /// <returns>Color name for markup</returns>
+    private static string GetCoverageColor(double coverage)
+    {
+        if (coverage >= 80.0)
+        {
+            return "green";
+        }
+        else if (coverage >= 50.0)
+        {
+            return "yellow";
+        }
+        else
+        {
+            return "red";
+        }
     }
 
     /// <summary>
@@ -156,7 +226,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         AnsiConsole.WriteLine();
     }
 
-    private static Table AddTableHeaders(Table table)
+    private static Table AddTableHeaders(Table table, bool hasCoverageData)
     {
         table.AddColumn("Method");
         table.AddColumn("Score");
@@ -167,8 +237,14 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         table.AddColumn("Returns");
         table.AddColumn("Pure");
 
+        if (hasCoverageData)
+        {
+            table.AddColumn("Coverage");
+        }
+
         // Center the Pure column
-        table.Columns[^1].Alignment = Justify.Center;
+        int pureColumnIndex = hasCoverageData ? table.Columns.Count - 2 : table.Columns.Count - 1;
+        table.Columns[pureColumnIndex].Alignment = Justify.Center;
 
         return table;
     }

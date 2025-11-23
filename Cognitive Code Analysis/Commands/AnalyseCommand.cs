@@ -2,6 +2,7 @@
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
+using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.Configuration;
 
 using Spectre.Console;
@@ -34,6 +35,10 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
         [Description("Output file")]
         [CommandOption("-o|--output-file")]
         public string? OutputFile { get; init; }
+
+        [Description("Path to Cobertura coverage report file")]
+        [CommandOption("--coverage-cobertura")]
+        public string? CoverageCobertura { get; init; }
     }
 
     public override int Execute(
@@ -54,10 +59,18 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
         if (!FilesWereFound(files, absoluteSourcePath)) return Error;
 
+        CognitiveMetricsCollection metricsCollection = AnalyseCsharpFiles(analyser, configuration, calculator, files);
+
+        // Load and match coverage data if provided
+        if (!string.IsNullOrEmpty(settings.CoverageCobertura))
+        {
+            LoadCoverageData(settings.CoverageCobertura, metricsCollection);
+        }
+
         RenderReport(
             settings: settings,
             configuration: configuration,
-            metricsCollection: AnalyseCsharpFiles(analyser, configuration, calculator, files)
+            metricsCollection: metricsCollection
         );
 
         return Success;
@@ -73,7 +86,7 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
     private static bool FilesWereFound(List<string> files, string absoluteSourcePath)
     {
-        if (files.Count > 0)
+        if (files.Count == 0)
         {
             AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSourcePath}.[/]");
             return false;
@@ -115,5 +128,43 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
     private void OnReportGenerated(object? sender, ReportGeneratedEventArgs e)
     {
         AnsiConsole.MarkupLine($"[green]{e.ReportType} report generated:[/] {Markup.Escape(e.FullPath)}");
+    }
+
+    private static void LoadCoverageData(string coverageFilePath, CognitiveMetricsCollection metricsCollection)
+    {
+        try
+        {
+            CoberturaReader reader = new();
+            IEnumerable<Coverage> coverageData = reader.ReadCoverage(coverageFilePath);
+            var coverageList = coverageData.ToList();
+
+            Dictionary<CognitiveMetrics, Coverage> matches = CoverageMatcher.MatchCoverageToMetrics(
+                metricsCollection,
+                coverageList
+            );
+
+            foreach (var (metrics, coverage) in matches)
+            {
+                metrics.LineCoveragePercentage = coverage.LineCoveragePercentage;
+                metrics.BranchCoveragePercentage = coverage.BranchCoveragePercentage;
+            }
+
+            if (matches.Count > 0)
+            {
+                AnsiConsole.MarkupLine($"[green]Matched coverage data for {matches.Count} method(s)[/]");
+            }
+            else if (coverageList.Count > 0)
+            {
+                AnsiConsole.MarkupLine($"[yellow]Warning: Loaded {coverageList.Count} coverage entries but found no matches with metrics[/]");
+            }
+        }
+        catch (FileNotFoundException ex)
+        {
+            AnsiConsole.MarkupLine($"[yellow]Warning: Coverage file not found:[/] {Markup.Escape(ex.FileName ?? coverageFilePath)}");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[yellow]Warning: Failed to load coverage data:[/] {Markup.Escape(ex.Message)}");
+        }
     }
 }

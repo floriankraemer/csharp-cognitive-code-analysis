@@ -42,6 +42,10 @@ public class CognitiveMetrics
 
     public double cyclomaticComplexity = 0;
 
+    public double? LineCoveragePercentage = null;
+
+    public double? BranchCoveragePercentage = null;
+
     public bool IsPure = false;
 
     public CognitiveMetrics(
