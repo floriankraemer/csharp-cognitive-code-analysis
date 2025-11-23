@@ -40,7 +40,9 @@ public class CognitiveMetrics
 
     public double TotalScore = 0;
 
-    public bool IsPure { get; set; } = false;
+    public double cyclomaticComplexity = 0;
+
+    public bool IsPure = false;
 
     public CognitiveMetrics(
         string methodName,
@@ -57,7 +59,8 @@ public class CognitiveMetrics
         int argumentCount = 0,
         int linesOfCode = 0,
         int nestingLevels = 0,
-        bool isPure = false
+        bool isPure = false,
+        double cyclomaticComplexity = 0
     )
     {
         this.MethodName = methodName;
@@ -75,5 +78,6 @@ public class CognitiveMetrics
         this.linesOfCode = linesOfCode;
         this.nestingLevels = nestingLevels;
         this.IsPure = isPure;
+        this.cyclomaticComplexity = cyclomaticComplexity;
     }
 }
