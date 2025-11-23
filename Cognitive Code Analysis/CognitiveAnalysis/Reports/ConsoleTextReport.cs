@@ -77,7 +77,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
 
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
-            if (metrics.TotalScore() > scoreThreshold)
+            if (metrics.TotalScore > scoreThreshold)
             {
                 filtered.Add(metrics);
             }
@@ -104,7 +104,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     ) {
         table.AddRow(
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
-            ColorizeScore(metrics.TotalScore()),
+            ColorizeScore(metrics.TotalScore),
             metrics.linesOfCode.ToString(),
             metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",

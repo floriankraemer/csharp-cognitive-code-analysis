@@ -8,10 +8,10 @@ Cognitive Code Analysis is an approach to understanding and improving code by fo
 
 ## Running the Analysis 🧑‍💻
 
-The tool analyzes C# files and generates cognitive complexity reports. Run the analysis using:
+The tool analyses C# files and generates cognitive complexity reports. Run the analysis using:
 
 ```powershell
-CognitiveCodeAnalysis [searchPath] [options]
+CognitiveCodeAnalysis [sourcePath] [options]
 ```
 
 **Arguments:**
@@ -27,10 +27,10 @@ CognitiveCodeAnalysis [searchPath] [options]
 **Examples:**
 
 ```powershell
-# Analyze current directory with console output
+# Analyse current directory with console output
 CognitiveCodeAnalysis
 
-# Analyze a specific directory
+# Analyse a specific directory
 CognitiveCodeAnalysis ./src
 
 # Generate an HTML report

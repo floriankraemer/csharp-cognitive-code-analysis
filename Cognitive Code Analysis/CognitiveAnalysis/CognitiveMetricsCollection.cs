@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Runtime.InteropServices.JavaScript;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
@@ -34,7 +33,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     public int GetMethodsExceedingThreshold(double threshold)
     {
         return this
-            .Count(metrics => metrics.TotalScore() > threshold);
+            .Count(metrics => metrics.TotalScore > threshold);
     }
 
     /// <summary>
@@ -47,7 +46,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     {
         return this
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
-            .Count(g => g.Any(metrics => metrics.TotalScore() > threshold));
+            .Count(g => g.Any(metrics => metrics.TotalScore > threshold));
     }
 
     /// <summary>

@@ -98,7 +98,7 @@ public class HtmlReport : ReportInterface
             {
                 html.AppendLine("                    <tr>");
                 html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore())}\">{metrics.TotalScore():F3}</span></td>");
+                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore)}\">{metrics.TotalScore:F3}</span></td>");
                 html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
                 html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
@@ -143,7 +143,7 @@ public class HtmlReport : ReportInterface
             html.AppendLine("                <tbody>");
             html.AppendLine("                    <tr>");
             html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore())}\">{metrics.TotalScore():F3}</span></td>");
+            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore)}\">{metrics.TotalScore:F3}</span></td>");
             html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
             html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");

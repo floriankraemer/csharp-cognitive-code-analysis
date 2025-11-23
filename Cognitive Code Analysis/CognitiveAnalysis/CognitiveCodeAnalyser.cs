@@ -9,12 +9,12 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 public class CognitiveCodeAnalyser
 {
     /// <summary>
-    /// Takes a list of C# source code files and analyzes them to extract cognitive metrics for each method.
+    /// Takes a list of C# source code files and analyses them to extract cognitive metrics for each method.
     /// </summary>
     /// <param name="files"></param>
     /// <param name="configuration"></param>
     /// <returns></returns>
-    public CognitiveMetricsCollection AnalyzeFiles(
+    public CognitiveMetricsCollection AnalyseFiles(
         List<string> files,
         CognitiveConfiguration configuration
     ) {
@@ -302,14 +302,80 @@ public class CognitiveCodeAnalyser
     }
 
     /// <summary>
+    /// Calculates and sets the total score for the given metrics.
+    /// </summary>
+    /// <param name="metrics">The cognitive metrics to calculate the total score for</param>
+    public static void CalculateTotalScore(CognitiveMetrics metrics)
+    {
+        metrics.TotalScore = metrics.ifScore + metrics.elseScore + metrics.loopScore + metrics.switchScore +
+                             metrics.tryCatchScore + metrics.returnScore + metrics.argumentScore + metrics.nestingScore;
+    }
+
+    /// <summary>
+    /// Calculates the cyclomatic complexity of a method.
+    /// Cyclomatic complexity is a quantitative measure of the number of linearly independent paths through a program's source code.
+    /// Formula: M = number of decision points + 1
+    /// Reference: https://en.wikipedia.org/wiki/Cyclomatic_complexity
+    /// </summary>
+    /// <param name="methodNode">The method declaration to analyse</param>
+    /// <returns>The cyclomatic complexity value (minimum is 1 for a method with no decision points)</returns>
+    public static int CalculateCyclomaticComplexity(MethodDeclarationSyntax methodNode)
+    {
+        // Methods with no body have complexity 1 (single path)
+        if (methodNode.Body == null && methodNode.ExpressionBody == null)
+        {
+            return 1;
+        }
+
+        // Get all descendant nodes from either body type
+        IEnumerable<SyntaxNode> allNodes = methodNode.Body != null
+            ? methodNode.Body.DescendantNodes()
+            : methodNode.ExpressionBody!.DescendantNodes();
+
+        int decisionPoints = 0;
+
+        // Count if statements (each if is a decision point)
+        decisionPoints += allNodes.OfType<IfStatementSyntax>().Count();
+
+        // Count loops (while, for, foreach, do-while)
+        decisionPoints += allNodes.OfType<WhileStatementSyntax>().Count();
+        decisionPoints += allNodes.OfType<ForStatementSyntax>().Count();
+        decisionPoints += allNodes.OfType<ForEachStatementSyntax>().Count();
+        decisionPoints += allNodes.OfType<DoStatementSyntax>().Count();
+
+        // Count switch cases (each case section is a decision point)
+        var switchStatements = allNodes.OfType<SwitchStatementSyntax>().ToList();
+        foreach (var switchStatement in switchStatements)
+        {
+            // Count switch sections (cases and default) - each section is a decision point
+            decisionPoints += switchStatement.Sections.Count;
+        }
+
+        // Count catch clauses (each catch is a decision point)
+        decisionPoints += allNodes.OfType<CatchClauseSyntax>().Count();
+
+        // Count conditional operators (ternary ? :)
+        decisionPoints += allNodes.OfType<ConditionalExpressionSyntax>().Count();
+
+        // Count logical operators in conditions (&&, ||)
+        // These create additional decision points within if/while conditions
+        decisionPoints += allNodes.OfType<BinaryExpressionSyntax>()
+            .Count(e => e.OperatorToken.IsKind(SyntaxKind.AmpersandAmpersandToken) ||
+                       e.OperatorToken.IsKind(SyntaxKind.BarBarToken));
+
+        // Cyclomatic complexity = decision points + 1
+        return decisionPoints + 1;
+    }
+
+    /// <summary>
     /// Determines if a method is pure (has no side effects).
     /// A pure method always returns the same output for the same input and doesn't modify state.
     /// </summary>
-    /// <param name="methodNode">The method declaration to analyze</param>
+    /// <param name="methodNode">The method declaration to analyse</param>
     /// <returns>True if the method appears to be pure, false otherwise</returns>
     private static bool IsPureMethod(MethodDeclarationSyntax methodNode)
     {
-        // Methods with no body (abstract, extern, etc.) cannot be analyzed
+        // Methods with no body (abstract, extern, etc.) cannot be analysed
         if (methodNode.Body == null && methodNode.ExpressionBody == null)
         {
             return false;
