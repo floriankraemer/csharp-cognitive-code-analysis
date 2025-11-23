@@ -54,7 +54,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     /// Calculates the percentage of methods that exceed the specified threshold.
     /// </summary>
     /// <param name="threshold">The score threshold to compare against</param>
-    /// <returns>The percentage of methods exceeding the threshold (0.0 to 100.0), or 0.0 if there are no methods</returns>
+    /// <returns>The percentage of methods exceeding the threshold.</returns>
     public double GetMethodsPercentage(double threshold)
     {
         int totalMethods = GetTotalMethods();

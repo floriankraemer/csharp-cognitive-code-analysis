@@ -15,7 +15,7 @@ public class FileFinder
 
             // Normalize the path - remove surrounding quotes and whitespace, then get full path
             string normalizedDirectory = directory.Trim().Trim('"', '\'');
-            
+
             try
             {
                 // Get the full absolute path - this will normalize the path properly
@@ -26,7 +26,7 @@ public class FileFinder
                 // If path is invalid, skip it
                 continue;
             }
-            
+
             if (!Directory.Exists(normalizedDirectory))
             {
                 continue;
@@ -34,12 +34,11 @@ public class FileFinder
 
             try
             {
-                var foundFiles = Directory.GetFiles(normalizedDirectory, "*.cs", SearchOption.AllDirectories);
+                string[] foundFiles = Directory.GetFiles(normalizedDirectory, "*.cs", SearchOption.AllDirectories);
                 files.AddRange(foundFiles);
             }
             catch
-            {
-                // If we can't access the directory, skip it
+            {   // If we can't access the directory, skip it
                 continue;
             }
         }

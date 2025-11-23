@@ -57,12 +57,12 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
         return metrics;
     }
 
-    private static double CalculateLogWeight(double value, double threshold, double scale = 1.0)
-    {
-        if (value <= threshold)
-        {
-            return 0.0;
-        }
+    private static double CalculateLogWeight(
+        double value,
+        double threshold,
+        double scale = 1.0
+    ) {
+        if (value <= threshold) return 0.0;
 
         return Math.Log(1 + (value - threshold) / scale);
     }

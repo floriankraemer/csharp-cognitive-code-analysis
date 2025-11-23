@@ -6,7 +6,7 @@ namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 public class ScoreCalculatorTests
 {
     [Fact]
-    public void TestScoreCalculation()
+    public void CalculateScores_WithValidMetric()
     {
         CognitiveMetrics metrics = new CognitiveMetrics(
             methodName: "TestMethod",

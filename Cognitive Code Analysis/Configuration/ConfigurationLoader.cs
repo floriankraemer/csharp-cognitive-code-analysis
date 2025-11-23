@@ -11,7 +11,7 @@ public static class ConfigurationLoader
     /// </summary>
     public static CognitiveConfiguration Load(string? configFilePath = null)
     {
-        IConfigurationRoot configuration = BuildConfiguration();
+        IConfigurationRoot configuration = BuildConfiguration(configFilePath);
 
         CognitiveConfiguration cognitiveConfig = new();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
@@ -23,9 +23,9 @@ public static class ConfigurationLoader
     /// Builds and configures services with IOptions&lt;CognitiveConfiguration&gt; pattern.
     /// Returns a service provider that can be used to resolve IOptions&lt;CognitiveConfiguration&gt;.
     /// </summary>
-    public static IServiceProvider ConfigureServices()
+    public static IServiceProvider ConfigureServices(string? configFilePath = null)
     {
-        IConfigurationRoot configuration = BuildConfiguration();
+        IConfigurationRoot configuration = BuildConfiguration(configFilePath);
 
         IServiceCollection services = new ServiceCollection();
         services.Configure<CognitiveConfiguration>(configuration.GetSection("cognitive"));
@@ -43,11 +43,25 @@ public static class ConfigurationLoader
         return options.Value;
     }
 
-    private static IConfigurationRoot BuildConfiguration()
+    private static IConfigurationRoot BuildConfiguration(string? configFilePath = null)
     {
-        return new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false)
-            .Build();
+        var builder = new ConfigurationBuilder();
+
+        if (configFilePath != null)
+        {
+            // If a specific file path is provided, use it directly
+            string directory = Path.GetDirectoryName(configFilePath) ?? AppContext.BaseDirectory;
+            string fileName = Path.GetFileName(configFilePath);
+            builder.SetBasePath(directory)
+                   .AddJsonFile(fileName, optional: false, reloadOnChange: false);
+        }
+        else
+        {
+            // Default behavior: use the standard location
+            builder.SetBasePath(AppContext.BaseDirectory)
+                   .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false);
+        }
+
+        return builder.Build();
     }
 }

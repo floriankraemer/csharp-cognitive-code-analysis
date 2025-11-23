@@ -12,6 +12,7 @@ namespace CognitiveCodeAnalysis.Commands;
 internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 {
     private const int Success = 0;
+    private const int Error = 0;
 
     public sealed class Settings : CommandSettings
     {
@@ -33,28 +34,23 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
         public string? OutputFile { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
-    {
+    public override int Execute(
+        CommandContext context,
+        Settings settings,
+        CancellationToken cancellationToken
+    ) {
         // How to inject this via DI?
         FileFinder finder = new();
         CognitiveCodeAnalyser analyser = new();
         CognitiveConfiguration configuration = ConfigurationLoader.Load();
         ScoreCalculator calculator = new(configuration);
 
-        string searchPath = settings.SourcePath ?? GetCurrentDirectory();
-        string absoluteSearchPath = Path.GetFullPath(searchPath);
+        string sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
+        string absoluteSourcePath = Path.GetFullPath(sourcePath);
 
-        AnsiConsole.MarkupLine($"[cyan]Analyzing C# files in:[/] [green]{Markup.Escape(absoluteSearchPath)}[/]");
-        AnsiConsole.WriteLine();
+        List<string> files = GetFiles(finder, absoluteSourcePath);
 
-        List<string> files = finder.Find([absoluteSearchPath]);
-
-        if (files.Count == 0)
-        {
-            AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSearchPath}.[/]");
-
-            return Success;
-        }
+        if (!FilesWereFound(files, absoluteSourcePath)) return Error;
 
         RenderReport(
             settings: settings,
@@ -65,12 +61,32 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
         return Success;
     }
 
+    private static List<string> GetFiles(FileFinder finder, string absoluteSourcePath)
+    {
+        AnsiConsole.MarkupLine($"[cyan]Analyzing C# files in:[/] [green]{Markup.Escape(absoluteSourcePath)}[/]");
+        AnsiConsole.WriteLine();
+
+        return finder.Find([absoluteSourcePath]);
+    }
+
+    private static bool FilesWereFound(List<string> files, string absoluteSourcePath)
+    {
+        if (files.Count > 0)
+        {
+            AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSourcePath}.[/]");
+            return false;
+        }
+
+        return true;
+    }
+
     private static CognitiveMetricsCollection AnalyseCsharpFiles(
         CognitiveCodeAnalyser analyser,
         CognitiveConfiguration configuration,
         ScoreCalculator calculator,
         List<string> files
-    ) {
+    )
+    {
         CognitiveMetricsCollection metricsCollection = analyser.AnalyzeFiles(files, configuration);
 
         foreach (CognitiveMetrics metrics in metricsCollection)
@@ -100,17 +116,5 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
 
         string fullPath = Path.GetFullPath(outputFile);
         AnsiConsole.MarkupLine($"[green]{reportType} report generated:[/] {Markup.Escape(fullPath)}");
-    }
-
-    private static string GetCurrentDirectory()
-    {
-        string? directory = Path.GetDirectoryName(AppContext.BaseDirectory);
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Unable to determine the executing assembly's directory.");
-        }
-
-        return directory;
     }
 }
