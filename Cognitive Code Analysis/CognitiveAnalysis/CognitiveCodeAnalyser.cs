@@ -1,4 +1,4 @@
-﻿using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.Configuration;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

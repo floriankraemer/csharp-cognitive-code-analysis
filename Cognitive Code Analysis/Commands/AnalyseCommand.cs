@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -147,6 +147,12 @@ internal sealed class AnalyseCommand : Command<AnalyseCommand.Settings>
             {
                 metrics.LineCoveragePercentage = coverage.LineCoveragePercentage;
                 metrics.BranchCoveragePercentage = coverage.BranchCoveragePercentage;
+                
+                // Calculate churn score when coverage data is available
+                if (metrics.LineCoveragePercentage.HasValue || metrics.BranchCoveragePercentage.HasValue)
+                {
+                    metrics.ChurnScore = ChurnCalculator.CalculateChurnScore(metrics);
+                }
             }
 
             if (matches.Count > 0)

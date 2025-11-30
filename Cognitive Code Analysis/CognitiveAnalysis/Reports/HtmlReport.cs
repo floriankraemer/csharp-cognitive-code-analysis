@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -16,6 +16,10 @@ public class HtmlReport : ReportInterface
 
     public void RenderMetrics(CognitiveMetricsCollection metricsCollection)
     {
+        // Check if any metrics have coverage data
+        bool hasCoverageData = metricsCollection.Any(m =>
+            m.LineCoveragePercentage.HasValue || m.BranchCoveragePercentage.HasValue);
+
         var html = new StringBuilder();
         html.AppendLine("<!DOCTYPE html>");
         html.AppendLine("<html lang=\"en\">");
@@ -40,11 +44,11 @@ public class HtmlReport : ReportInterface
 
         if (_groupByClass)
         {
-            html.Append(RenderMetricsGrouped(metricsCollection));
+            html.Append(RenderMetricsGrouped(metricsCollection, hasCoverageData));
         }
         else
         {
-            html.Append(RenderMetricsUngrouped(metricsCollection));
+            html.Append(RenderMetricsUngrouped(metricsCollection, hasCoverageData));
         }
 
         html.AppendLine("    </div>");
@@ -62,7 +66,7 @@ public class HtmlReport : ReportInterface
         File.WriteAllText(_outputFilePath, html.ToString());
     }
 
-    private string RenderMetricsGrouped(Collection<CognitiveMetrics> metricsCollection)
+    private string RenderMetricsGrouped(Collection<CognitiveMetrics> metricsCollection, bool hasCoverageData)
     {
         var html = new StringBuilder();
         var groupedByClass = metricsCollection
@@ -90,6 +94,10 @@ public class HtmlReport : ReportInterface
             html.AppendLine("                        <th>Arguments</th>");
             html.AppendLine("                        <th>Nesting</th>");
             html.AppendLine("                        <th>Returns</th>");
+            if (hasCoverageData)
+            {
+                html.AppendLine("                        <th>Churn</th>");
+            }
             html.AppendLine("                    </tr>");
             html.AppendLine("                </thead>");
             html.AppendLine("                <tbody>");
@@ -104,6 +112,14 @@ public class HtmlReport : ReportInterface
                 html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+                if (hasCoverageData)
+                {
+                    string churnValue = metrics.ChurnScore.HasValue 
+                        ? metrics.ChurnScore.Value.ToString("F3") 
+                        : "n/a";
+                    double churnScoreForColor = metrics.ChurnScore ?? 0;
+                    html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
+                }
                 html.AppendLine("                    </tr>");
             }
 
@@ -115,7 +131,7 @@ public class HtmlReport : ReportInterface
         return html.ToString();
     }
 
-    private string RenderMetricsUngrouped(Collection<CognitiveMetrics> metricsCollection)
+    private string RenderMetricsUngrouped(Collection<CognitiveMetrics> metricsCollection, bool hasCoverageData)
     {
         var html = new StringBuilder();
 
@@ -138,6 +154,10 @@ public class HtmlReport : ReportInterface
             html.AppendLine("                        <th>Arguments</th>");
             html.AppendLine("                        <th>Nesting</th>");
             html.AppendLine("                        <th>Returns</th>");
+            if (hasCoverageData)
+            {
+                html.AppendLine("                        <th>Churn</th>");
+            }
             html.AppendLine("                    </tr>");
             html.AppendLine("                </thead>");
             html.AppendLine("                <tbody>");
@@ -149,6 +169,14 @@ public class HtmlReport : ReportInterface
             html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+            if (hasCoverageData)
+            {
+                string churnValue = metrics.ChurnScore.HasValue 
+                    ? metrics.ChurnScore.Value.ToString("F3") 
+                    : "n/a";
+                double churnScoreForColor = metrics.ChurnScore ?? 0;
+                html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
+            }
             html.AppendLine("                    </tr>");
             html.AppendLine("                </tbody>");
             html.AppendLine("            </table>");
@@ -163,6 +191,21 @@ public class HtmlReport : ReportInterface
         if (score < 0.5)
             return "score-green";
         if (score < 0.85)
+            return "score-yellow";
+        return "score-red";
+    }
+
+    /// <summary>
+    /// Gets the CSS class for churn score based on risk thresholds.
+    /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// </summary>
+    /// <param name="churnScore">The churn score</param>
+    /// <returns>CSS class name for styling</returns>
+    private static string GetChurnScoreClass(double churnScore)
+    {
+        if (churnScore < 0.3)
+            return "score-green";
+        if (churnScore <= 0.7)
             return "score-yellow";
         return "score-red";
     }

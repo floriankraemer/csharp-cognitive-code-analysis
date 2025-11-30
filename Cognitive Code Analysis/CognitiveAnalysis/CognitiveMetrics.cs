@@ -1,4 +1,4 @@
-﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
+namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 /// <summary>
 /// Represents the cognitive metrics for a method.
@@ -38,6 +38,15 @@ public class CognitiveMetrics
     public int nestingLevels = 0;
     public double nestingScore = 0;
 
+    public int localVariableCount = 0;
+    public double localVariableScore = 0;
+
+    public int fieldAccessCount = 0;
+    public double fieldAccessScore = 0;
+
+    public int propertyAccessCount = 0;
+    public double propertyAccessScore = 0;
+
     public double TotalScore = 0;
 
     public double cyclomaticComplexity = 0;
@@ -45,6 +54,8 @@ public class CognitiveMetrics
     public double? LineCoveragePercentage = null;
 
     public double? BranchCoveragePercentage = null;
+
+    public double? ChurnScore = null;
 
     public bool IsPure = false;
 
@@ -64,7 +75,10 @@ public class CognitiveMetrics
         int linesOfCode = 0,
         int nestingLevels = 0,
         bool isPure = false,
-        double cyclomaticComplexity = 0
+        double cyclomaticComplexity = 0,
+        int localVariableCount = 0,
+        int fieldAccessCount = 0,
+        int propertyAccessCount = 0
     )
     {
         this.MethodName = methodName;
@@ -83,5 +97,8 @@ public class CognitiveMetrics
         this.nestingLevels = nestingLevels;
         this.IsPure = isPure;
         this.cyclomaticComplexity = cyclomaticComplexity;
+        this.localVariableCount = localVariableCount;
+        this.fieldAccessCount = fieldAccessCount;
+        this.propertyAccessCount = propertyAccessCount;
     }
 }

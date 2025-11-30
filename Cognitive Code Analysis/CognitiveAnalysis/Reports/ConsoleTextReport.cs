@@ -1,4 +1,4 @@
-﻿using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.Configuration;
 using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -116,12 +116,16 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
             metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
             metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")",
+            metrics.localVariableCount + " (" + ColorizeScore(metrics.localVariableScore) + ")",
+            metrics.fieldAccessCount + " (" + ColorizeScore(metrics.fieldAccessScore) + ")",
+            metrics.propertyAccessCount + " (" + ColorizeScore(metrics.propertyAccessScore) + ")",
             FormatPureStatus(metrics.IsPure)
         };
 
         if (hasCoverageData)
         {
             rowData.Add(FormatCoverage(metrics));
+            rowData.Add(FormatChurnScore(metrics));
         }
 
         table.AddRow(rowData.ToArray());
@@ -199,6 +203,47 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     }
 
     /// <summary>
+    /// Formats the churn score for display with color coding.
+    /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// </summary>
+    /// <param name="metrics">The cognitive metrics with churn score</param>
+    /// <returns>Formatted string with churn score, or "n/a" if no churn score</returns>
+    private static string FormatChurnScore(CognitiveMetrics metrics)
+    {
+        if (!metrics.ChurnScore.HasValue)
+        {
+            return "[dim]n/a[/]";
+        }
+
+        double churnScore = metrics.ChurnScore.Value;
+        string color = GetChurnColor(churnScore);
+
+        return $"[{color}]{churnScore:F3}[/]";
+    }
+
+    /// <summary>
+    /// Gets the color for churn score based on risk thresholds.
+    /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// </summary>
+    /// <param name="churnScore">The churn score</param>
+    /// <returns>Color name for markup</returns>
+    private static string GetChurnColor(double churnScore)
+    {
+        if (churnScore < 0.3)
+        {
+            return "green";
+        }
+        else if (churnScore <= 0.7)
+        {
+            return "yellow";
+        }
+        else
+        {
+            return "red";
+        }
+    }
+
+    /// <summary>
     /// Colorizes the metric score based on thresholds.
     /// </summary>
     /// <param name="score"></param>
@@ -235,15 +280,20 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         table.AddColumn("Arguments");
         table.AddColumn("Nesting");
         table.AddColumn("Returns");
+        table.AddColumn("Locals");
+        table.AddColumn("Fields");
+        table.AddColumn("Props");
         table.AddColumn("Pure");
 
         if (hasCoverageData)
         {
             table.AddColumn("Coverage");
+            table.AddColumn("Churn");
         }
 
         // Center the Pure column
-        int pureColumnIndex = hasCoverageData ? table.Columns.Count - 2 : table.Columns.Count - 1;
+        // Pure is always the column before Coverage/Churn columns (if they exist)
+        int pureColumnIndex = hasCoverageData ? table.Columns.Count - 3 : table.Columns.Count - 1;
         table.Columns[pureColumnIndex].Alignment = Justify.Center;
 
         return table;
