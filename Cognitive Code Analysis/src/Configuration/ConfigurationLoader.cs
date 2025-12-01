@@ -45,23 +45,25 @@ public static class ConfigurationLoader
 
     private static IConfigurationRoot BuildConfiguration(string? configFilePath = null)
     {
-        var builder = new ConfigurationBuilder();
+        ConfigurationBuilder builder = new();
 
-        if (configFilePath != null)
-        {
-            // If a specific file path is provided, use it directly
-            string directory = Path.GetDirectoryName(configFilePath) ?? AppContext.BaseDirectory;
-            string fileName = Path.GetFileName(configFilePath);
-            builder.SetBasePath(directory)
-                   .AddJsonFile(fileName, optional: false, reloadOnChange: false);
-        }
-        else
-        {
-            // Default behavior: use the standard location
-            builder.SetBasePath(AppContext.BaseDirectory)
-                   .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false);
-        }
+        if (string.IsNullOrEmpty(configFilePath)) return GetDefaultConfig();
 
-        return builder.Build();
+        // If a specific file path is provided, use it directly
+        string directory = Path.GetDirectoryName(configFilePath) ?? AppContext.BaseDirectory;
+        string fileName = Path.GetFileName(configFilePath);
+
+        return builder.SetBasePath(directory)
+                .AddJsonFile(fileName, optional: false, reloadOnChange: false)
+                .Build();
+    }
+
+    private static IConfigurationRoot GetDefaultConfig()
+    {
+        ConfigurationBuilder builder = new();
+
+        return builder.SetBasePath(AppContext.BaseDirectory)
+                    .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false)
+                    .Build();
     }
 }
