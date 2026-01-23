@@ -13,7 +13,7 @@ public class ReportFactory
         CognitiveMetricsCollection metricsCollection
     )
     {
-        ReportInterface reporter = reportType switch
+        IReport reporter = reportType switch
         {
             "ConsoleText" => new ConsoleTextReport(configuration),
             "Html" => new HtmlReport(outputFile, configuration.GroupByClass),

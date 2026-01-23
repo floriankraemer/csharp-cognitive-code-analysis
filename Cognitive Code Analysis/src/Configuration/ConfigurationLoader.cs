@@ -7,7 +7,9 @@ namespace CognitiveCodeAnalysis.Configuration;
 public static class ConfigurationLoader
 {
     /// <summary>
+    /// <![CDATA[
     /// Loads configuration directly and returns the CognitiveConfiguration object.
+    /// ]]>
     /// </summary>
     public static CognitiveConfiguration Load(string? configFilePath = null)
     {
@@ -20,8 +22,10 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Builds and configures services with IOptions&lt;CognitiveConfiguration&gt; pattern.
     /// Returns a service provider that can be used to resolve IOptions&lt;CognitiveConfiguration&gt;.
+    /// ]]>
     /// </summary>
     public static IServiceProvider ConfigureServices(string? configFilePath = null)
     {
@@ -34,7 +38,9 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Gets the CognitiveConfiguration using IOptions<T> pattern.
+    /// ]]>
     /// </summary>
     public static CognitiveConfiguration GetConfiguration(IServiceProvider serviceProvider)
     {

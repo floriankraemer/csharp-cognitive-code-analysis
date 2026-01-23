@@ -1,7 +1,9 @@
-namespace CognitiveCodeAnalysis.CognitiveAnalysis;
+﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 /// <summary>
+/// <![CDATA[
 /// Represents the cognitive metrics for a method.
+/// ]]>
 /// </summary>
 public class CognitiveMetrics
 {
@@ -9,6 +11,7 @@ public class CognitiveMetrics
     public string MethodName { get; set; }
     public string ClassName { get; set; }
     public string FilePath { get; set; }
+
     public string methodSignature;
     public int methodLineNumber;
     public int linesOfCode = 0;
@@ -47,17 +50,15 @@ public class CognitiveMetrics
     public int propertyAccessCount = 0;
     public double propertyAccessScore = 0;
 
-    public double TotalScore = 0;
+    public double totalScore = 0;
 
     public double cyclomaticComplexity = 0;
 
-    public double? LineCoveragePercentage = null;
+    public double? lineCoveragePercentage = null;
 
-    public double? BranchCoveragePercentage = null;
+    public double? branchCoveragePercentage = null;
 
-    public double? ChurnScore = null;
-
-    public bool IsPure = false;
+    public double? churnScore = null;
 
     public CognitiveMetrics(
         string methodName,
@@ -74,7 +75,6 @@ public class CognitiveMetrics
         int argumentCount = 0,
         int linesOfCode = 0,
         int nestingLevels = 0,
-        bool isPure = false,
         double cyclomaticComplexity = 0,
         int localVariableCount = 0,
         int fieldAccessCount = 0,
@@ -95,7 +95,6 @@ public class CognitiveMetrics
         this.argumentCount = argumentCount;
         this.linesOfCode = linesOfCode;
         this.nestingLevels = nestingLevels;
-        this.IsPure = isPure;
         this.cyclomaticComplexity = cyclomaticComplexity;
         this.localVariableCount = localVariableCount;
         this.fieldAccessCount = fieldAccessCount;

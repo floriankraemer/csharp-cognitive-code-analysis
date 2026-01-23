@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -84,13 +84,12 @@ internal sealed class AnalyseCommand(
 
     private static bool FilesWereFound(List<string> files, string absoluteSourcePath)
     {
-        if (files.Count == 0)
-        {
-            AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSourcePath}.[/]");
-            return false;
+        if (files.Count > 0) {
+            return true;
         }
 
-        return true;
+        AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSourcePath}.[/]");
+        return false;
     }
 
     private void RenderReport(
@@ -102,11 +101,16 @@ internal sealed class AnalyseCommand(
         string outputFile = settings.OutputFile ?? "cognitive-analysis-report";
 
         _reportFactory.ReportGenerated += OnReportGenerated;
-        _reportFactory.GenerateReport(reportType, outputFile, configuration, metricsCollection);
+        _reportFactory.GenerateReport(
+            reportType,
+            outputFile,
+            configuration,
+            metricsCollection
+        );
     }
 
-    private void OnReportGenerated(object? sender, ReportGeneratedEventArgs e)
+    private static void OnReportGenerated(object? sender, ReportGeneratedEventArgs eventArgs)
     {
-        AnsiConsole.MarkupLine($"[green]{e.ReportType} report generated:[/] {Markup.Escape(e.FullPath)}");
+        AnsiConsole.MarkupLine($"[green]{eventArgs.ReportType} report generated:[/] {Markup.Escape(eventArgs.FullPath)}");
     }
 }

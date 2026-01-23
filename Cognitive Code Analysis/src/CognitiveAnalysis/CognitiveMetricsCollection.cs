@@ -1,9 +1,31 @@
 ﻿using System.Collections.ObjectModel;
 
+using Microsoft.Extensions.Configuration;
+
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
 {
+    public CognitiveMetricsCollection OnlyMetricsExceedingScoreThreshold(double scoreThreshold)
+    {
+        CognitiveMetricsCollection filtered = [];
+
+        foreach (CognitiveMetrics metrics in this)
+        {
+            if (metrics.totalScore > scoreThreshold)
+            {
+                filtered.Add(metrics);
+            }
+        }
+
+        return filtered;
+    }
+
+    public bool HasCoverageData()
+    {
+       return this.Any(m => m.lineCoveragePercentage.HasValue || m.branchCoveragePercentage.HasValue);
+    }
+
     /// <summary>
     /// Counts the number of unique classes in the collection.
     /// Classes are considered unique based on their ClassName and FilePath combination.
@@ -33,7 +55,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     public int GetMethodsExceedingThreshold(double threshold)
     {
         return this
-            .Count(metrics => metrics.TotalScore > threshold);
+            .Count(metrics => metrics.totalScore > threshold);
     }
 
     /// <summary>
@@ -46,7 +68,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     {
         return this
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
-            .Count(g => g.Any(metrics => metrics.TotalScore > threshold));
+            .Count(g => g.Any(metrics => metrics.totalScore > threshold));
     }
 
     /// <summary>

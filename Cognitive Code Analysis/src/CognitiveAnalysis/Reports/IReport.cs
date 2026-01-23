@@ -1,6 +1,6 @@
 ﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public interface ReportInterface
+public interface IReport
 {
     void RenderMetrics(CognitiveMetricsCollection metricsCollection);
 }

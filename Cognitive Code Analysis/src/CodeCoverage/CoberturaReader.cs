@@ -3,12 +3,12 @@
 namespace CognitiveCodeAnalysis.CodeCoverage;
 
 /// <summary>
-/// Reads code coverage data from Cobertura XML format reports.
+/// <![CDATA[Reads code coverage data from Cobertura XML format reports.]]>
 /// </summary>
-public class CoberturaReader : CoverageReaderInterface
+public class CoberturaReader : ICoverageReader
 {
     /// <summary>
-    /// Reads coverage data from a Cobertura XML report file.
+    /// <![CDATA[Reads coverage data from a Cobertura XML report file.]]>
     /// </summary>
     /// <param name="filePath">Path to the Cobertura XML file.</param>
     /// <returns>A collection of Coverage objects containing metrics for classes and methods.</returns>
@@ -40,59 +40,14 @@ public class CoberturaReader : CoverageReaderInterface
                     ? className
                     : $"{packageName}.{className}";
 
-                // Construct absolute file path
                 string absoluteFilePath = ConstructAbsolutePath(fileName, baseSourcePath);
 
-                // Get class-level metrics
-                int classLinesCovered = ParseIntAttribute(classElement, "lines-covered", 0);
-                int classLinesTotal = ParseIntAttribute(classElement, "lines-valid", 0);
-                int classBranchesCovered = ParseIntAttribute(classElement, "branches-covered", 0);
-                int classBranchesTotal = ParseIntAttribute(classElement, "branches-valid", 0);
-                int classComplexity = ParseIntAttribute(classElement, "complexity", 0);
+                AddClassLevelCoverage(classElement, coverageList, fullyQualifiedClassName, absoluteFilePath);
 
-                // Add class-level coverage
-                coverageList.Add(new Coverage
-                {
-                    FullyQualifiedClassName = fullyQualifiedClassName,
-                    FilePath = absoluteFilePath,
-                    MethodName = string.Empty,
-                    MethodLineNumber = 0,
-                    LinesCovered = classLinesCovered,
-                    LinesTotal = classLinesTotal,
-                    BranchesCovered = classBranchesCovered,
-                    BranchesTotal = classBranchesTotal,
-                    Complexity = classComplexity
-                });
-
-                // Process methods in the class
                 IEnumerable<XElement> methods = classElement.Elements("methods")?.Elements("method") ?? [];
                 foreach (XElement methodElement in methods)
                 {
-                    string methodName = methodElement.Attribute("name")?.Value ?? string.Empty;
-                    string methodSignature = methodElement.Attribute("signature")?.Value ?? string.Empty;
-
-                    // Get method-level metrics
-                    int methodLinesCovered = ParseIntAttribute(methodElement, "lines-covered", 0);
-                    int methodLinesTotal = ParseIntAttribute(methodElement, "lines-valid", 0);
-                    int methodBranchesCovered = ParseIntAttribute(methodElement, "branches-covered", 0);
-                    int methodBranchesTotal = ParseIntAttribute(methodElement, "branches-valid", 0);
-                    int methodComplexity = ParseIntAttribute(methodElement, "complexity", 0);
-
-                    // Try to get line number from lines element
-                    int methodLineNumber = GetMethodLineNumber(methodElement);
-
-                    coverageList.Add(new Coverage
-                    {
-                        FullyQualifiedClassName = fullyQualifiedClassName,
-                        FilePath = absoluteFilePath,
-                        MethodName = methodName,
-                        MethodLineNumber = methodLineNumber,
-                        LinesCovered = methodLinesCovered,
-                        LinesTotal = methodLinesTotal,
-                        BranchesCovered = methodBranchesCovered,
-                        BranchesTotal = methodBranchesTotal,
-                        Complexity = methodComplexity
-                    });
+                    AddMethodLevelCoverage(methodElement, coverageList, fullyQualifiedClassName, absoluteFilePath);
                 }
             }
         }
@@ -100,29 +55,76 @@ public class CoberturaReader : CoverageReaderInterface
         return coverageList;
     }
 
+    private static void AddClassLevelCoverage(XElement classElement, List<Coverage> coverageList, string fullyQualifiedClassName,
+        string absoluteFilePath)
+    {
+        int classLinesCovered = ParseIntAttribute(classElement, "lines-covered", 0);
+        int classLinesTotal = ParseIntAttribute(classElement, "lines-valid", 0);
+        int classBranchesCovered = ParseIntAttribute(classElement, "branches-covered", 0);
+        int classBranchesTotal = ParseIntAttribute(classElement, "branches-valid", 0);
+        int classComplexity = ParseIntAttribute(classElement, "complexity", 0);
+
+        coverageList.Add(new Coverage
+        {
+            FullyQualifiedClassName = fullyQualifiedClassName,
+            FilePath = absoluteFilePath,
+            MethodName = string.Empty,
+            MethodLineNumber = 0,
+            LinesCovered = classLinesCovered,
+            LinesTotal = classLinesTotal,
+            BranchesCovered = classBranchesCovered,
+            BranchesTotal = classBranchesTotal,
+            Complexity = classComplexity
+        });
+    }
+
+    private static void AddMethodLevelCoverage(
+        XElement methodElement,
+        List<Coverage> coverageList,
+        string fullyQualifiedClassName,
+        string absoluteFilePath
+    ) {
+        coverageList.Add(new Coverage
+        {
+            FullyQualifiedClassName = fullyQualifiedClassName,
+            FilePath = absoluteFilePath,
+            MethodName = methodElement.Attribute("name")?.Value ?? string.Empty,
+            MethodLineNumber = GetMethodLineNumber(methodElement),
+            LinesCovered = ParseIntAttribute(methodElement, "lines-covered", 0),
+            LinesTotal = ParseIntAttribute(methodElement, "lines-valid", 0),
+            BranchesCovered = ParseIntAttribute(methodElement, "branches-covered", 0),
+            BranchesTotal = ParseIntAttribute(methodElement, "branches-valid", 0),
+            Complexity = ParseIntAttribute(methodElement, "complexity", 0)
+        });
+    }
+
     /// <summary>
-    /// Gets the source paths from the coverage XML element.
+    /// <![CDATA[Gets the source paths from the coverage XML element.]]>
     /// </summary>
     private static List<string> GetSourcePaths(XElement coverageElement)
     {
         List<string> sourcePaths = [];
         XElement? sourcesElement = coverageElement.Element("sources");
-        if (sourcesElement != null)
+
+        if (sourcesElement == null)
         {
-            foreach (XElement sourceElement in sourcesElement.Elements("source"))
+            return sourcePaths;
+        }
+
+        foreach (XElement sourceElement in sourcesElement.Elements("source"))
+        {
+            string sourcePath = sourceElement.Value;
+            if (!string.IsNullOrEmpty(sourcePath))
             {
-                string? sourcePath = sourceElement.Value;
-                if (!string.IsNullOrEmpty(sourcePath))
-                {
-                    sourcePaths.Add(sourcePath);
-                }
+                sourcePaths.Add(sourcePath);
             }
         }
+
         return sourcePaths;
     }
 
     /// <summary>
-    /// Constructs an absolute file path from a relative filename and base source path.
+    /// <![CDATA[Constructs an absolute file path from a relative filename and base source path.]]>
     /// </summary>
     private static string ConstructAbsolutePath(string fileName, string? baseSourcePath)
     {
@@ -131,7 +133,6 @@ public class CoberturaReader : CoverageReaderInterface
             return string.Empty;
         }
 
-        // If already absolute, return as is
         if (Path.IsPathRooted(fileName))
         {
             return Path.GetFullPath(fileName);
@@ -164,7 +165,7 @@ public class CoberturaReader : CoverageReaderInterface
     }
 
     /// <summary>
-    /// Parses an integer attribute from an XML element, returning a default value if not found or invalid.
+    /// <![CDATA[Parses an integer attribute from an XML element, returning a default value if not found or invalid.]]>
     /// </summary>
     private static int ParseIntAttribute(XElement element, string attributeName, int defaultValue)
     {
@@ -178,7 +179,7 @@ public class CoberturaReader : CoverageReaderInterface
     }
 
     /// <summary>
-    /// Gets the line number where a method starts by examining the lines element.
+    /// <![CDATA[Gets the line number where a method starts by examining the lines element.]]>
     /// </summary>
     private static int GetMethodLineNumber(XElement methodElement)
     {

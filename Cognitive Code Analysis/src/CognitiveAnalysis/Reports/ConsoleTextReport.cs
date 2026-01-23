@@ -1,18 +1,16 @@
-using CognitiveCodeAnalysis.Configuration;
+﻿using CognitiveCodeAnalysis.Configuration;
+
 using Spectre.Console;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInterface
+public class ConsoleTextReport(CognitiveConfiguration configuration) : IReport
 {
     public void RenderMetrics(CognitiveMetricsCollection metricsCollection)
     {
-        // Filter metrics if ShowOnlyMethodsExceedingThreshold is enabled
         CognitiveMetricsCollection filteredCollection = FilterMetrics(metricsCollection);
 
-        // Check if any metrics have coverage data (check original collection, not filtered)
-        bool hasCoverageData = metricsCollection.Any(m =>
-            m.LineCoveragePercentage.HasValue || m.BranchCoveragePercentage.HasValue);
+        bool hasCoverageData = filteredCollection.HasCoverageData();
 
         if (configuration.GroupByClass)
         {
@@ -54,10 +52,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             table = AddTableHeaders(table, hasCoverageData);
             table.ShowRowSeparators();
 
-            foreach (CognitiveMetrics metrics in classMetrics)
-            {
-                table = AddTableRow(table, metrics, hasCoverageData);
-            }
+            table = classMetrics.Aggregate(table, (current, metrics) => AddTableRow(current, metrics, hasCoverageData));
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
@@ -65,7 +60,9 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Filters the metrics collection based on ShowOnlyMethodsExceedingThreshold configuration.
+    /// ]]>
     /// </summary>
     /// <param name="metricsCollection">The original metrics collection</param>
     /// <returns>Filtered metrics collection</returns>
@@ -76,18 +73,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             return metricsCollection;
         }
 
-        double scoreThreshold = configuration.ScoreThreshold;
-        CognitiveMetricsCollection filtered = new();
-
-        foreach (CognitiveMetrics metrics in metricsCollection)
-        {
-            if (metrics.TotalScore > scoreThreshold)
-            {
-                filtered.Add(metrics);
-            }
-        }
-
-        return filtered;
+        return metricsCollection.OnlyMetricsExceedingScoreThreshold(configuration.ScoreThreshold);
     }
 
     private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData)
@@ -110,7 +96,7 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         var rowData = new List<string>
         {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
-            ColorizeScore(metrics.TotalScore),
+            ColorizeScore(metrics.totalScore),
             metrics.linesOfCode.ToString(),
             metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
@@ -119,7 +105,6 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             metrics.localVariableCount + " (" + ColorizeScore(metrics.localVariableScore) + ")",
             metrics.fieldAccessCount + " (" + ColorizeScore(metrics.fieldAccessScore) + ")",
             metrics.propertyAccessCount + " (" + ColorizeScore(metrics.propertyAccessScore) + ")",
-            FormatPureStatus(metrics.IsPure)
         };
 
         if (hasCoverageData)
@@ -134,18 +119,6 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     }
 
     /// <summary>
-    /// Formats the pure method status with a checkmark or cross icon.
-    /// </summary>
-    /// <param name="isPure">True if the method is pure, false otherwise</param>
-    /// <returns>Formatted string with UTF-8 icon</returns>
-    private static string FormatPureStatus(bool isPure)
-    {
-        return isPure
-            ? "[green]✓[/]"  // Green checkmark
-            : "[red]✗[/]";    // Red cross
-    }
-
-    /// <summary>
     /// Formats coverage percentages for display.
     /// Shows both line and branch coverage if available, or "n/a" if no coverage data.
     /// </summary>
@@ -153,8 +126,8 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     /// <returns>Formatted string with coverage percentages, or "n/a" if no coverage</returns>
     private static string FormatCoverage(CognitiveMetrics metrics)
     {
-        bool hasLineCoverage = metrics.LineCoveragePercentage.HasValue;
-        bool hasBranchCoverage = metrics.BranchCoveragePercentage.HasValue;
+        bool hasLineCoverage = metrics.lineCoveragePercentage.HasValue;
+        bool hasBranchCoverage = metrics.branchCoveragePercentage.HasValue;
 
         if (!hasLineCoverage && !hasBranchCoverage)
         {
@@ -165,14 +138,14 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
 
         if (hasLineCoverage)
         {
-            double lineCoverage = metrics.LineCoveragePercentage!.Value;
+            double lineCoverage = metrics.lineCoveragePercentage!.Value;
             string lineColor = GetCoverageColor(lineCoverage);
             parts.Add($"[{lineColor}]Line: {lineCoverage:F1}%[/]");
         }
 
         if (hasBranchCoverage)
         {
-            double branchCoverage = metrics.BranchCoveragePercentage!.Value;
+            double branchCoverage = metrics.branchCoveragePercentage!.Value;
             string branchColor = GetCoverageColor(branchCoverage);
             parts.Add($"[{branchColor}]Branch: {branchCoverage:F1}%[/]");
         }
@@ -181,49 +154,49 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Gets the color for coverage percentage based on thresholds.
     /// Green >= 80%, Yellow >= 50%, Red < 50%
+    /// ]]>
     /// </summary>
     /// <param name="coverage">Coverage percentage (0-100)</param>
     /// <returns>Color name for markup</returns>
     private static string GetCoverageColor(double coverage)
     {
-        if (coverage >= 80.0)
+        return coverage switch
         {
-            return "green";
-        }
-        else if (coverage >= 50.0)
-        {
-            return "yellow";
-        }
-        else
-        {
-            return "red";
-        }
+            >= 80.0 => "green",
+            >= 50.0 => "yellow",
+            _ => "red",
+        };
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Formats the churn score for display with color coding.
     /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// ]]>
     /// </summary>
     /// <param name="metrics">The cognitive metrics with churn score</param>
     /// <returns>Formatted string with churn score, or "n/a" if no churn score</returns>
     private static string FormatChurnScore(CognitiveMetrics metrics)
     {
-        if (!metrics.ChurnScore.HasValue)
+        if (!metrics.churnScore.HasValue)
         {
             return "[dim]n/a[/]";
         }
 
-        double churnScore = metrics.ChurnScore.Value;
+        double churnScore = metrics.churnScore.Value;
         string color = GetChurnColor(churnScore);
 
         return $"[{color}]{churnScore:F3}[/]";
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Gets the color for churn score based on risk thresholds.
     /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// ]]>
     /// </summary>
     /// <param name="churnScore">The churn score</param>
     /// <returns>Color name for markup</returns>
@@ -244,7 +217,9 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Colorizes the metric score based on thresholds.
+    /// ]]>>
     /// </summary>
     /// <param name="score"></param>
     /// <returns></returns>
@@ -283,18 +258,14 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
         table.AddColumn("Locals");
         table.AddColumn("Fields");
         table.AddColumn("Props");
-        table.AddColumn("Pure");
 
-        if (hasCoverageData)
+        if (!hasCoverageData)
         {
-            table.AddColumn("Coverage");
-            table.AddColumn("Churn");
+            return table;
         }
 
-        // Center the Pure column
-        // Pure is always the column before Coverage/Churn columns (if they exist)
-        int pureColumnIndex = hasCoverageData ? table.Columns.Count - 3 : table.Columns.Count - 1;
-        table.Columns[pureColumnIndex].Alignment = Justify.Center;
+        table.AddColumn("Coverage");
+        table.AddColumn("Churn");
 
         return table;
     }
@@ -314,20 +285,24 @@ public class ConsoleTextReport(CognitiveConfiguration configuration) : ReportInt
             $"[blue]Total Classes Processed:[/] "
             + $"{metricsCollection.GetTotalClasses()}"
         );
+
         AnsiConsole.MarkupLine(
             $"[blue]Total Methods Processed:[/] "
             + $"{metricsCollection.GetTotalMethods()}"
         );
+
         AnsiConsole.MarkupLine(
             $"[yellow]Classes with Methods Exceeding Threshold:[/] "
             + $"{metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} "
             + $"({metricsCollection.GetClassesPercentage(scoreThreshold):F1}%)"
         );
+
         AnsiConsole.MarkupLine(
             $"[yellow]Methods Exceeding Threshold:[/] "
             + $"{metricsCollection.GetMethodsExceedingThreshold(scoreThreshold)} "
             + $"({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)"
         );
+
         AnsiConsole.MarkupLine($"Threshold: {scoreThreshold:F3}");
     }
 }

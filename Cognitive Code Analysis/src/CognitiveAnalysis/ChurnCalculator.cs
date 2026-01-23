@@ -1,4 +1,4 @@
-namespace CognitiveCodeAnalysis.CognitiveAnalysis;
+﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 /// <summary>
 /// Calculates churn/risk score based on cognitive complexity and test coverage.
@@ -8,7 +8,7 @@ public static class ChurnCalculator
 {
     /// <summary>
     /// Calculates churn/risk score based on cognitive complexity and test coverage.
-    /// Formula: TotalScore × (1 - CoverageFactor)
+    /// Formula: totalScore × (1 - CoverageFactor)
     /// Higher complexity and lower coverage result in higher churn scores.
     /// </summary>
     /// <param name="metrics">The cognitive metrics with coverage data</param>
@@ -19,7 +19,7 @@ public static class ChurnCalculator
 
         // Risk = Cognitive Score × (1 - Coverage Factor)
         // Higher cognitive score + lower coverage = higher risk
-        return metrics.TotalScore * (1.0 - coverageFactor);
+        return metrics.totalScore * (1.0 - coverageFactor);
     }
 
     /// <summary>
@@ -31,15 +31,15 @@ public static class ChurnCalculator
     private static double GetCoverageFactor(CognitiveMetrics metrics)
     {
         // Prefer branch coverage if available (more comprehensive)
-        if (metrics.BranchCoveragePercentage.HasValue)
+        if (metrics.branchCoveragePercentage.HasValue)
         {
-            return metrics.BranchCoveragePercentage.Value / 100.0;
+            return metrics.branchCoveragePercentage.Value / 100.0;
         }
 
         // Fallback to line coverage if available
-        if (metrics.LineCoveragePercentage.HasValue)
+        if (metrics.lineCoveragePercentage.HasValue)
         {
-            return metrics.LineCoveragePercentage.Value / 100.0;
+            return metrics.lineCoveragePercentage.Value / 100.0;
         }
 
         // No coverage data = assume 0% coverage (highest risk)

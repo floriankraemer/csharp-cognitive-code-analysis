@@ -359,7 +359,7 @@ public class CognitiveMetricsCollectionTest
             signature: $"public void {methodName}()",
             methodLineNumber: 1
         );
-        metrics.TotalScore = totalScore;
+        metrics.totalScore = totalScore;
         return metrics;
     }
 }

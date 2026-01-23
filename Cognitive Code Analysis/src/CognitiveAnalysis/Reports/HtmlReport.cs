@@ -1,24 +1,15 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Text;
+
+using CognitiveCodeAnalysis.CodeCoverage;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
-public class HtmlReport : ReportInterface
+public class HtmlReport(string outputFilePath, bool groupByClass = true) : IReport
 {
-    private readonly string _outputFilePath;
-    private readonly bool _groupByClass;
-
-    public HtmlReport(string outputFilePath, bool groupByClass = true)
-    {
-        _outputFilePath = outputFilePath;
-        _groupByClass = groupByClass;
-    }
-
     public void RenderMetrics(CognitiveMetricsCollection metricsCollection)
     {
-        // Check if any metrics have coverage data
-        bool hasCoverageData = metricsCollection.Any(m =>
-            m.LineCoveragePercentage.HasValue || m.BranchCoveragePercentage.HasValue);
+        bool hasCoverageData = metricsCollection.HasCoverageData();
 
         var html = new StringBuilder();
         html.AppendLine("<!DOCTYPE html>");
@@ -42,7 +33,7 @@ public class HtmlReport : ReportInterface
         html.AppendLine("    <div class=\"container-fluid mt-4\">");
         html.AppendLine("        <h1 class=\"mb-4\">Cognitive Code Analysis Report</h1>");
 
-        if (_groupByClass)
+        if (groupByClass)
         {
             html.Append(RenderMetricsGrouped(metricsCollection, hasCoverageData));
         }
@@ -57,13 +48,13 @@ public class HtmlReport : ReportInterface
         html.AppendLine("</html>");
 
         // Ensure directory exists
-        string? directory = Path.GetDirectoryName(_outputFilePath);
+        string? directory = Path.GetDirectoryName(outputFilePath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(_outputFilePath, html.ToString());
+        File.WriteAllText(outputFilePath, html.ToString());
     }
 
     private string RenderMetricsGrouped(Collection<CognitiveMetrics> metricsCollection, bool hasCoverageData)
@@ -106,7 +97,7 @@ public class HtmlReport : ReportInterface
             {
                 html.AppendLine("                    <tr>");
                 html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore)}\">{metrics.TotalScore:F3}</span></td>");
+                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
                 html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
                 html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
@@ -114,10 +105,10 @@ public class HtmlReport : ReportInterface
                 html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
                 if (hasCoverageData)
                 {
-                    string churnValue = metrics.ChurnScore.HasValue 
-                        ? metrics.ChurnScore.Value.ToString("F3") 
+                    string churnValue = metrics.churnScore.HasValue 
+                        ? metrics.churnScore.Value.ToString("F3") 
                         : "n/a";
-                    double churnScoreForColor = metrics.ChurnScore ?? 0;
+                    double churnScoreForColor = metrics.churnScore ?? 0;
                     html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
                 }
                 html.AppendLine("                    </tr>");
@@ -163,7 +154,7 @@ public class HtmlReport : ReportInterface
             html.AppendLine("                <tbody>");
             html.AppendLine("                    <tr>");
             html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.TotalScore)}\">{metrics.TotalScore:F3}</span></td>");
+            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
             html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
             html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
@@ -171,10 +162,10 @@ public class HtmlReport : ReportInterface
             html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
             if (hasCoverageData)
             {
-                string churnValue = metrics.ChurnScore.HasValue 
-                    ? metrics.ChurnScore.Value.ToString("F3") 
+                string churnValue = metrics.churnScore.HasValue 
+                    ? metrics.churnScore.Value.ToString("F3") 
                     : "n/a";
-                double churnScoreForColor = metrics.ChurnScore ?? 0;
+                double churnScoreForColor = metrics.churnScore ?? 0;
                 html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
             }
             html.AppendLine("                    </tr>");
@@ -188,26 +179,30 @@ public class HtmlReport : ReportInterface
 
     private static string GetScoreClass(double score)
     {
-        if (score < 0.5)
-            return "score-green";
-        if (score < 0.85)
-            return "score-yellow";
-        return "score-red";
+        return score switch
+        {
+            < 0.5 => "score-green",
+            < 0.85 => "score-yellow",
+            _ => "score-red",
+        };
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Gets the CSS class for churn score based on risk thresholds.
     /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
+    /// ]]>
     /// </summary>
     /// <param name="churnScore">The churn score</param>
     /// <returns>CSS class name for styling</returns>
     private static string GetChurnScoreClass(double churnScore)
     {
-        if (churnScore < 0.3)
-            return "score-green";
-        if (churnScore <= 0.7)
-            return "score-yellow";
-        return "score-red";
+        return churnScore switch
+        {
+            < 0.3 => "score-green",
+            <= 0.7 => "score-yellow",
+            _ => "score-red",
+        };
     }
 
     private static string HtmlEncode(string? text)

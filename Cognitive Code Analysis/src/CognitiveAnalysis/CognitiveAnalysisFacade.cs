@@ -56,13 +56,13 @@ public class CognitiveAnalysisFacade(
 
             foreach ((CognitiveMetrics? metrics, Coverage? coverage) in matches)
             {
-                metrics.LineCoveragePercentage = coverage.LineCoveragePercentage;
-                metrics.BranchCoveragePercentage = coverage.BranchCoveragePercentage;
+                metrics.lineCoveragePercentage = coverage.LineCoveragePercentage;
+                metrics.branchCoveragePercentage = coverage.BranchCoveragePercentage;
 
                 // Calculate churn score when coverage data is available
-                if (metrics.LineCoveragePercentage.HasValue || metrics.BranchCoveragePercentage.HasValue)
+                if (metrics.lineCoveragePercentage.HasValue || metrics.branchCoveragePercentage.HasValue)
                 {
-                    metrics.ChurnScore = ChurnCalculator.CalculateChurnScore(metrics);
+                    metrics.churnScore = ChurnCalculator.CalculateChurnScore(metrics);
                 }
             }
 

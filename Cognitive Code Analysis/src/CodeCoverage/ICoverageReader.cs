@@ -1,9 +1,9 @@
-namespace CognitiveCodeAnalysis.CodeCoverage;
+﻿namespace CognitiveCodeAnalysis.CodeCoverage;
 
 /// <summary>
 /// Interface for reading code coverage data from various report formats.
 /// </summary>
-public interface CoverageReaderInterface
+public interface ICoverageReader
 {
     /// <summary>
     /// Reads coverage data from a coverage report file.

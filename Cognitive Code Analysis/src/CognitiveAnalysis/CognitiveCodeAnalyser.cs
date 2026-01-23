@@ -1,4 +1,4 @@
-using CognitiveCodeAnalysis.Configuration;
+﻿using CognitiveCodeAnalysis.Configuration;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,7 +9,9 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 public class CognitiveCodeAnalyser
 {
     /// <summary>
+    /// <![CDATA[
     /// Takes a list of C# source code files and analyses them to extract cognitive metrics for each method.
+    /// ]]>
     /// </summary>
     /// <param name="files"></param>
     /// <param name="configuration"></param>
@@ -32,12 +34,13 @@ public class CognitiveCodeAnalyser
         return metricsCollection;
     }
 
-    private CognitiveMetricsCollection AnalyseClasses(
+    private static CognitiveMetricsCollection AnalyseClasses(
         CognitiveConfiguration configuration,
         SyntaxNode root,
         CognitiveMetricsCollection metricsCollection, string file
     ) {
         IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
         foreach (ClassDeclarationSyntax classNode in classNodes)
         {
             metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file);
@@ -46,7 +49,7 @@ public class CognitiveCodeAnalyser
         return metricsCollection;
     }
 
-    private CognitiveMetricsCollection ExtractMetricsFromClasses(
+    private static CognitiveMetricsCollection ExtractMetricsFromClasses(
         CognitiveConfiguration configuration,
         ClassDeclarationSyntax classNode,
         CognitiveMetricsCollection metricsCollection,
@@ -82,8 +85,7 @@ public class CognitiveCodeAnalyser
                 elseCount: elseCount,
                 tryCatchCount: tryCount,
                 returnCount: methodNode.DescendantNodes().OfType<ReturnStatementSyntax>().Count(),
-                nestingLevels: CalculateNestingLevels(methodNode, configuration),
-                isPure: PureMethodDetector.IsPure(methodNode)
+                nestingLevels: CalculateNestingLevels(methodNode, configuration)
             ));
         }
 
@@ -93,9 +95,9 @@ public class CognitiveCodeAnalyser
     private static string GetFullSignature(MethodDeclarationSyntax methodNode)
     {
         return methodNode.Modifiers + " " +
-                           methodNode.ReturnType + " " +
-                           methodNode.Identifier.Text +
-                           methodNode.ParameterList;
+            methodNode.ReturnType + " " +
+            methodNode.Identifier.Text +
+            methodNode.ParameterList;
     }
 
     private static int GetLinesOfCode(MethodDeclarationSyntax methodNode)
@@ -109,7 +111,9 @@ public class CognitiveCodeAnalyser
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Combine namespace, containing types, and class name
+    /// ]]>
     /// </summary>
     /// <param name="classNode"></param>
     /// <returns></returns>
@@ -218,15 +222,15 @@ public class CognitiveCodeAnalyser
 
     private static int CalculateElseDepth(int currentDepth, ref int maxDepth, CognitiveConfiguration configuration)
     {
-        if (configuration.CountElseAsNesting)
+        if (!configuration.CountElseAsNesting)
         {
-            int depthForElse = currentDepth + 1;
-            maxDepth = Math.Max(maxDepth, depthForElse);
-
-            return depthForElse;
+            return currentDepth;
         }
 
-        return currentDepth;
+        int depthForElse = currentDepth + 1;
+        maxDepth = Math.Max(maxDepth, depthForElse);
+
+        return depthForElse;
     }
 
     private static int GetChildDepthForElse(SyntaxNode child, int currentDepth, int depthForElse, CognitiveConfiguration configuration)
@@ -260,6 +264,7 @@ public class CognitiveCodeAnalyser
             // else-if chains are flat - use the same depth as the parent if statement
             return currentDepth;
         }
+
         // Normal if statement - increment depth
         return currentDepth + 1;
     }
@@ -279,8 +284,10 @@ public class CognitiveCodeAnalyser
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Control flow structures that create nesting levels.
     /// Exclude ElseClauseSyntax and IfStatementSyntax as they're handled separately.
+    /// ]]>
     /// </summary>
     /// <param name="node"></param>
     /// <returns></returns>
@@ -302,20 +309,24 @@ public class CognitiveCodeAnalyser
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Calculates and sets the total score for the given metrics.
+    /// ]]>
     /// </summary>
     /// <param name="metrics">The cognitive metrics to calculate the total score for</param>
     public static void CalculateTotalScore(CognitiveMetrics metrics)
     {
-        metrics.TotalScore = metrics.ifScore + metrics.elseScore + metrics.loopScore + metrics.switchScore +
+        metrics.totalScore = metrics.ifScore + metrics.elseScore + metrics.loopScore + metrics.switchScore +
                              metrics.tryCatchScore + metrics.returnScore + metrics.argumentScore + metrics.nestingScore;
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Calculates the cyclomatic complexity of a method.
     /// Cyclomatic complexity is a quantitative measure of the number of linearly independent paths through a program's source code.
     /// Formula: M = number of decision points + 1
     /// Reference: https://en.wikipedia.org/wiki/Cyclomatic_complexity
+    /// ]]>
     /// </summary>
     /// <param name="methodNode">The method declaration to analyse</param>
     /// <returns>The cyclomatic complexity value (minimum is 1 for a method with no decision points)</returns>
@@ -345,9 +356,8 @@ public class CognitiveCodeAnalyser
 
         // Count switch cases (each case section is a decision point)
         var switchStatements = allNodes.OfType<SwitchStatementSyntax>().ToList();
-        foreach (var switchStatement in switchStatements)
+        foreach (SwitchStatementSyntax switchStatement in switchStatements)
         {
-            // Count switch sections (cases and default) - each section is a decision point
             decisionPoints += switchStatement.Sections.Count;
         }
 

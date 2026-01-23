@@ -1,7 +1,7 @@
-namespace CognitiveCodeAnalysis.CodeCoverage;
+﻿namespace CognitiveCodeAnalysis.CodeCoverage;
 
 /// <summary>
-/// Represents code coverage metrics for a method or class.
+/// Code coverage metrics DTO
 /// </summary>
 public class Coverage
 {
@@ -65,4 +65,3 @@ public class Coverage
     /// </summary>
     public bool IsMethodLevel => !string.IsNullOrEmpty(MethodName);
 }
-
