@@ -1,42 +1,30 @@
-name: .NET Build and Test
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master, develop ]
 
 jobs:
-  build-and-test:
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        dotnet-version: ['8.0.x']
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-          cache: true  # Optional: Speeds up repeated runs by caching NuGet packages
-      
-      - name: Restore dependencies
-        run: dotnet restore "Cognitive Code Analysis.sln"
-      
-      - name: Build
-        run: dotnet build "Cognitive Code Analysis.sln" --no-restore --configuration Release
-      
-      - name: Test
-        run: dotnet test "Cognitive Code Analysis.sln" --no-build --configuration Release --verbosity normal --logger trx
-      
-      # Optional: Upload test results (visible in GitHub Actions UI)
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: '**/*.trx'
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore "Cognitive Code Analysis.sln"
+    
+    - name: Build
+      run: dotnet build "Cognitive Code Analysis.sln" --no-restore --configuration Release
+    
+    - name: Run tests
+      run: dotnet test "Cognitive Code Analysis.sln" --no-build --configuration Release --verbosity normal

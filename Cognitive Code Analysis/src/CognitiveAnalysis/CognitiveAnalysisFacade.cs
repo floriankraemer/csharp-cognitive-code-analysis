@@ -7,14 +7,15 @@ public class CognitiveAnalysisFacade(
     SourceFileFinder sourceFileFinder,
     CognitiveCodeAnalyser analyser,
     CognitiveConfiguration cognitiveConfiguration,
-    ScoreCalculator calculator
+    ScoreCalculator calculator,
+    ICoverageReader coverageReader
 ) {
     public List<string> FindFiles(string sourcePath)
     {
         return sourceFileFinder.FindSourceFiles([sourcePath]);
     }
 
-    public CognitiveMetricsCollection AnalyseCsharpFiles(
+    public CognitiveMetricsCollection AnalyseSourceFiles(
         List<string> files
     ) {
         CognitiveMetricsCollection metricsCollection = analyser.AnalyseFiles(files, cognitiveConfiguration);
@@ -38,8 +39,7 @@ public class CognitiveAnalysisFacade(
     {
         try
         {
-            CoberturaReader reader = new();
-            IEnumerable<Coverage> coverageData = reader.ReadCoverage(coverageFilePath);
+            IEnumerable<Coverage> coverageData = coverageReader.ReadCoverage(coverageFilePath);
             var coverageList = coverageData.ToList();
 
             Dictionary<CognitiveMetrics, Coverage> matches = CoverageMatcher.MatchCoverageToMetrics(

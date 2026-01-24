@@ -57,7 +57,7 @@ internal sealed class AnalyseCommand(
 
         if (!FilesWereFound(files, absoluteSourcePath)) return Error;
 
-        CognitiveMetricsCollection metricsCollection = cognitiveAnalysisFacade.AnalyseCsharpFiles(files);
+        CognitiveMetricsCollection metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files);
 
         if (!HandleCoverage(settings, metricsCollection)) return Error;
 

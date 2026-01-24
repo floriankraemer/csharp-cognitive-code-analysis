@@ -11,8 +11,10 @@ public class SourceFileFinderTests : IDisposable
     {
         // Arrange
         string tempDir = CreateTempDirectory();
+
         string file1 = Path.Combine(tempDir, "Test1.cs");
         string file2 = Path.Combine(tempDir, "Test2.cs");
+
         File.WriteAllText(file1, "// Test file 1");
         File.WriteAllText(file2, "// Test file 2");
 
@@ -267,8 +269,10 @@ public class SourceFileFinderTests : IDisposable
     private string CreateTempDirectory()
     {
         string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
         Directory.CreateDirectory(tempDir);
         _tempDirectories.Add(tempDir);
+
         return tempDir;
     }
 

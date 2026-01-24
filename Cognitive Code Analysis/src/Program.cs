@@ -1,4 +1,5 @@
-﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
+﻿using CognitiveCodeAnalysis.CodeCoverage;
+using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Commands;
 using CognitiveCodeAnalysis.Configuration;
@@ -28,6 +29,7 @@ public class Program
         serviceCollection.AddSingleton<ScoreCalculator>();
         serviceCollection.AddSingleton<CognitiveAnalysisFacade>();
         serviceCollection.AddSingleton<ReportFactory>();
+        serviceCollection.AddSingleton<ICoverageReader, CoberturaReader>();
 
         // Create a type registrar and register any dependencies.
         // A type registrar is an adapter for a DI framework.
