@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis", "CognitiveCodeAnalysis\CognitiveCodeAnalysis.csproj", "{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.Tests", "CognitiveCodeAnalysis.Tests\CognitiveCodeAnalysis.Tests.csproj", "{97C3EC4D-220C-E3E8-AD0B-FA046CFAB33A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE} = {10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97C3EC4D-220C-E3E8-AD0B-FA046CFAB33A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97C3EC4D-220C-E3E8-AD0B-FA046CFAB33A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97C3EC4D-220C-E3E8-AD0B-FA046CFAB33A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97C3EC4D-220C-E3E8-AD0B-FA046CFAB33A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {21A9DC15-BFBF-4339-A8D4-F25F953AD4A2}
+	EndGlobalSection
+EndGlobal

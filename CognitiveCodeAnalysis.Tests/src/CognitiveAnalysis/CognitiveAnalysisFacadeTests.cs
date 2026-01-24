@@ -39,7 +39,7 @@ class CognitiveAnalysisFacadeTests
 
         var files = _facade.FindSourceFiles(_tempFiles.tmpDirectory);
 
-        Assert.That(files.Count , Is.EqualTo(2));
+        Assert.That(files , Has.Count.EqualTo(2));
     }
 
     [Test]

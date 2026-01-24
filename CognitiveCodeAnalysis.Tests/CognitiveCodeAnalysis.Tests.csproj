@@ -24,15 +24,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Cognitive Code Analysis\CognitiveCodeAnalysis.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="src\CodeCoverage\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CognitiveCodeAnalysis\CognitiveCodeAnalysis.csproj" />
   </ItemGroup>
 
 </Project>
