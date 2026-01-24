@@ -53,7 +53,7 @@ internal sealed class AnalyseCommand(
         string sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
         string absoluteSourcePath = Path.GetFullPath(sourcePath);
 
-        List<string> files = cognitiveAnalysisFacade.FindFiles(absoluteSourcePath);
+        List<string> files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath);
 
         if (!FilesWereFound(files, absoluteSourcePath)) return Error;
 

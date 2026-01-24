@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="CodeCoverage\" />
+    <Folder Include="src\CodeCoverage\" />
   </ItemGroup>
 
 </Project>

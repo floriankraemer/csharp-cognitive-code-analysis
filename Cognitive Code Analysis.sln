@@ -5,9 +5,7 @@ VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis", "Cognitive Code Analysis\CognitiveCodeAnalysis.csproj", "{B7E6CD6B-7B7C-46B1-A502-12C6E580B2B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.TestCode", "CognitiveCodeAnalysis.TestCode\CognitiveCodeAnalysis.TestCode.csproj", "{A5C33434-C2DD-444D-B123-2EAF8F660A92}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.NUnitTests", "CognitiveCodeAnalysis.NUnitTests\CognitiveCodeAnalysis.NUnitTests.csproj", "{C84777C2-F455-82AF-22D5-B34CDB84191E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.Tests", "CognitiveCodeAnalysis.NUnitTests\CognitiveCodeAnalysis.Tests.csproj", "{C84777C2-F455-82AF-22D5-B34CDB84191E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,18 +29,6 @@ Global
 		{B7E6CD6B-7B7C-46B1-A502-12C6E580B2B5}.Release|x64.Build.0 = Release|Any CPU
 		{B7E6CD6B-7B7C-46B1-A502-12C6E580B2B5}.Release|x86.ActiveCfg = Release|Any CPU
 		{B7E6CD6B-7B7C-46B1-A502-12C6E580B2B5}.Release|x86.Build.0 = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|x64.Build.0 = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Debug|x86.Build.0 = Debug|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|x64.ActiveCfg = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|x64.Build.0 = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|x86.ActiveCfg = Release|Any CPU
-		{A5C33434-C2DD-444D-B123-2EAF8F660A92}.Release|x86.Build.0 = Release|Any CPU
 		{C84777C2-F455-82AF-22D5-B34CDB84191E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C84777C2-F455-82AF-22D5-B34CDB84191E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C84777C2-F455-82AF-22D5-B34CDB84191E}.Debug|x64.ActiveCfg = Debug|Any CPU

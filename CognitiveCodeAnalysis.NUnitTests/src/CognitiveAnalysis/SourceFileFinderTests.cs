@@ -1,6 +1,6 @@
 ﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
 
-namespace CognitiveCodeAnalysis.NUnitTests.CognitiveAnalysis;
+namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
 public class SourceFileFinderTests
 {

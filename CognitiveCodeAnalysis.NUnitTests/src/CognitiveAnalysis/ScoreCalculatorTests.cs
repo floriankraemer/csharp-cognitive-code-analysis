@@ -1,7 +1,7 @@
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Configuration;
 
-namespace CognitiveCodeAnalysis.NUnitTests.CognitiveAnalysis;
+namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
 public class Tests
 {

@@ -10,7 +10,12 @@ public class CognitiveAnalysisFacade(
     ScoreCalculator calculator,
     ICoverageReader coverageReader
 ) {
-    public List<string> FindFiles(string sourcePath)
+    public List<string> FindSourceFiles(string[] sourcePaths)
+    {
+        return sourceFileFinder.FindSourceFiles(sourcePaths);
+    }
+
+    public List<string> FindSourceFiles(string sourcePath)
     {
         return sourceFileFinder.FindSourceFiles([sourcePath]);
     }
