@@ -1,4 +1,5 @@
 ﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Commands;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.DependencyInjection;
@@ -7,24 +8,30 @@ using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysis;
 
+/// <summary>
+/// <![CDATA[
+/// https://spectreconsole.net/
+/// https://spectreconsole.net/cli/tutorials/dependency-injection-in-cli-apps
+/// ]]>
+/// </summary>
 public class Program
 {
     public static int Main(string[] args)
     {
-        var registrations = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
         CognitiveConfiguration defaultConfig = ConfigurationLoader.Load();
-        registrations.AddSingleton(defaultConfig);
 
-        // Register dependencies
-        registrations.AddSingleton<FileFinder>();
-        registrations.AddSingleton<CognitiveCodeAnalyser>();
-        registrations.AddSingleton<ScoreCalculator>();
-        registrations.AddSingleton<CognitiveAnalysisFacade>();
+        serviceCollection.AddSingleton(defaultConfig);
+        serviceCollection.AddSingleton<SourceFileFinder>();
+        serviceCollection.AddSingleton<CognitiveCodeAnalyser>();
+        serviceCollection.AddSingleton<ScoreCalculator>();
+        serviceCollection.AddSingleton<CognitiveAnalysisFacade>();
+        serviceCollection.AddSingleton<ReportFactory>();
 
         // Create a type registrar and register any dependencies.
         // A type registrar is an adapter for a DI framework.
-        var registrar = new TypeRegistrar(registrations);
+        var registrar = new TypeRegistrar(serviceCollection);
 
         // Create a new command app with the registrar and run it with the provided arguments.
         var app = new CommandApp<AnalyseCommand>(registrar);

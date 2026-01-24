@@ -356,7 +356,7 @@ public class CognitiveMetricsCollectionTest
             methodName: methodName,
             className: className,
             filePath: filePath,
-            signature: $"public void {methodName}()",
+            methodSignature: $"public void {methodName}()",
             methodLineNumber: 1
         );
         metrics.totalScore = totalScore;

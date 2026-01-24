@@ -1,13 +1,11 @@
 ﻿namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 /// <summary>
-/// <![CDATA[
-/// Represents the cognitive metrics for a method.
-/// ]]>
+/// <![CDATA[Cognitive Metrics Data Object]]>
 /// </summary>
 public class CognitiveMetrics
 {
-    // Metadata
+    // File and Class Info
     public string MethodName { get; set; }
     public string ClassName { get; set; }
     public string FilePath { get; set; }
@@ -55,7 +53,6 @@ public class CognitiveMetrics
     public double cyclomaticComplexity = 0;
 
     public double? lineCoveragePercentage = null;
-
     public double? branchCoveragePercentage = null;
 
     public double? churnScore = null;
@@ -64,7 +61,7 @@ public class CognitiveMetrics
         string methodName,
         string className,
         string filePath,
-        string signature,
+        string methodSignature,
         int methodLineNumber,
         int ifCount = 0,
         int elseCount = 0,
@@ -78,13 +75,16 @@ public class CognitiveMetrics
         double cyclomaticComplexity = 0,
         int localVariableCount = 0,
         int fieldAccessCount = 0,
-        int propertyAccessCount = 0
+        int propertyAccessCount = 0,
+        double? lineCoveragePercentage = null,
+        double? branchCoveragePercentage = null,
+        double? churnScore = null
     )
     {
-        this.MethodName = methodName;
-        this.ClassName = className;
-        this.FilePath = filePath;
-        this.methodSignature = signature;
+        MethodName = methodName;
+        ClassName = className;
+        FilePath = filePath;
+        this.methodSignature = methodSignature;
         this.methodLineNumber = methodLineNumber;
         this.ifCount = ifCount;
         this.elseCount = elseCount;
@@ -99,5 +99,13 @@ public class CognitiveMetrics
         this.localVariableCount = localVariableCount;
         this.fieldAccessCount = fieldAccessCount;
         this.propertyAccessCount = propertyAccessCount;
+        this.lineCoveragePercentage = lineCoveragePercentage;
+        this.branchCoveragePercentage = branchCoveragePercentage;
+        this.churnScore = churnScore;
+    }
+
+    public bool HasCoverageData()
+    {
+        return lineCoveragePercentage.HasValue || branchCoveragePercentage.HasValue;
     }
 }

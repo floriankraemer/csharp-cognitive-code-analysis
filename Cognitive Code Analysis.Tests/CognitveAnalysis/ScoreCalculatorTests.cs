@@ -12,7 +12,7 @@ public class ScoreCalculatorTests
             methodName: "TestMethod",
             className: "TestClass",
             filePath: "TestFile.cs",
-            signature: "TestMethod()",
+            methodSignature: "TestMethod()",
             methodLineNumber: 10,
             ifCount: 10,
             elseCount: 10,

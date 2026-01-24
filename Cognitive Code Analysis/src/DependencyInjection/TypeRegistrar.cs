@@ -4,14 +4,9 @@ using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysis.DependencyInjection;
 
-public sealed class TypeRegistrar : ITypeRegistrar
+public sealed class TypeRegistrar(IServiceCollection builder) : ITypeRegistrar
 {
-    private readonly IServiceCollection _builder;
-
-    public TypeRegistrar(IServiceCollection builder)
-    {
-        _builder = builder;
-    }
+    private readonly IServiceCollection _builder = builder;
 
     public ITypeResolver Build()
     {

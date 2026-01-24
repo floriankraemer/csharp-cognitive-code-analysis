@@ -44,7 +44,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
     /// <returns>The total number of methods</returns>
     public int GetTotalMethods()
     {
-        return this.Count;
+        return Count;
     }
 
     /// <summary>
@@ -102,6 +102,7 @@ public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
         }
 
         int classesWithExceedingMethods = GetClassesWithExceedingMethods(threshold);
+
         return (double)classesWithExceedingMethods / totalClasses * 100.0;
     }
 }

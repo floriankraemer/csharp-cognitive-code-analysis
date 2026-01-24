@@ -1,24 +1,22 @@
-using CognitiveCodeAnalysis.CodeCoverage;
+﻿using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class CognitiveAnalysisFacade(
-    FileFinder fileFinder,
+    SourceFileFinder sourceFileFinder,
     CognitiveCodeAnalyser analyser,
     CognitiveConfiguration cognitiveConfiguration,
     ScoreCalculator calculator
-)
-{
+) {
     public List<string> FindFiles(string sourcePath)
     {
-        return fileFinder.Find([sourcePath]);
+        return sourceFileFinder.FindSourceFiles([sourcePath]);
     }
 
     public CognitiveMetricsCollection AnalyseCsharpFiles(
         List<string> files
-    )
-    {
+    ) {
         CognitiveMetricsCollection metricsCollection = analyser.AnalyseFiles(files, cognitiveConfiguration);
 
         foreach (CognitiveMetrics metrics in metricsCollection)
@@ -28,11 +26,6 @@ public class CognitiveAnalysisFacade(
         }
 
         return metricsCollection;
-    }
-
-    public CognitiveMetrics CalculateScores(CognitiveMetrics metrics)
-    {
-        return calculator.CalculateScores(metrics);
     }
 
     public class CoverageLoadingResult
@@ -59,8 +52,7 @@ public class CognitiveAnalysisFacade(
                 metrics.lineCoveragePercentage = coverage.LineCoveragePercentage;
                 metrics.branchCoveragePercentage = coverage.BranchCoveragePercentage;
 
-                // Calculate churn score when coverage data is available
-                if (metrics.lineCoveragePercentage.HasValue || metrics.branchCoveragePercentage.HasValue)
+                if (metrics.HasCoverageData())
                 {
                     metrics.churnScore = ChurnCalculator.CalculateChurnScore(metrics);
                 }
@@ -69,7 +61,6 @@ public class CognitiveAnalysisFacade(
             if (matches.Count > 0)
             {
                 //AnsiConsole.MarkupLine($"[green]Matched coverage data for {matches.Count} method(s)[/]");
-                //return;
                 return new CoverageLoadingResult { Success = true };
             }
 

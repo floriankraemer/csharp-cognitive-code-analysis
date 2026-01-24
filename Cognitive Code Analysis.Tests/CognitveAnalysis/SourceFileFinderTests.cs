@@ -2,7 +2,7 @@
 
 namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
-public class FileFinderTests : IDisposable
+public class SourceFileFinderTests : IDisposable
 {
     private readonly List<string> _tempDirectories = new();
 
@@ -16,10 +16,10 @@ public class FileFinderTests : IDisposable
         File.WriteAllText(file1, "// Test file 1");
         File.WriteAllText(file2, "// Test file 2");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { tempDir });
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -38,10 +38,10 @@ public class FileFinderTests : IDisposable
         File.WriteAllText(file1, "// Test file 1");
         File.WriteAllText(file2, "// Test file 2");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { tempDir1, tempDir2 });
+        var result = fileFinder.FindSourceFiles(new[] { tempDir1, tempDir2 });
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -61,10 +61,10 @@ public class FileFinderTests : IDisposable
         File.WriteAllText(file1, "// Test file 1");
         File.WriteAllText(file2, "// Test file 2");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { tempDir });
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -80,10 +80,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { null!, tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { null!, tempDir });
 
         // Assert
         Assert.Single(result);
@@ -98,10 +98,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { "", tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { "", tempDir });
 
         // Assert
         Assert.Single(result);
@@ -116,10 +116,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { "   ", tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { "   ", tempDir });
 
         // Assert
         Assert.Single(result);
@@ -134,10 +134,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { $"\"{tempDir}\"" });
+        var result = fileFinder.FindSourceFiles(new[] { $"\"{tempDir}\"" });
 
         // Assert
         Assert.Single(result);
@@ -152,10 +152,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { $"'{tempDir}'" });
+        var result = fileFinder.FindSourceFiles(new[] { $"'{tempDir}'" });
 
         // Assert
         Assert.Single(result);
@@ -170,10 +170,10 @@ public class FileFinderTests : IDisposable
         string file1 = Path.Combine(tempDir, "File1.cs");
         File.WriteAllText(file1, "// Test file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { $"   {tempDir}   " });
+        var result = fileFinder.FindSourceFiles(new[] { $"   {tempDir}   " });
 
         // Assert
         Assert.Single(result);
@@ -185,10 +185,10 @@ public class FileFinderTests : IDisposable
     {
         // Arrange
         string nonExistentDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { nonExistentDir });
+        var result = fileFinder.FindSourceFiles(new[] { nonExistentDir });
 
         // Assert
         Assert.Empty(result);
@@ -198,11 +198,11 @@ public class FileFinderTests : IDisposable
     public void Find_WithInvalidPath_SkipsInvalidPath()
     {
         // Arrange
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
         string invalidPath = "|<>?*";
 
         // Act
-        var result = fileFinder.Find(new[] { invalidPath });
+        var result = fileFinder.FindSourceFiles(new[] { invalidPath });
 
         // Assert
         Assert.Empty(result);
@@ -212,10 +212,10 @@ public class FileFinderTests : IDisposable
     public void Find_WithEmptyArray_ReturnsEmptyList()
     {
         // Arrange
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(Array.Empty<string>());
+        var result = fileFinder.FindSourceFiles(Array.Empty<string>());
 
         // Assert
         Assert.Empty(result);
@@ -233,10 +233,10 @@ public class FileFinderTests : IDisposable
         File.WriteAllText(txtFile, "Text file");
         File.WriteAllText(jsFile, "// JS file");
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { tempDir });
+        var result = fileFinder.FindSourceFiles(new[] { tempDir });
 
         // Assert
         Assert.Single(result);
@@ -254,10 +254,10 @@ public class FileFinderTests : IDisposable
         File.WriteAllText(file1, "// Test file");
         string nonExistentDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
-        var fileFinder = new FileFinder();
+        var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.Find(new[] { tempDir, nonExistentDir, null!, "" });
+        var result = fileFinder.FindSourceFiles(new[] { tempDir, nonExistentDir, null!, "" });
 
         // Assert
         Assert.Single(result);

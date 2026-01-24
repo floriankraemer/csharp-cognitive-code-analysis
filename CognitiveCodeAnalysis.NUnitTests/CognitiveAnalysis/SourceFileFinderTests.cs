@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CognitiveCodeAnalysis.Tests.Tests
+namespace CognitiveCodeAnalysis.NUnitTests.CognitiveAnalysis
 {
-    internal class CognitiveCodeAnalyserTest
+    internal class SourceFileFinderTests
     {
     }
 }

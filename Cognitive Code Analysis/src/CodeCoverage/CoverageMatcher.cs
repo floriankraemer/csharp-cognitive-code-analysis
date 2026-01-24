@@ -1,16 +1,18 @@
-using CognitiveCodeAnalysis.CodeCoverage;
+﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
 
-namespace CognitiveCodeAnalysis.CognitiveAnalysis;
+namespace CognitiveCodeAnalysis.CodeCoverage;
 
 /// <summary>
-/// Matches code coverage data to cognitive metrics.
+/// <![CDATA[Matches code coverage data to cognitive metrics.]]>
 /// </summary>
 public static class CoverageMatcher
 {
     /// <summary>
+    /// <![CDATA[
     /// Matches coverage data to metrics collection.
     /// Primary match: method name + line number + file path
     /// Fallback match: class name + file path (for class-level coverage)
+    /// ]]>
     /// </summary>
     /// <param name="metricsCollection">The cognitive metrics collection</param>
     /// <param name="coverageData">The coverage data from Cobertura report</param>
@@ -18,8 +20,7 @@ public static class CoverageMatcher
     public static Dictionary<CognitiveMetrics, Coverage> MatchCoverageToMetrics(
         CognitiveMetricsCollection metricsCollection,
         IEnumerable<Coverage> coverageData
-    )
-    {
+    ) {
         var matches = new Dictionary<CognitiveMetrics, Coverage>();
         var coverageList = coverageData.ToList();
 
@@ -64,7 +65,9 @@ public static class CoverageMatcher
     }
 
     /// <summary>
+    /// <![CDATA[
     /// Normalizes file paths for comparison by converting to absolute paths and standardizing separators.
+    /// ]]>
     /// </summary>
     private static string NormalizePath(string path)
     {
@@ -90,4 +93,3 @@ public static class CoverageMatcher
         }
     }
 }
-

@@ -6,18 +6,18 @@ using CognitiveCodeAnalysis.Configuration;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
+
 using static CognitiveCodeAnalysis.CognitiveAnalysis.CognitiveAnalysisFacade;
 
 namespace CognitiveCodeAnalysis.Commands;
 
 internal sealed class AnalyseCommand(
-    CognitiveAnalysisFacade cognitiveAnalysisFacade
+    CognitiveAnalysisFacade cognitiveAnalysisFacade,
+    ReportFactory reportFactory
 ) : Command<AnalyseCommand.Settings>
 {
     private const int Success = 0;
     private const int Error = 0;
-
-    private readonly ReportFactory _reportFactory = new();
 
     public sealed class Settings : CommandSettings
     {
@@ -59,27 +59,31 @@ internal sealed class AnalyseCommand(
 
         CognitiveMetricsCollection metricsCollection = cognitiveAnalysisFacade.AnalyseCsharpFiles(files);
 
-        if (!string.IsNullOrEmpty(settings.CoverageCobertura))
-        {
-            CoverageLoadingResult result = cognitiveAnalysisFacade.LoadCoverageData(
-                coverageFilePath: settings.CoverageCobertura,
-                metricsCollection: metricsCollection
-            );
+        if (!HandleCoverage(settings, metricsCollection)) return Error;
 
-            if (!result.Success)
-            {
-                AnsiConsole.MarkupLine($"[yellow]Warning: {result.ErrorMessage}[/]");
-                return Error;
-            }
-        }
-
-        RenderReport(
+        GenerateReport(
             settings: settings,
             configuration: configuration,
             metricsCollection: metricsCollection
         );
 
         return Success;
+    }
+
+    private bool HandleCoverage(Settings settings, CognitiveMetricsCollection metricsCollection)
+    {
+        if (string.IsNullOrEmpty(settings.CoverageCobertura)) return true;
+
+        CoverageLoadingResult result = cognitiveAnalysisFacade.LoadCoverageData(
+            coverageFilePath: settings.CoverageCobertura,
+            metricsCollection: metricsCollection
+        );
+
+        if (!result.Success) {
+            AnsiConsole.MarkupLine($"[yellow]Warning: {result.ErrorMessage}[/]");
+        }
+
+        return result.Success;
     }
 
     private static bool FilesWereFound(List<string> files, string absoluteSourcePath)
@@ -89,10 +93,11 @@ internal sealed class AnalyseCommand(
         }
 
         AnsiConsole.MarkupLine($"[yellow]No C# files found in {absoluteSourcePath}.[/]");
+
         return false;
     }
 
-    private void RenderReport(
+    private void GenerateReport(
         Settings settings,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection
@@ -100,8 +105,8 @@ internal sealed class AnalyseCommand(
         string reportType = settings.ReportType ?? "ConsoleText";
         string outputFile = settings.OutputFile ?? "cognitive-analysis-report";
 
-        _reportFactory.ReportGenerated += OnReportGenerated;
-        _reportFactory.GenerateReport(
+        reportFactory.ReportGenerated += OnReportGenerated;
+        reportFactory.GenerateReport(
             reportType,
             outputFile,
             configuration,

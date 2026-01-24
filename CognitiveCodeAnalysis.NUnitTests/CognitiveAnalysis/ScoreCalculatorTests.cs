@@ -1,7 +1,7 @@
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Configuration;
 
-namespace CognitiveCodeAnalysis.NUnitTests
+namespace CognitiveCodeAnalysis.NUnitTests.CognitiveAnalysis
 {
     public class Tests
     {
@@ -14,11 +14,11 @@ namespace CognitiveCodeAnalysis.NUnitTests
         public void CalculateScoresWithValidMetric()
         {
             // Arrange
-            CognitiveMetrics metrics = new CognitiveMetrics(
+            var metrics = new CognitiveMetrics(
                 methodName: "TestMethod" ,
                 className: "TestClass" ,
                 filePath: "TestFile.cs" ,
-                signature: "TestMethod()" ,
+                methodSignature: "TestMethod()" ,
                 methodLineNumber: 10 ,
                 ifCount: 10 ,
                 elseCount: 10 ,
@@ -39,16 +39,9 @@ namespace CognitiveCodeAnalysis.NUnitTests
             Assert.That(metrics.returnCount, Is.EqualTo(6));
 
             // Assert score values
-            // ifCount: 10, Threshold: 3, Scale: 1.0 -> Math.Log(1 + (10 - 3) / 1.0) = Math.Log(8) ≈ 2.07944
             Assert.That(metrics.ifScore, Is.EqualTo(2.0794415416798357d));
-
-            // elseCount: 10, Threshold: 1, Scale: 1.0 -> Math.Log(1 + (10 - 1) / 1.0) = Math.Log(10) ≈ 2.30259
             Assert.That(metrics.elseScore, Is.EqualTo(2.3025850929940459d));
-
-            // argumentCount: 5, Threshold: 4, Scale: 1.0 -> Math.Log(1 + (5 - 4) / 1.0) = Math.Log(2) ≈ 0.69315
             Assert.That(metrics.argumentScore, Is.EqualTo(0.69314718055994529d));
-
-            // returnCount: 6, Threshold: 2, Scale: 5.0 -> Math.Log(1 + (6 - 2) / 5.0) = Math.Log(1.8) ≈ 0.58779
             Assert.That(metrics.returnScore, Is.EqualTo(0.58778666490211906d));
         }
 
@@ -68,6 +61,7 @@ namespace CognitiveCodeAnalysis.NUnitTests
                     { "elseCount", new MetricConfiguration { Scale = 1.0, Threshold = 1, Enabled = true } }
                 }
             };
+
             return configuration;
         }
     }
