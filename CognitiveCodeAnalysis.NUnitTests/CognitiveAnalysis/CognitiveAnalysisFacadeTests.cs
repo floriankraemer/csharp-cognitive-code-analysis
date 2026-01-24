@@ -12,9 +12,9 @@ class CognitiveAnalysisFacadeTests
     public void SetUp()
     {
         _facade = new CognitiveAnalysisFacade(
-            new SourceFileFinder() ,
-            new CognitiveCodeAnalyser() ,
-            new CognitiveConfiguration() ,
+            new SourceFileFinder(),
+            new CognitiveCodeAnalyser(),
+            new CognitiveConfiguration(),
             new ScoreCalculator(
                 new CognitiveConfiguration()
             ),
