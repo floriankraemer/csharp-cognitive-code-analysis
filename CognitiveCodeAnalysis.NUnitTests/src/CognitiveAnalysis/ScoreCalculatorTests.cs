@@ -32,17 +32,21 @@ public class Tests
         // Act
         calculator.CalculateScores(metrics);
 
-        // Assert count values
-        Assert.That(metrics.ifCount , Is.EqualTo(10));
-        Assert.That(metrics.elseCount , Is.EqualTo(10));
-        Assert.That(metrics.argumentCount , Is.EqualTo(5));
-        Assert.That(metrics.returnCount, Is.EqualTo(6));
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert count values
+            Assert.That(metrics.ifCount, Is.EqualTo(10));
+            Assert.That(metrics.elseCount, Is.EqualTo(10));
+            Assert.That(metrics.argumentCount, Is.EqualTo(5));
+            Assert.That(metrics.returnCount, Is.EqualTo(6));
 
-        // Assert score values
-        Assert.That(metrics.ifScore, Is.EqualTo(2.0794415416798357d));
-        Assert.That(metrics.elseScore, Is.EqualTo(2.3025850929940459d));
-        Assert.That(metrics.argumentScore, Is.EqualTo(0.69314718055994529d));
-        Assert.That(metrics.returnScore, Is.EqualTo(0.58778666490211906d));
+            // Assert score values
+            Assert.That(metrics.ifScore, Is.EqualTo(2.0794415416798357d));
+            Assert.That(metrics.elseScore, Is.EqualTo(2.3025850929940459d));
+            Assert.That(metrics.argumentScore, Is.EqualTo(0.69314718055994529d));
+            Assert.That(metrics.returnScore, Is.EqualTo(0.58778666490211906d));
+        }
     }
 
     private static CognitiveConfiguration GetConfiguration()

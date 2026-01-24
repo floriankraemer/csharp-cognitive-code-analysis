@@ -4,53 +4,30 @@ namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
 public class SourceFileFinderTests
 {
-    private readonly List<string> _tempDirectories = [];
+    private TempFiles _tempFiles;
 
     [SetUp]
     public void Setup()
     {
+        _tempFiles = new TempFiles();
     }
 
     [TearDown]
     public void TearDown()
     {
-        foreach (var dir in _tempDirectories) {
-            try {
-                if (Directory.Exists(dir)) {
-                    Directory.Delete(dir , recursive: true);
-                }
-            } catch {
-                // Ignore cleanup errors
-            }
-        }
-    }
-
-    private string CreateTempDirectory()
-    {
-        var tempDir = Path.Combine(Path.GetTempPath() , Guid.NewGuid().ToString());
-
-        Directory.CreateDirectory(tempDir);
-        _tempDirectories.Add(tempDir);
-
-        return tempDir;
+        _tempFiles.CleanUp();
     }
 
     [Test]
     public void TestFindingSourceFiles()
     {
-        // Arrange
-        var tempDir1 = CreateTempDirectory();
-        var tempDir2 = CreateTempDirectory();
-        var file1 = Path.Combine(tempDir1 , "File1.cs");
-        var file2 = Path.Combine(tempDir2 , "File2.cs");
-
-        File.WriteAllText(file1 , "// Test file 1");
-        File.WriteAllText(file2 , "// Test file 2");
+        var file1 = _tempFiles.CreateFileWithContent("File1.cs" , "// Test file 1");
+        var file2 = _tempFiles.CreateFileWithContent("File2.cs" , "// Test file 1");
 
         var fileFinder = new SourceFileFinder();
 
         // Act
-        var result = fileFinder.FindSourceFiles([tempDir1 , tempDir2]);
+        var result = fileFinder.FindSourceFiles([_tempFiles.tmpDirectory]);
 
         // Assert
         using (Assert.EnterMultipleScope()) {
@@ -79,13 +56,12 @@ public class SourceFileFinderTests
     public void TestFindingSourceFilesWithValidAndInvalidDirectory()
     {
         // Arrange
-        var tempDir1 = CreateTempDirectory();
-        var file1 = Path.Combine(tempDir1 , "File1.cs");
+        var tempDir1 = _tempFiles.tmpDirectory;
+        var file1 = _tempFiles.CreateFileWithContent( "File1.cs", "// Test file 1");
 
         File.WriteAllText(file1 , "// Test file 1");
 
         var fileFinder = new SourceFileFinder();
-        var noneExistentDirectory = "/does-not-exist";
 
         // Act
         var result = fileFinder.FindSourceFiles([

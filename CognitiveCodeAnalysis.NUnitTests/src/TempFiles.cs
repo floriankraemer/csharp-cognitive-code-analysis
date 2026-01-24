@@ -6,12 +6,8 @@ public class TempFiles
 
     public void CleanUp()
     {
-        try {
-            if (Directory.Exists(tmpDirectory)) {
-                Directory.Delete(tmpDirectory , recursive: true);
-            }
-        } catch {
-            // Ignore cleanup errors
+        if (Directory.Exists(tmpDirectory)) {
+            Directory.Delete(tmpDirectory , recursive: true);
         }
     }
 
