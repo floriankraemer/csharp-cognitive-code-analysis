@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="CognitiveCodeAnalysisExtension.ad960fab-7617-475a-8edd-22dbc274e4b5" Version="1.0" Language="en-US" Publisher="flori"/>
+    <DisplayName>CognitiveCodeAnalysisExtension</DisplayName>
+    <Description xml:space="preserve">Cognitive complexity analyzer for C# methods and classes.</Description>
+  </Metadata>
+  <Installation>
+    <!-- Support all current Visual Studio SKUs (Community/Professional/Enterprise).
+         Use a permissive minimum version to allow installation on newer Visual Studio releases. -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Community" Version="[15.0,)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Professional" Version="[15.0,)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Enterprise" Version="[15.0,)" />
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="CognitiveCodeAnalysisExtension" Path="|CognitiveCodeAnalysisExtension|"/>
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="CognitiveCodeAnalysisExtension" Path="|CognitiveCodeAnalysisExtension|"/>
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="CognitiveCodeAnalysisExtension.CodeFixes" Path="|CognitiveCodeAnalysisExtension.CodeFixes|"/>
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="CognitiveCodeAnalysisExtension.CodeFixes" Path="|CognitiveCodeAnalysisExtension.CodeFixes|"/>
+  </Assets>
+  <Prerequisites>
+    <!-- Allow installation on Visual Studio 15.0+ (supports newer VS versions) -->
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+</PackageManifest>

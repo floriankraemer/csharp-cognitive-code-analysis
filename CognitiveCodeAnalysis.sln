@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.2.11415.280 d18.0
+VisualStudioVersion = 18.2.11415.280
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis", "CognitiveCodeAnalysis\CognitiveCodeAnalysis.csproj", "{10A15CBC-0DB2-AE9B-F1C3-E49DFD248BAE}"
 EndProject
@@ -11,6 +11,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.Tests
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisConsoleApp", "CognitiveCodeAnalysisConsoleApp\CognitiveCodeAnalysisConsoleApp.csproj", "{7C9900F4-B313-27DD-0145-199FF8CA1F89}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisExtension", "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.csproj", "{FF6DCAF4-943A-4880-B5BD-90E2FDCFE2F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisExtension.CodeFixes", "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.CodeFixes\CognitiveCodeAnalysisExtension.CodeFixes.csproj", "{391D71A1-EAF1-48E5-9E63-2D1C5A9F2367}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisExtension.Package", "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.Package\CognitiveCodeAnalysisExtension.Package.csproj", "{4879852D-5904-4FA9-8914-2A7A4A8488C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisExtension.Test", "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.Test\CognitiveCodeAnalysisExtension.Test.csproj", "{0FFEE576-DA3C-402D-AB92-A1B94E84018D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisExtension.Vsix", "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.Vsix\CognitiveCodeAnalysisExtension.Vsix.csproj", "{C6D6690C-FEFF-4086-9824-78DD084B0C31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +40,26 @@ Global
 		{7C9900F4-B313-27DD-0145-199FF8CA1F89}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C9900F4-B313-27DD-0145-199FF8CA1F89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C9900F4-B313-27DD-0145-199FF8CA1F89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF6DCAF4-943A-4880-B5BD-90E2FDCFE2F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF6DCAF4-943A-4880-B5BD-90E2FDCFE2F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF6DCAF4-943A-4880-B5BD-90E2FDCFE2F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF6DCAF4-943A-4880-B5BD-90E2FDCFE2F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{391D71A1-EAF1-48E5-9E63-2D1C5A9F2367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{391D71A1-EAF1-48E5-9E63-2D1C5A9F2367}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{391D71A1-EAF1-48E5-9E63-2D1C5A9F2367}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{391D71A1-EAF1-48E5-9E63-2D1C5A9F2367}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4879852D-5904-4FA9-8914-2A7A4A8488C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4879852D-5904-4FA9-8914-2A7A4A8488C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4879852D-5904-4FA9-8914-2A7A4A8488C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4879852D-5904-4FA9-8914-2A7A4A8488C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FFEE576-DA3C-402D-AB92-A1B94E84018D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FFEE576-DA3C-402D-AB92-A1B94E84018D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FFEE576-DA3C-402D-AB92-A1B94E84018D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FFEE576-DA3C-402D-AB92-A1B94E84018D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6D6690C-FEFF-4086-9824-78DD084B0C31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6D6690C-FEFF-4086-9824-78DD084B0C31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6D6690C-FEFF-4086-9824-78DD084B0C31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6D6690C-FEFF-4086-9824-78DD084B0C31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
