@@ -30,7 +30,7 @@ public class Program
         serviceCollection.AddSingleton<CognitiveCodeAnalyser>();
         serviceCollection.AddSingleton<ScoreCalculator>();
         serviceCollection.AddSingleton<CognitiveAnalysisFacade>();
-        serviceCollection.AddSingleton<ICoverageReader, CoberturaReader>();
+        serviceCollection.AddSingleton<ICoverageReader, AutoDetectCoverageReader>();
 
         serviceCollection.AddSingleton<IReport, HtmlReport>();
         serviceCollection.AddSingleton<IReport, ConsoleTextReport>();

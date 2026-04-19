@@ -1,0 +1,19 @@
+# Same stack as compose.yaml; use with the standalone Python tool (podman-compose):
+#   podman-compose -f podman-compose.yaml build
+#   podman-compose -f podman-compose.yaml run --rm dev make ci
+#
+# Podman Compose v2 (plugin) can use either file:
+#   podman compose -f compose.yaml build
+#   podman compose -f podman-compose.yaml build
+#
+# Replace `make ci` with any Makefile target (help, test, publish-single, …).
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cognitive-code-analysis:dev
+    working_dir: /src
+    volumes:
+      - .:/src

@@ -1,0 +1,21 @@
+# Bind-mount the repository at /src and run make targets.
+#
+# Docker Compose v2:
+#   docker compose build
+#   docker compose run --rm dev make ci
+#
+# Podman:
+#   podman compose build
+#   podman compose run --rm dev make ci
+#
+# Replace `make ci` with any Makefile target (help, test, publish-single, …).
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cognitive-code-analysis:dev
+    working_dir: /src
+    volumes:
+      - .:/src

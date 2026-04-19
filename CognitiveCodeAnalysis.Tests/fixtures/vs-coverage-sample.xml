@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- __SOURCE_PATH__ is replaced in tests with the absolute path of a temp source file. -->
+<results>
+  <module name="TestModule">
+    <source_files>
+      <source_file id="1" path="__SOURCE_PATH__" />
+    </source_files>
+    <range source_id="1" start_line="1" end_line="1" covered="yes" />
+    <range source_id="1" start_line="2" end_line="2" covered="no" />
+    <range source_id="1" start_line="3" end_line="3" covered="yes" />
+  </module>
+</results>
