@@ -1,35 +1,71 @@
-# Cognitive Code Analysis — build/test targets for local use and containers.
+# Cognitive Code Analysis (C#) — same targets as make.ps1 (restore, build, test, ci, coverage, …).
 #
-# Local: requires .NET SDK 8.0+ on PATH for dotnet targets.
-# Without dotnet on the host, use the container wrapper (creates artifacts/ on the bind mount):
-#   make publish-single-docker
-#   make publish-single-docker RID=linux-arm64
+# All targets execute inside the dev container (bind-mounts this repo at /src).
+# The host only needs a container runtime (Docker or Podman) and `make`.
+# No local .NET SDK is required.
 #
-# Other container examples:
-#   docker compose run --rm dev make ci
-#   podman compose run --rm dev make ci
+# Runtime auto-detected (override with CONTAINER_RUNNER):
+#   docker compose   (default if `docker` is on PATH)
+#   podman compose   (fallback if `podman` is on PATH)
 #
-# publish-single: override RID, e.g. make publish-single RID=linux-x64
-# Default RID is taken from `dotnet --info`, else linux-x64.
+#   make ci
+#   make test
+#   make coverage
+#   make publish-single RID=linux-x64
+#
+# Escape hatch: set IN_CONTAINER=1 to run recipes directly on the host
+# (e.g. when already inside the container, or to use a host .NET SDK):
+#   IN_CONTAINER=1 make ci
 
 SLN := CognitiveCodeAnalysis.sln
 CONSOLE := CognitiveCodeAnalysisConsoleApp/CognitiveCodeAnalysisConsoleApp.csproj
-# Override if you use Podman: make publish-single-docker COMPOSE='podman compose -f compose.yaml'
-COMPOSE ?= docker compose -f compose.yaml
+COV_DIR := $(CURDIR)/artifacts/coverage
 
 _DOTNET_RID := $(shell dotnet --info 2>/dev/null | sed -n 's/^[[:space:]]*RID:[[:space:]]*//p' | head -1)
 PUBLISH_RID := $(if $(strip $(RID)),$(strip $(RID)),$(if $(strip $(_DOTNET_RID)),$(_DOTNET_RID),linux-x64))
 
+# Auto-pick a container runner unless the caller overrode it.
+ifeq ($(origin CONTAINER_RUNNER), undefined)
+  _HAS_DOCKER := $(shell command -v docker 2>/dev/null)
+  _HAS_PODMAN := $(shell command -v podman 2>/dev/null)
+  ifneq ($(strip $(_HAS_DOCKER)),)
+    CONTAINER_RUNNER := docker compose
+  else ifneq ($(strip $(_HAS_PODMAN)),)
+    CONTAINER_RUNNER := podman compose
+  else
+    CONTAINER_RUNNER := docker compose
+  endif
+endif
+
+# When IN_CONTAINER=1 (or we're already inside the dev container), run recipes
+# directly. Otherwise re-exec the same target inside the dev container.
+ifeq ($(strip $(IN_CONTAINER)),1)
+  _NATIVE := 1
+else ifneq ($(wildcard /.dockerenv),)
+  _NATIVE := 1
+else ifeq ($(strip $(container)),podman)
+  _NATIVE := 1
+else
+  _NATIVE :=
+endif
+
+# Forwards args (RID, etc.) so `make publish-single RID=...` still works.
+_CONTAINER_RUN = $(CONTAINER_RUNNER) run --rm dev make $@ RID="$(RID)" IN_CONTAINER=1
+
 .DEFAULT_GOAL := help
 
-.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single publish-single-docker
+.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage
 
 help:
-	@echo "Cognitive Code Analysis — Makefile"
+	@echo "Cognitive Code Analysis (C#) — Makefile (same targets as make.ps1)"
+	@echo ""
+	@echo "All targets run inside the dev container (bind-mounted at /src)."
+	@echo "Container runner: $(CONTAINER_RUNNER)  (override with CONTAINER_RUNNER=...)"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make <target>"
 	@echo "  make publish-single RID=<runtime-identifier>"
+	@echo "  IN_CONTAINER=1 make <target>    # run on host instead of container"
 	@echo ""
 	@echo "Targets:"
 	@echo "  restore          dotnet restore"
@@ -40,10 +76,13 @@ help:
 	@echo "  test-debug       dotnet test (Debug)"
 	@echo "  test-release     dotnet test (Release)"
 	@echo "  clean            remove bin/obj folders under the solution"
-	@echo "  ci               restore, build-release, test-release"
-	@echo "  publish-single        self-contained single-file publish to artifacts/publish-<RID>"
-	@echo "  publish-single-docker same, via compose dev image (no host dotnet needed)"
-	@echo "  help                  show this message"
+	@echo "  ci               restore, build-release, test-release, pack (dotnet tool nupkg)"
+	@echo "  publish-single   self-contained single-file publish -> artifacts/publish-<RID>"
+	@echo "  pack-tool        dotnet tool package -> artifacts/nupkg"
+	@echo "  coverage         run tests with Coverlet + HTML report -> artifacts/coverage"
+	@echo "  help             show this message"
+
+ifeq ($(_NATIVE),1)
 
 restore:
 	dotnet restore $(SLN)
@@ -74,19 +113,43 @@ ci:
 	dotnet restore $(SLN)
 	dotnet build $(SLN) -c Release --no-restore
 	dotnet test $(SLN) -c Release --verbosity normal --no-build
+	dotnet pack $(CONSOLE) -c Release --no-restore
 
 publish-single:
-	@echo "Publishing self-contained single-file for RID=$(PUBLISH_RID) output=artifacts/publish-$(PUBLISH_RID)"
-	@if [ -f "artifacts/publish-$(PUBLISH_RID)" ]; then \
-	  printf '%s\n' \
-	    "Refusing to publish: artifacts/publish-$(PUBLISH_RID) exists as a file, not a directory." \
-	    "Remove it (often left behind by a shell treating '>' in an unquoted echo as redirection) and retry." >&2; \
-	  exit 1; \
-	fi
-	@mkdir -p "artifacts/publish-$(PUBLISH_RID)"
-	dotnet publish $(CONSOLE) -c Release -r $(PUBLISH_RID) --self-contained true -o "artifacts/publish-$(PUBLISH_RID)"
+	@echo "Publishing self-contained single-file for RID: $(PUBLISH_RID) -> artifacts/publish-$(PUBLISH_RID)"
+	dotnet publish $(CONSOLE) -c Release -r $(PUBLISH_RID) --self-contained true -o artifacts/publish-$(PUBLISH_RID)
 	@echo "Done. Output folder: artifacts/publish-$(PUBLISH_RID)"
 
-# Runs publish-single inside the dev container; artifacts/ appears under the repo on the host.
-publish-single-docker:
-	$(COMPOSE) run --rm dev make publish-single $(if $(RID),RID=$(RID),)
+pack-tool:
+	@mkdir -p artifacts/nupkg
+	@echo "Packing .NET tool -> artifacts/nupkg"
+	dotnet pack $(CONSOLE) -c Release -o artifacts/nupkg
+	@echo "Done."
+
+coverage:
+	mkdir -p $(COV_DIR)
+	@echo "Restoring dotnet tools (ReportGenerator)..."
+	dotnet tool restore
+	@echo "Running tests with code coverage (Coverlet)..."
+	dotnet test $(SLN) -c Release --verbosity minimal \
+		/p:CollectCoverage=true \
+		/p:CoverletOutput=$(COV_DIR)/coverage \
+		/p:CoverletOutputFormat=cobertura
+	test -f $(COV_DIR)/coverage.cobertura.xml
+	rm -rf $(COV_DIR)/html
+	@echo "Generating HTML report (ReportGenerator)..."
+	dotnet tool run reportgenerator -- \
+		-reports:artifacts/coverage/coverage.cobertura.xml \
+		-targetdir:artifacts/coverage/html \
+		-reporttypes:Html
+	@echo ""
+	@echo "Coverage complete."
+	@echo "  Cobertura: artifacts/coverage/coverage.cobertura.xml"
+	@echo "  HTML:      artifacts/coverage/html/index.html"
+
+else
+
+restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage:
+	$(_CONTAINER_RUN)
+
+endif

@@ -1,4 +1,4 @@
-# Bind-mount the repository at /src and run make targets.
+# Bind-mount the repository at /src and run make targets (parity with make.ps1).
 #
 # Docker Compose v2:
 #   docker compose build
@@ -8,7 +8,7 @@
 #   podman compose build
 #   podman compose run --rm dev make ci
 #
-# Replace `make ci` with any Makefile target (help, test, publish-single, …).
+# Replace `make ci` with any Makefile target (help, test, coverage, publish-single, …).
 
 services:
   dev:

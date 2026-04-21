@@ -6,14 +6,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <!-- ReadyToRun adds large native images to the bundle; disable for a much smaller executable (slightly slower cold start). -->
-    <PublishReadyToRun>false</PublishReadyToRun>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <!-- Compress embedded assemblies inside the single-file bundle (smaller on disk; tiny decompress cost at startup). -->
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- Self-contained + RID: pass -r and /p:SelfContained=true on publish. Single-file only with RID; pack-as-tool has no RID. -->
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != ''">false</PublishReadyToRun>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(RuntimeIdentifier)' != ''">true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>CognitiveCodeAnalysis</ToolCommandName>
+    <!-- PackageId must differ from the CognitiveCodeAnalysis library project in the same solution. -->
+    <PackageId>CognitiveCodeAnalysis.Tool</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Florian Krämer</Authors>
+    <Description>Cognitive complexity analysis for C# — reports for readability and human working-memory load.</Description>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

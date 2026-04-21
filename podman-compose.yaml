@@ -6,7 +6,7 @@
 #   podman compose -f compose.yaml build
 #   podman compose -f podman-compose.yaml build
 #
-# Replace `make ci` with any Makefile target (help, test, publish-single, …).
+# Replace `make ci` with any Makefile target (help, test, coverage, publish-single, …).
 
 services:
   dev:

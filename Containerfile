@@ -5,7 +5,7 @@
 # Podman: podman compose -f compose.yaml build && podman compose run --rm dev make ci
 #         podman-compose -f podman-compose.yaml build && podman-compose -f podman-compose.yaml run --rm dev make ci
 #
-# Projects target net8.0.
+# SDK 8.x: CognitiveCodeAnalysis.sln targets net8.0.
 FROM mcr.microsoft.com/dotnet/sdk:8.0
 
 ENV DEBIAN_FRONTEND=noninteractive
