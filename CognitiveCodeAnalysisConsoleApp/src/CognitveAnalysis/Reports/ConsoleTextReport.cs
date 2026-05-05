@@ -16,7 +16,7 @@ public class ConsoleTextReport() : IReport
 
     public void RenderMetrics(string outputFile, CognitiveMetricsCollection metricsCollection, CognitiveConfiguration configuration)
     {
-        CognitiveMetricsCollection filteredCollection = FilterMetrics(metricsCollection, configuration);
+        CognitiveMetricsCollection filteredCollection = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
 
         bool hasCoverageData = filteredCollection.HasCoverageData();
 
@@ -65,25 +65,6 @@ public class ConsoleTextReport() : IReport
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
         }
-    }
-
-    /// <summary>
-    /// <![CDATA[
-    /// Filters the metrics collection based on ShowOnlyMethodsExceedingThreshold configuration.
-    /// ]]>
-    /// </summary>
-    /// <param name="metricsCollection">The original metrics collection</param>
-    /// <returns>Filtered metrics collection</returns>
-    private CognitiveMetricsCollection FilterMetrics(
-        CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
-    ) {
-        if (!configuration.ShowOnlyMethodsExceedingThreshold)
-        {
-            return metricsCollection;
-        }
-
-        return metricsCollection.OnlyMetricsExceedingScoreThreshold(configuration.ScoreThreshold);
     }
 
     private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData)
