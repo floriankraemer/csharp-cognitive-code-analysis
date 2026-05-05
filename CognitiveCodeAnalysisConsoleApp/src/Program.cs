@@ -1,3 +1,7 @@
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
 using System.Collections.ObjectModel;
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
@@ -30,10 +34,13 @@ public class Program
         serviceCollection.AddSingleton<CognitiveCodeAnalyser>();
         serviceCollection.AddSingleton<ScoreCalculator>();
         serviceCollection.AddSingleton<CognitiveAnalysisFacade>();
-        serviceCollection.AddSingleton<ICoverageReader, CoberturaReader>();
+        serviceCollection.AddSingleton<ICoverageReader, AutoDetectCoverageReader>();
 
         serviceCollection.AddSingleton<IReport, HtmlReport>();
         serviceCollection.AddSingleton<IReport, ConsoleTextReport>();
+        serviceCollection.AddSingleton<IReport, SarifReport>();
+        serviceCollection.AddSingleton<IReport, GithubActionsReport>();
+        serviceCollection.AddSingleton<IReport, GitlabCodeQualityReport>();
         serviceCollection.AddSingleton<ReportCoordinator>();
 
         // Create a type registrar and register any dependencies.

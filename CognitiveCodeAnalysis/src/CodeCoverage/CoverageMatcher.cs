@@ -1,4 +1,8 @@
-﻿using CognitiveCodeAnalysis.CognitiveAnalysis;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using CognitiveCodeAnalysis.CognitiveAnalysis;
 
 namespace CognitiveCodeAnalysis.CodeCoverage;
 
@@ -12,6 +16,7 @@ public static class CoverageMatcher
     /// Matches coverage data to metrics collection.
     /// Primary match: method name + line number + file path
     /// Fallback match: class name + file path (for class-level coverage)
+    /// Tertiary match: file path only (file-level aggregate, e.g. Visual Studio coverage XML)
     /// ]]>
     /// </summary>
     /// <param name="metricsCollection">The cognitive metrics collection</param>
@@ -61,7 +66,16 @@ public static class CoverageMatcher
              metrics.ClassName.EndsWith("." + c.FullyQualifiedClassName))
         );
 
-        return classMatch;
+        if (classMatch != null)
+        {
+            return classMatch;
+        }
+
+        // File-level aggregate (empty FQCN): same line stats for every method in the file
+        return coverageList.FirstOrDefault(c =>
+            !c.IsMethodLevel &&
+            string.IsNullOrEmpty(c.FullyQualifiedClassName) &&
+            NormalizePath(c.FilePath) == NormalizePath(metrics.FilePath));
     }
 
     /// <summary>

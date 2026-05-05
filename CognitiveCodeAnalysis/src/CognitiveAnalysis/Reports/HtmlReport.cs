@@ -1,4 +1,9 @@
-﻿using System.Text;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using System.Text;
+using System.Globalization;
 
 using CognitiveCodeAnalysis.Configuration;
 
@@ -7,6 +12,8 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 public class HtmlReport() : IReport
 {
     public string Name => "Html";
+
+    private const string ThreeDecimalFormat = "F3";
 
     public void RenderMetrics(
         string outputFile,
@@ -111,16 +118,16 @@ public class HtmlReport() : IReport
             {
                 html.AppendLine("                    <tr>");
                 html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
+                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)}</span></td>");
                 html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-                html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+                html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+                html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+                html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+                html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
                 if (hasCoverageData)
                 {
                     string churnValue = metrics.churnScore.HasValue 
-                        ? metrics.churnScore.Value.ToString("F3") 
+                        ? metrics.churnScore.Value.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)
                         : "n/a";
                     double churnScoreForColor = metrics.churnScore ?? 0;
                     html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
@@ -169,16 +176,16 @@ public class HtmlReport() : IReport
             html.AppendLine("                <tbody>");
             html.AppendLine("                    <tr>");
             html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
+            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)}</span></td>");
             html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-            html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+            html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+            html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+            html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
+            html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)})</td>");
             if (hasCoverageData)
             {
                 string churnValue = metrics.churnScore.HasValue 
-                    ? metrics.churnScore.Value.ToString("F3") 
+                    ? metrics.churnScore.Value.ToString(ThreeDecimalFormat, CultureInfo.InvariantCulture)
                     : "n/a";
                 double churnScoreForColor = metrics.churnScore ?? 0;
                 html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");

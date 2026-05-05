@@ -61,4 +61,4 @@ These pages and papers provide more information on cognitive limitations and rea
 
 Copyright Florian Krämer
 
-Licensed under the [GPL3 license](LICENSE).
+Licensed under the [MIT license](LICENSE).

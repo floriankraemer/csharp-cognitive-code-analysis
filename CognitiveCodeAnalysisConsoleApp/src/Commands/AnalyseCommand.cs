@@ -1,3 +1,7 @@
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
 using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
@@ -27,7 +31,7 @@ internal sealed class AnalyseCommand(
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
 
-        [Description("Report type. Defaults to console.")]
+        [Description("Report type: ConsoleText, Html, Sarif, GithubActions, GitlabCodeQuality. Defaults to console.")]
         [CommandOption("-r|--report-type")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }

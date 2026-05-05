@@ -1,4 +1,8 @@
-﻿using CognitiveCodeAnalysis.Configuration;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
@@ -32,6 +36,10 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
 
             return;
         }
+
+        var supported = string.Join(", ", _reportGenerators.Select(r => r.Name).OrderBy(n => n, StringComparer.Ordinal));
+        throw new InvalidOperationException(
+            $"Unknown report type '{reportType}'. Supported report types: {supported}.");
     }
 
     protected virtual void OnReportGenerated(string reportType, string fullPath)
