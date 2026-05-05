@@ -32,10 +32,60 @@ $ErrorActionPreference = "Stop"
 
 $Sln = Join-Path $PSScriptRoot "CognitiveCodeAnalysis.sln"
 $ConsoleProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisConsoleApp\CognitiveCodeAnalysisConsoleApp.csproj"
+$VsixProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.Vsix\CognitiveCodeAnalysisExtension.Vsix.csproj"
+$ExtensionProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.csproj"
+$ExtensionCodeFixesProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.CodeFixes\CognitiveCodeAnalysisExtension.CodeFixes.csproj"
+$ExtensionPackageProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension.Package\CognitiveCodeAnalysisExtension.Package.csproj"
 
 function Invoke-DotNet {
     param([Parameter(Mandatory = $true)] [string[]] $Arguments)
     & dotnet @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
+function Get-MSBuildPath {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        $path = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe 2>$null | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path $path)) {
+            return $path
+        }
+    }
+
+    $fallbacks = @(
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe")
+    )
+
+    foreach ($p in $fallbacks) {
+        if (Test-Path $p) {
+            return $p
+        }
+    }
+
+    return $null
+}
+
+function Invoke-MSBuild {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Project,
+        [Parameter(Mandatory = $true)] [ValidateSet("Debug", "Release")] [string] $Configuration
+    )
+
+    $msbuild = Get-MSBuildPath
+    if ([string]::IsNullOrWhiteSpace($msbuild)) {
+        Write-Host "MSBuild.exe not found. Building the VSIX requires Visual Studio Build Tools / MSBuild." -ForegroundColor Red
+        Write-Host "Install Visual Studio 2019/2022 (or Build Tools) and ensure 'Microsoft.Component.MSBuild' is available." -ForegroundColor Yellow
+        exit 1
+    }
+
+    & $msbuild $Project /restore /t:Build /p:Configuration=$Configuration /p:DeployExtension=false /v:minimal
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
@@ -83,6 +133,9 @@ Targets:
   test             dotnet test (Release)
   test-debug       dotnet test (Debug)
   test-release     dotnet test (Release)
+  build-extension  dotnet build extension projects (Release)
+  build-vsix       build VSIX via MSBuild (Release)
+  build-vsext      build extension + VSIX (Release)
   clean            remove bin/obj folders under the solution
   ci               restore, build-release, test-release, pack (dotnet tool nupkg)
   publish-single   self-contained single-file publish -> artifacts\publish-<RID>
@@ -114,6 +167,20 @@ switch ($Target.ToLowerInvariant()) {
     }
     "test-release" {
         Invoke-DotNet @("test", $Sln, "-c", "Release", "--verbosity", "normal")
+    }
+    "build-extension" {
+        Invoke-DotNet @("build", $ExtensionProj, "-c", "Release")
+        Invoke-DotNet @("build", $ExtensionCodeFixesProj, "-c", "Release")
+        Invoke-DotNet @("build", $ExtensionPackageProj, "-c", "Release")
+    }
+    "build-vsix" {
+        Invoke-MSBuild -Project $VsixProj -Configuration "Release"
+    }
+    "build-vsext" {
+        Invoke-DotNet @("build", $ExtensionProj, "-c", "Release")
+        Invoke-DotNet @("build", $ExtensionCodeFixesProj, "-c", "Release")
+        Invoke-DotNet @("build", $ExtensionPackageProj, "-c", "Release")
+        Invoke-MSBuild -Project $VsixProj -Configuration "Release"
     }
     "clean" {
         Get-ChildItem -Path $PSScriptRoot -Recurse -Directory -Filter "bin" -ErrorAction SilentlyContinue |
