@@ -19,7 +19,8 @@ namespace CognitiveCodeAnalysisExtension.Test
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        //Test method with cognitive complexity diagnostic
+        // Threshold filtering (default scoreThreshold 0.5): need nesting deeper than analyzer defaults allow for a lone if —
+        // mirrors ClassWithMethods Method2 scoring (~0.7 from nestingLevels).
         [TestMethod]
         public async Task SimpleMethod_ReportsCognitiveComplexity()
         {
@@ -32,16 +33,19 @@ namespace TestNamespace
     {
         public void {|#1:SimpleMethod|}()
         {
-            if (true)
+            for (int i = 0; i < 10; i++)
             {
-                Console.WriteLine(""Hello"");
+                if (i > 5)
+                {
+                    Console.WriteLine(""Hello"");
+                }
             }
         }
     }
 }";
 
-            var expectedClass = VerifyCS.Diagnostic("CognitiveComplexityClass").WithLocation(0).WithArguments("0,0");
-            var expectedMethod = VerifyCS.Diagnostic("CognitiveComplexityMethod").WithLocation(1).WithArguments("0,0");
+            var expectedClass = VerifyCS.Diagnostic("CognitiveComplexityClass").WithLocation(0).WithArguments("0,7");
+            var expectedMethod = VerifyCS.Diagnostic("CognitiveComplexityMethod").WithLocation(1).WithArguments("0,7");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedClass, expectedMethod);
         }
 
@@ -78,32 +82,29 @@ namespace TestNamespace
 }";
 
             var expectedClass = VerifyCS.Diagnostic("CognitiveComplexityClass").WithLocation(0).WithArguments("0,7");
-            var expectedMethod1 = VerifyCS.Diagnostic("CognitiveComplexityMethod").WithLocation(1).WithArguments("0,0");
             var expectedMethod2 = VerifyCS.Diagnostic("CognitiveComplexityMethod").WithLocation(2).WithArguments("0,7");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedClass, expectedMethod1, expectedMethod2);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedClass, expectedMethod2);
         }
 
-        //Test method with no complexity (should still report score)
+        /// <summary>Default showOnlyMethodsExceedingThreshold: scores at or below threshold do not surface as IDE warnings.</summary>
         [TestMethod]
-        public async Task SimpleMethodWithoutComplexity_ReportsZeroScore()
+        public async Task SimpleMethodWithoutComplexity_NoDiagnosticsUnderDefaultThreshold()
         {
             var test = @"
 using System;
 
 namespace TestNamespace
 {
-    public class {|#0:TestClass|}
+    public class TestClass
     {
-        public void {|#1:SimpleMethod|}()
+        public void SimpleMethod()
         {
             Console.WriteLine(""Hello"");
         }
     }
 }";
 
-            var expectedClass = VerifyCS.Diagnostic("CognitiveComplexityClass").WithLocation(0).WithArguments("0,0");
-            var expectedMethod = VerifyCS.Diagnostic("CognitiveComplexityMethod").WithLocation(1).WithArguments("0,0");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedClass, expectedMethod);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

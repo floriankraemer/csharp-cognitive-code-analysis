@@ -33,8 +33,8 @@ public sealed class GithubActionsReport : IReport
                 .Append(",line=").Append(m.methodLineNumber)
                 .Append(",title=").Append(CognitiveCiEncoding.EncodeWorkflowCommandMessage(title))
                 .Append("::").Append(message).AppendLine();
-        }
 
-        CognitiveReportFileWriter.Write(outputFile, sb.ToString());
+            CognitiveReportFileWriter.Write(outputFile, sb.ToString());
+        }
     }
 }

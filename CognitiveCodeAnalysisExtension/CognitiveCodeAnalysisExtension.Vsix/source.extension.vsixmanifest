@@ -6,11 +6,15 @@
     <Description xml:space="preserve">Cognitive complexity analyzer for C# methods and classes.</Description>
   </Metadata>
   <Installation>
-    <!-- Support all current Visual Studio SKUs (Community/Professional/Enterprise).
-         Use a permissive minimum version to allow installation on newer Visual Studio releases. -->
-    <InstallationTarget Id="Microsoft.VisualStudio.Product.Community" Version="[15.0,)" />
-    <InstallationTarget Id="Microsoft.VisualStudio.Product.Professional" Version="[15.0,)" />
-    <InstallationTarget Id="Microsoft.VisualStudio.Product.Enterprise" Version="[15.0,)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Community" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Professional" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Product.Enterprise" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />

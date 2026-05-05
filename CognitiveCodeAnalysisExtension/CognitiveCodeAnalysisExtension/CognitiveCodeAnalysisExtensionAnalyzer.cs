@@ -1,4 +1,5 @@
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 
 using Microsoft.CodeAnalysis;
@@ -32,33 +33,8 @@ namespace CognitiveCodeAnalysisExtension
 
         private const string Category = "Maintainability";
 
-        private static readonly DiagnosticDescriptor MethodRule = new DiagnosticDescriptor(MethodDiagnosticId, MethodTitle, MethodMessageFormat, Category, DiagnosticSeverity.Info, isEnabledByDefault: true, description: MethodDescription);
-        private static readonly DiagnosticDescriptor ClassRule = new DiagnosticDescriptor(ClassDiagnosticId, ClassTitle, ClassMessageFormat, Category, DiagnosticSeverity.Info, isEnabledByDefault: true, description: ClassDescription);
-
-        private static readonly CognitiveConfiguration _configuration = CreateDefaultConfiguration();
-
-        private static CognitiveConfiguration CreateDefaultConfiguration()
-        {
-            return new CognitiveConfiguration
-            {
-                ScoreThreshold = 0.5,
-                ShowOnlyMethodsExceedingThreshold = true,
-                GroupByClass = true,
-                CountElseAsNesting = false,
-                CountElseIfAsNesting = false,
-                Metrics = new Dictionary<string, MetricConfiguration>
-                {
-                    ["linesOfCode"] = new MetricConfiguration { Threshold = 60, Scale = 25.0, Enabled = true },
-                    ["argumentCount"] = new MetricConfiguration { Threshold = 4, Scale = 1.0, Enabled = true },
-                    ["returnCount"] = new MetricConfiguration { Threshold = 2, Scale = 5.0, Enabled = true },
-                    ["variableCount"] = new MetricConfiguration { Threshold = 4, Scale = 5.0, Enabled = true },
-                    ["propertyCallCount"] = new MetricConfiguration { Threshold = 4, Scale = 15.0, Enabled = true },
-                    ["ifCount"] = new MetricConfiguration { Threshold = 3, Scale = 1.0, Enabled = true },
-                    ["nestingLevels"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = true },
-                    ["elseCount"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = true }
-                }
-            };
-        }
+        private static readonly DiagnosticDescriptor MethodRule = new DiagnosticDescriptor(MethodDiagnosticId, MethodTitle, MethodMessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: MethodDescription);
+        private static readonly DiagnosticDescriptor ClassRule = new DiagnosticDescriptor(ClassDiagnosticId, ClassTitle, ClassMessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: ClassDescription);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(MethodRule, ClassRule);
 
@@ -67,11 +43,46 @@ namespace CognitiveCodeAnalysisExtension
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeMethod, SyntaxKind.MethodDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeClass, SyntaxKind.ClassDeclaration);
+            context.RegisterCompilationStartAction(startContext =>
+            {
+                CognitiveConfiguration configuration =
+                    ConfigurationLoader.LoadCognitiveConfigurationForAnalyzer(startContext.Options.AdditionalFiles , startContext.CancellationToken);
+
+                startContext.RegisterSyntaxNodeAction(ctx => AnalyzeMethod(ctx , configuration) , SyntaxKind.MethodDeclaration);
+                startContext.RegisterSyntaxNodeAction(ctx => AnalyzeClass(ctx , configuration) , SyntaxKind.ClassDeclaration);
+            });
         }
 
-        private static void AnalyzeMethod(SyntaxNodeAnalysisContext context)
+        /// <summary>Same score-threshold rule as <see cref="ReportMetricsFilter"/> for method rows.</summary>
+        private static bool ShouldReportMethodDiagnostic(CognitiveConfiguration configuration , double totalScore)
+        {
+            if (!configuration.ShowOnlyMethodsExceedingThreshold)
+            {
+                return true;
+            }
+
+            return totalScore > configuration.ScoreThreshold;
+        }
+
+        /// <summary>
+        /// When threshold filtering is on, aligns with CLI-style class stats: emit only if some method exceeds the score threshold.
+        /// </summary>
+        private static bool ShouldReportClassDiagnostic(CognitiveConfiguration configuration , IReadOnlyList<double> methodScores)
+        {
+            if (methodScores.Count == 0)
+            {
+                return false;
+            }
+
+            if (!configuration.ShowOnlyMethodsExceedingThreshold)
+            {
+                return true;
+            }
+
+            return methodScores.Any(s => s > configuration.ScoreThreshold);
+        }
+
+        private static void AnalyzeMethod(SyntaxNodeAnalysisContext context , CognitiveConfiguration configuration)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -82,14 +93,16 @@ namespace CognitiveCodeAnalysisExtension
 
             try
             {
-                // Extract metrics for this single method
-                var metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel);
+                var metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel , configuration);
 
-                // Calculate the score
-                var calculator = new ScoreCalculator(_configuration);
+                var calculator = new ScoreCalculator(configuration);
                 calculator.CalculateScores(metrics);
 
-                // Report the diagnostic
+                if (!ShouldReportMethodDiagnostic(configuration , metrics.totalScore))
+                {
+                    return;
+                }
+
                 var diagnostic = Diagnostic.Create(MethodRule, methodDeclaration.Identifier.GetLocation(), metrics.totalScore.ToString("F1"));
                 context.ReportDiagnostic(diagnostic);
             }
@@ -99,28 +112,29 @@ namespace CognitiveCodeAnalysisExtension
             }
         }
 
-        private static void AnalyzeClass(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeClass(SyntaxNodeAnalysisContext context , CognitiveConfiguration configuration)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
             try
             {
-                // Get all methods in this class
-                var methodDeclarations = classDeclaration.Members.OfType<MethodDeclarationSyntax>();
+                IEnumerable<MethodDeclarationSyntax> methodDeclarations = classDeclaration.Members.OfType<MethodDeclarationSyntax>();
 
                 double totalClassScore = 0;
-                var calculator = new ScoreCalculator(_configuration);
+                var calculator = new ScoreCalculator(configuration);
+
+                var perMethodTotals = new List<double>();
 
                 foreach (var methodDeclaration in methodDeclarations)
                 {
-                    var metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel);
+                    CognitiveMetrics metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel , configuration);
                     calculator.CalculateScores(metrics);
                     totalClassScore += metrics.totalScore;
+                    perMethodTotals.Add(metrics.totalScore);
                 }
 
-                if (methodDeclarations.Any())
+                if (ShouldReportClassDiagnostic(configuration , perMethodTotals))
                 {
-                    // Report the diagnostic
                     var diagnostic = Diagnostic.Create(ClassRule, classDeclaration.Identifier.GetLocation(), totalClassScore.ToString("F1"));
                     context.ReportDiagnostic(diagnostic);
                 }
@@ -131,7 +145,7 @@ namespace CognitiveCodeAnalysisExtension
             }
         }
 
-        private static CognitiveMetrics ExtractMethodMetrics(MethodDeclarationSyntax methodDeclaration, ClassDeclarationSyntax classDeclaration, SemanticModel semanticModel)
+        private static CognitiveMetrics ExtractMethodMetrics(MethodDeclarationSyntax methodDeclaration, ClassDeclarationSyntax classDeclaration, SemanticModel semanticModel, CognitiveConfiguration configuration)
         {
             var className = GetFullyQualifiedClassName(classDeclaration);
             var methodName = methodDeclaration.Identifier.Text;
@@ -146,7 +160,7 @@ namespace CognitiveCodeAnalysisExtension
             var returnCount = methodDeclaration.DescendantNodes().OfType<ReturnStatementSyntax>().Count();
             var argumentCount = methodDeclaration.ParameterList.Parameters.Count;
             var linesOfCode = GetLinesOfCode(methodDeclaration);
-            var nestingLevels = CalculateNestingLevels(methodDeclaration, _configuration);
+            var nestingLevels = CalculateNestingLevels(methodDeclaration, configuration);
 
             return new CognitiveMetrics(
                 methodName: methodName,

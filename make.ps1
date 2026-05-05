@@ -140,6 +140,7 @@ Targets:
   ci               restore, build-release, test-release, pack (dotnet tool nupkg)
   publish-single   self-contained single-file publish -> artifacts\publish-<RID>
   pack-tool        dotnet tool package -> artifacts\nupkg
+  bootstrap-local-analyzer copy extension DLLs -> artifacts\local-analyzer (enables Roslyn analyzers on dotnet/VS builds)
   coverage         run tests with Coverlet + HTML report -> artifacts/coverage
   help             show this message
 "@
@@ -201,6 +202,21 @@ switch ($Target.ToLowerInvariant()) {
         Write-Host "Packing .NET tool -> $outDir"
         Invoke-DotNet @("pack", $ConsoleProj, "-c", "Release", "-o", $outDir)
         Write-Host "Done."
+    }
+    "bootstrap-local-analyzer" {
+        Invoke-DotNet @("build", $ExtensionProj, "-c", "Release")
+
+        $extBin = Join-Path $PSScriptRoot (Join-Path "CognitiveCodeAnalysisExtension\CognitiveCodeAnalysisExtension" (Join-Path "bin\Release" "netstandard2.0"))
+        $dst = Join-Path $PSScriptRoot (Join-Path "artifacts" "local-analyzer")
+        if (-not (Test-Path $extBin)) {
+            Write-Host "Expected extension output not found: $extBin" -ForegroundColor Red
+            exit 1
+        }
+        New-Item -ItemType Directory -Force -Path $dst | Out-Null
+        Get-ChildItem -LiteralPath $extBin -Filter "*.dll" |
+            Copy-Item -Destination $dst -Force
+        Write-Host "Copied analyzer binaries -> $dst"
+        Write-Host "Rebuild the solution so Roslyn picks up $(Join-Path $dst 'CognitiveCodeAnalysisExtension.dll')"
     }
     "publish-single" {
         $rid = $RuntimeIdentifier

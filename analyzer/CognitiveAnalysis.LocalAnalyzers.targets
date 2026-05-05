@@ -1,0 +1,35 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Load cognitive analyzers from a local bin drop (preferred by Microsoft docs for analyzers participating in compilations).
+
+    Bootstrap once from repo root:
+      pwsh -File .\make.ps1 bootstrap-local-analyzer
+
+    Then build as usual — dotnet/msbuild resolves analyzer dependencies from the same folder.
+
+    Docs (Roslyn / VS analyzers shipped with NuGet; VSIX-only is optional for installs):
+      https://learn.microsoft.com/en-us/visualstudio/extensibility/getting-started-with-roslyn-analyzers
+      https://learn.microsoft.com/en-us/visualstudio/code-quality/install-roslyn-analyzers
+
+    Set CognitiveAnalysisUseLocalAnalyzers=false to skip loading (e.g. CI without bootstrap).
+  -->
+
+  <PropertyGroup>
+    <LocalCognitiveAnalyzersRoot Condition="'$(LocalCognitiveAnalyzersRoot)' == ''">$(MSBuildThisFileDirectory)..\artifacts\local-analyzer\</LocalCognitiveAnalyzersRoot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="Exists('$(LocalCognitiveAnalyzersRoot)CognitiveCodeAnalysisExtension.dll')
+                     and '$(CognitiveAnalysisUseLocalAnalyzers)'!='false'
+                     ">
+    <DefineConstants>$(DefineConstants);HAS_LOCAL_COGNITIVE_ANALYZERS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(LocalCognitiveAnalyzersRoot)CognitiveCodeAnalysisExtension.dll')
+                 and '$(CognitiveAnalysisUseLocalAnalyzers)'!='false'
+                 ">
+    <!-- All dependencies next to CognitiveCodeAnalysisExtension.dll (suppress CodeAnalysis dlls bundled with the extension build output to avoid tooling conflicts). -->
+    <Analyzer Include="$(LocalCognitiveAnalyzersRoot)*.dll" Exclude="$(LocalCognitiveAnalyzersRoot)Microsoft.CodeAnalysis*.dll" />
+  </ItemGroup>
+
+</Project>

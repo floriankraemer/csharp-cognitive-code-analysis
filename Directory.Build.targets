@@ -1,0 +1,4 @@
+<Project>
+  <!-- Project-local Roslyn analyzer drop (bootstrap: .\make.ps1 bootstrap-local-analyzer) -->
+  <Import Project="$(MSBuildThisFileDirectory)analyzer\CognitiveAnalysis.LocalAnalyzers.targets" />
+</Project>

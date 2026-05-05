@@ -32,6 +32,7 @@
     <Content Include="cognitive-metrics-settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <AdditionalFiles Include="cognitive-metrics-settings.json" />
   </ItemGroup>
 
 </Project>

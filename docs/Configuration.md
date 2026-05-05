@@ -11,6 +11,8 @@ By default, the app loads:
 
 If you use the library directly, you can load another file path with `ConfigurationLoader.Load("path-to-file.json")`.
 
+For **Roslyn analyzers** in Visual Studio / `dotnet build`, the same JSON is supplied via **`AdditionalFiles`**—see [RoslynAnalyzer.md](./RoslynAnalyzer.md).
+
 ## 2) Configuration file structure
 
 Use this structure:

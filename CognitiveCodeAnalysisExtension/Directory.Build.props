@@ -1,0 +1,9 @@
+<Project>
+
+  <!-- Do not attach the copied cognitive analyzer binaries to Extension projects — same assemblies are compiled here. -->
+
+  <PropertyGroup>
+    <CognitiveAnalysisUseLocalAnalyzers>false</CognitiveAnalysisUseLocalAnalyzers>
+  </PropertyGroup>
+
+</Project>
