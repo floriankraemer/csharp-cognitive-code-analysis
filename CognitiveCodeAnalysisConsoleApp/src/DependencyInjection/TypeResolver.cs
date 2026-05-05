@@ -1,4 +1,8 @@
-﻿using Spectre.Console.Cli;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysisConsoleApp.DependencyInjection;
 
