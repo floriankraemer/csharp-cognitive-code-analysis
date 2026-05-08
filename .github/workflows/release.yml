@@ -40,6 +40,15 @@ jobs:
               -p:EnableCompressionInSingleFile=true \
               -p:DebugType=None \
               -p:DebugSymbols=false
+
+            # Keep assembly names unique (avoid CognitiveCodeAnalysis.dll clash),
+            # but ship stable executable name across platforms.
+            if [[ "$rid" == win-* ]]; then
+              mv "dist/$rid/CognitiveCodeAnalysisConsoleApp.exe" "dist/$rid/CognitiveCodeAnalysis.exe"
+            else
+              mv "dist/$rid/CognitiveCodeAnalysisConsoleApp" "dist/$rid/CognitiveCodeAnalysis"
+              chmod +x "dist/$rid/CognitiveCodeAnalysis"
+            fi
           done
 
       - name: Package archives
