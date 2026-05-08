@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using Microsoft.Extensions.DependencyInjection;
 
 using Spectre.Console.Cli;
 

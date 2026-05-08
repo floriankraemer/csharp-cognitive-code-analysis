@@ -1,4 +1,8 @@
-﻿namespace CognitiveCodeAnalysis.CodeCoverage;
+﻿/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+namespace CognitiveCodeAnalysis.CodeCoverage;
 
 /// <summary>
 /// Interface for reading code coverage data from various report formats.
