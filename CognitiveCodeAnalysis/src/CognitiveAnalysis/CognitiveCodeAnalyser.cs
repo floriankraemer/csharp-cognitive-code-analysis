@@ -5,6 +5,8 @@
 using System.Collections.Concurrent;
 
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CyclomaticAnalysis;
+using CognitiveCodeAnalysis.HalsteadAnalysis;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -126,6 +128,10 @@ public class CognitiveCodeAnalyser
                 .OfType<TryStatementSyntax>()
                 .Count();
 
+            int cyclomatic = CyclomaticComplexityCalculator.calculate(methodNode);
+            string halsteadId = fullClassName + "::" + methodNode.Identifier.Text;
+            HalsteadMetrics halstead = HalsteadSyntaxCollector.CollectForMethod(methodNode, halsteadId);
+
             metricsCollection.Add(new CognitiveMetrics(
                 methodName: methodNode.Identifier.Text,
                 className: fullClassName,
@@ -138,7 +144,9 @@ public class CognitiveCodeAnalyser
                 elseCount: elseCount,
                 tryCatchCount: tryCount,
                 returnCount: methodNode.DescendantNodes().OfType<ReturnStatementSyntax>().Count(),
-                nestingLevels: CalculateNestingLevels(methodNode, configuration)
+                nestingLevels: CalculateNestingLevels(methodNode, configuration),
+                cyclomaticComplexity: cyclomatic,
+                halstead: halstead
             ));
         }
 

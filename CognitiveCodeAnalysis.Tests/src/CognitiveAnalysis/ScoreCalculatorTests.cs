@@ -31,10 +31,10 @@ public class Tests
         );
 
         var configuration = GetConfiguration();
-        ScoreCalculator calculator = new(configuration);
+        var calculator = new ScoreCalculator();
 
         // Act
-        calculator.CalculateScores(metrics);
+        calculator.CalculateScores(metrics, configuration);
 
         // Assert
         using (Assert.EnterMultipleScope())

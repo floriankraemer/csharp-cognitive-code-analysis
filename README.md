@@ -8,36 +8,48 @@ Cognitive Code Analysis is an approach to understanding and improving code by fo
 
 ## Running the Analysis 🧑‍💻
 
-The tool analyses C# files and generates cognitive complexity reports. Run the analysis using:
+The tool analyses C# files and produces per-method cognitive metrics. It computes **cyclomatic complexity** and **Halstead** (volume, difficulty, effort) for every method; whether those appear in **Console** or **HTML** output is controlled by `showHalsteadComplexity` / `showCyclomaticComplexity` in [`cognitive-metrics-settings.json`](CognitiveCodeAnalysis/cognitive-metrics-settings.json) or by CLI overrides (see below). Full schema and behavior are documented in [docs/Configuration.md](docs/Configuration.md).
+
+From the repository root, run:
 
 ```powershell
-CognitiveCodeAnalysis [sourcePath] [options]
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 ```
+
+On Linux or macOS, use forward slashes in paths (for example `--project CognitiveCodeAnalysisConsoleApp`).
+
+If you run a **published** executable named `CognitiveCodeAnalysis`, the same arguments apply after the program name.
 
 **Arguments:**
 
-- `[searchPath]` - (Optional) Path to search for C# files. Defaults to the current directory.
+- `[searchPath]` — Optional. Directory to scan for `*.cs` files. Defaults to the current working directory.
 
 **Options:**
 
-- `-c|--config <path>`      - Load a custom configuration file
-- `-r|--report-type <type>` - Report type: `ConsoleText` (default) or `Html`
-- `-o|--output-file <path>` - Output file path (defaults to `cognitive-analysis-report`)
+- `-c|--config <path>` — JSON config file (same `cognitive` section as the default settings file). Passed to `ConfigurationLoader.Load`.
+- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
+- `--coverage-cobertura <path>` — Optional Cobertura coverage file (line/branch coverage and churn when matched).
+- `--show-halstead` — Turn on Halstead columns for this run (overrides config).
+- `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 
 **Examples:**
 
 ```powershell
-# Analyse current directory with console output
-CognitiveCodeAnalysis
+# Analyse current directory (console report)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp --
 
-# Analyse a specific directory
-CognitiveCodeAnalysis ./src
+# Analyse a specific folder
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src
 
-# Generate an HTML report
-CognitiveCodeAnalysis ./src -r Html -o report.html
+# HTML report
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Html -o .\report.html
 
-# Use a custom configuration file
-CognitiveCodeAnalysis ./src -c my-config.json
+# Custom config
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.json
+
+# Show Halstead and cyclomatic columns for this run (regardless of config)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --show-halstead --show-cyclomatic
 ```
 
 ## Resources 🔗

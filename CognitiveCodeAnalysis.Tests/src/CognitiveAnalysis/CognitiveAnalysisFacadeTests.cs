@@ -22,9 +22,7 @@ public class CognitiveAnalysisFacadeTests
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(
-                new CognitiveConfiguration()
-            ),
+            new ScoreCalculator(),
             new CoberturaReader()
         );
     }
@@ -93,6 +91,8 @@ namespace X {
         Assert.That(metrics.MethodName, Is.EqualTo("DoWork"));
         Assert.That(metrics.FilePath, Is.Not.Null.And.Not.Empty);
         Assert.That(metrics.linesOfCode, Is.GreaterThan(0));
+        Assert.That(metrics.cyclomaticComplexity, Is.GreaterThanOrEqualTo(2));
+        Assert.That(metrics.Halstead, Is.Not.Null);
     }
 
     [Test]
@@ -130,7 +130,7 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
+            new ScoreCalculator(),
             new FakeCoverageReaderReturn( new[] { coverage } )
         );
 
@@ -160,7 +160,7 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
+            new ScoreCalculator(),
             new FakeCoverageReaderReturn(Enumerable.Empty<Coverage>())
         );
 
@@ -194,7 +194,7 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
+            new ScoreCalculator(),
             new FakeCoverageReaderReturn( new[] { coverage } )
         );
 
@@ -218,7 +218,7 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
+            new ScoreCalculator(),
             new FakeCoverageReaderThrowFileNotFound()
         );
 

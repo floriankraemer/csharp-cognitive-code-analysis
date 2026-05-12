@@ -22,21 +22,24 @@ public class ConsoleTextReport() : IReport
 
         if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(filteredCollection, hasCoverageData);
+            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration);
             RenderSummary(metricsCollection, configuration);
             return;
         }
 
         foreach (CognitiveMetrics metrics in filteredCollection)
         {
-            RenderMetrics(metrics, hasCoverageData);
+            RenderMetrics(metrics, hasCoverageData, configuration);
         }
 
         RenderSummary(metricsCollection, configuration);
     }
 
-    private static void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection, bool hasCoverageData)
-    {
+    private static void RenderMetricsGrouped(
+        CognitiveMetricsCollection metricsCollection,
+        bool hasCoverageData,
+        CognitiveConfiguration configuration
+    ) {
         var groupedByClass = metricsCollection
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
             .OrderBy(g => g.Key.ClassName);
@@ -57,23 +60,26 @@ public class ConsoleTextReport() : IReport
             AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
 
             Table table = new();
-            table = AddTableHeaders(table, hasCoverageData);
+            table = AddTableHeaders(table, hasCoverageData, configuration);
             table.ShowRowSeparators();
 
-            table = classMetrics.Aggregate(table, (current, metrics) => AddTableRow(current, metrics, hasCoverageData));
+            table = classMetrics.Aggregate(
+                table,
+                (current, metrics) => AddTableRow(current, metrics, hasCoverageData, configuration)
+            );
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
         }
     }
 
-    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData)
+    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData, CognitiveConfiguration configuration)
     {
         RenderMetricsSummary(metrics);
 
         Table table = new();
-        table = AddTableHeaders(table, hasCoverageData);
-        table = AddTableRow(table, metrics, hasCoverageData);
+        table = AddTableHeaders(table, hasCoverageData, configuration);
+        table = AddTableRow(table, metrics, hasCoverageData, configuration);
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -82,7 +88,8 @@ public class ConsoleTextReport() : IReport
     private static Table AddTableRow(
         Table table,
         CognitiveMetrics metrics,
-        bool hasCoverageData
+        bool hasCoverageData,
+        CognitiveConfiguration configuration
     ) {
         var rowData = new List<string>
         {
@@ -97,6 +104,18 @@ public class ConsoleTextReport() : IReport
             metrics.fieldAccessCount + " (" + ColorizeScore(metrics.fieldAccessScore) + ")",
             metrics.propertyAccessCount + " (" + ColorizeScore(metrics.propertyAccessScore) + ")",
         };
+
+        if (configuration.ShowHalsteadComplexity)
+        {
+            rowData.Add(FormatHalsteadVolume(metrics));
+            rowData.Add(FormatHalsteadDifficulty(metrics));
+            rowData.Add(FormatHalsteadEffort(metrics));
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            rowData.Add(metrics.cyclomaticComplexity.ToString("F1"));
+        }
 
         if (hasCoverageData)
         {
@@ -237,7 +256,16 @@ public class ConsoleTextReport() : IReport
         AnsiConsole.WriteLine();
     }
 
-    private static Table AddTableHeaders(Table table, bool hasCoverageData)
+    private static string FormatHalsteadVolume(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Volume.ToString("F2") : "[dim]n/a[/]";
+
+    private static string FormatHalsteadDifficulty(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Difficulty.ToString("F2") : "[dim]n/a[/]";
+
+    private static string FormatHalsteadEffort(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Effort.ToString("F2") : "[dim]n/a[/]";
+
+    private static Table AddTableHeaders(Table table, bool hasCoverageData, CognitiveConfiguration configuration)
     {
         table.AddColumn("Method");
         table.AddColumn("Score");
@@ -249,6 +277,18 @@ public class ConsoleTextReport() : IReport
         table.AddColumn("Locals");
         table.AddColumn("Fields");
         table.AddColumn("Props");
+
+        if (configuration.ShowHalsteadComplexity)
+        {
+            table.AddColumn("Halstead Vol");
+            table.AddColumn("Halstead Diff");
+            table.AddColumn("Halstead Effort");
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            table.AddColumn("Cyclomatic");
+        }
 
         if (!hasCoverageData)
         {

@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This project reads analysis settings from a JSON file with a `cognitive` root section.
+This project reads analysis settings from a JSON file with a `cognitive` root section. For a short overview and links to complexity references, see the [README](../README.md).
 
 ## 1) Configuration file location
 
@@ -22,6 +22,9 @@ Use this structure:
     "excludePatterns": [],
     "scoreThreshold": 0.5,
     "showOnlyMethodsExceedingThreshold": true,
+    "showHalsteadComplexity": false,
+    "showCyclomaticComplexity": false,
+    "showDetailedCognitiveMetrics": true,
     "groupByClass": true,
     "countElseAsNesting": false,
     "countElseIfAsNesting": false,
@@ -48,6 +51,9 @@ Use this structure:
 - `groupByClass` (`bool`): groups output by class in console and HTML reports.
 - `countElseAsNesting` (`bool`): controls whether `else` increases nesting depth.
 - `countElseIfAsNesting` (`bool`): controls whether `else if` increases nesting depth.
+- `showHalsteadComplexity` (`bool`): when `true`, console and HTML reports include Halstead volume, difficulty, and effort columns (metrics are always computed during analysis).
+- `showCyclomaticComplexity` (`bool`): when `true`, console and HTML reports include cyclomatic complexity (computed during analysis).
+- `showDetailedCognitiveMetrics` (`bool`): present in the shipped JSON for parity with other tools; not bound in this project yet (ignored).
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
 
 ## 4) Metric option fields
@@ -78,7 +84,7 @@ These align with analyzer metric fields and total score calculation:
 The shipped `cognitive-metrics-settings.json` contains keys such as `linesOfCode`, `variableCount`, and `propertyCallCount`.
 Those keys do not currently map to active score fields in `ScoreCalculator`, so they do not affect `totalScore`.
 
-It also includes `showHalsteadComplexity`, `showCyclomaticComplexity`, and `showDetailedCognitiveMetrics`, which are not part of `CognitiveConfiguration` and are ignored during binding.
+`showDetailedCognitiveMetrics` remains unbound in `CognitiveConfiguration` (ignored).
 
 ## 6) How to execute
 
@@ -92,10 +98,14 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 
 ### CLI options
 
-- `-c|--config <path>`: custom config path (currently defined in CLI options, but not wired into `ConfigurationLoader.Load(...)` in `AnalyseCommand`; default config is still used).
-- `-r|--report-type <type>`: report type (`ConsoleText` or `Html`).
+- `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
+- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
 - `--coverage-cobertura <path>`: optional Cobertura coverage file.
+- `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
+- `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
+
+CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 
 ### Examples
 
@@ -109,6 +119,9 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src
 # Generate HTML report
 dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Html -o .\report.html
 
-# Pass custom config option (currently ignored by command implementation)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.json
+# Custom config and enable Halstead + cyclomatic columns for this run
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.json --show-halstead --show-cyclomatic
+
+# Cobertura coverage (optional)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --coverage-cobertura .\coverage.cobertura.xml
 ```

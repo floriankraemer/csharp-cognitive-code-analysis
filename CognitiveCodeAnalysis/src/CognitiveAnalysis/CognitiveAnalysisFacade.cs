@@ -24,17 +24,21 @@ public class CognitiveAnalysisFacade(
         return sourceFileFinder.FindSourceFiles([sourcePath]);
     }
 
-    public  CognitiveMetricsCollection AnalyseSourceFiles(
-        List<string> files
+    public CognitiveMetricsCollection AnalyseSourceFiles(List<string> files)
+        => AnalyseSourceFiles(files, cognitiveConfiguration);
+
+    public CognitiveMetricsCollection AnalyseSourceFiles(
+        List<string> files,
+        CognitiveConfiguration configuration
     ) {
         CognitiveMetricsCollection metricsCollection = analyser
-            .AnalyseFilesAsync(files, cognitiveConfiguration)
+            .AnalyseFilesAsync(files, configuration)
             .GetAwaiter()
             .GetResult();
 
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
-            calculator.CalculateScores(metrics);
+            calculator.CalculateScores(metrics, configuration);
         }
 
         return metricsCollection;

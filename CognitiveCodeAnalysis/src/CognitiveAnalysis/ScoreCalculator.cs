@@ -7,9 +7,9 @@ using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
-public class ScoreCalculator(CognitiveConfiguration configuration)
+public class ScoreCalculator
 {
-    public CognitiveMetrics CalculateScores(CognitiveMetrics metrics)
+    public CognitiveMetrics CalculateScores(CognitiveMetrics metrics, CognitiveConfiguration configuration)
     {
         foreach (KeyValuePair<string, MetricConfiguration> keyValuePair in configuration.Metrics)
         {

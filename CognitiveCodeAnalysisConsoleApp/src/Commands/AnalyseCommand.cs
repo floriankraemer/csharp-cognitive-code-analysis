@@ -43,6 +43,14 @@ internal sealed class AnalyseCommand(
         [Description("Path to Cobertura coverage report file")]
         [CommandOption("--coverage-cobertura")]
         public string? CoverageCobertura { get; init; }
+
+        [Description("Show Halstead volume/difficulty/effort in reports (overrides config when set)")]
+        [CommandOption("--show-halstead")]
+        public bool? ShowHalstead { get; init; }
+
+        [Description("Show cyclomatic complexity in reports (overrides config when set)")]
+        [CommandOption("--show-cyclomatic")]
+        public bool? ShowCyclomatic { get; init; }
     }
 
     public override int Execute(
@@ -51,14 +59,16 @@ internal sealed class AnalyseCommand(
         CancellationToken cancellationToken
     ) {
         try {
-            var configuration = ConfigurationLoader.Load();
+            var configuration = ConfigurationLoader.Load(settings.ConfigFile);
+            ApplyCliDisplayOverrides(settings, configuration);
+
             var sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
             var absoluteSourcePath = Path.GetFullPath(sourcePath);
             var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath);
 
             if (!FilesWereFound(files , absoluteSourcePath)) return Error;
 
-            var metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files);
+            var metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration);
 
             if (!HandleCoverage(settings , metricsCollection)) return Error;
 
@@ -89,6 +99,19 @@ internal sealed class AnalyseCommand(
         }
 
         return result.Success;
+    }
+
+    private static void ApplyCliDisplayOverrides(Settings settings, CognitiveConfiguration configuration)
+    {
+        if (settings.ShowHalstead.HasValue)
+        {
+            configuration.ShowHalsteadComplexity = settings.ShowHalstead.Value;
+        }
+
+        if (settings.ShowCyclomatic.HasValue)
+        {
+            configuration.ShowCyclomaticComplexity = settings.ShowCyclomatic.Value;
+        }
     }
 
     private static bool FilesWereFound(List<string> files, string absoluteSourcePath)

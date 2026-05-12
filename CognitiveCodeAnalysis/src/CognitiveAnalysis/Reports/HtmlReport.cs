@@ -39,7 +39,8 @@ public class HtmlReport() : IReport
         html.AppendLine("    <div class=\"container-fluid mt-4\">");
         html.AppendLine("        <h1 class=\"mb-4\">Cognitive Code Analysis Report</h1>");
 
-        HandleGrouping(metricsCollection, html, configuration);
+        CognitiveMetricsCollection filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        HandleGrouping(filtered, html, configuration);
 
         html.AppendLine("    </div>");
         html.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script>");
@@ -51,15 +52,13 @@ public class HtmlReport() : IReport
 
     private void HandleGrouping(CognitiveMetricsCollection metricsCollection, StringBuilder html, CognitiveConfiguration configuration)
     {
-        bool hasCoverageData = metricsCollection.HasCoverageData();
-
         if (configuration.GroupByClass)
         {
-            html.Append(RenderMetricsGrouped(metricsCollection));
+            html.Append(RenderMetricsGrouped(metricsCollection, configuration));
             return;
         }
 
-        html.Append(RenderMetricsUngrouped(metricsCollection));
+        html.Append(RenderMetricsUngrouped(metricsCollection, configuration));
     }
 
     private void WriteReportToFile(string outputFilePath, StringBuilder html)
@@ -74,7 +73,7 @@ public class HtmlReport() : IReport
         File.WriteAllText(outputFilePath, html.ToString());
     }
 
-    private string RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection)
+    private string RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection, CognitiveConfiguration configuration)
     {
         var html = new StringBuilder();
         bool hasCoverageData = metricsCollection.HasCoverageData();
@@ -103,6 +102,7 @@ public class HtmlReport() : IReport
             html.AppendLine("                        <th>Arguments</th>");
             html.AppendLine("                        <th>Nesting</th>");
             html.AppendLine("                        <th>Returns</th>");
+            AppendHalsteadCyclomaticHeaders(html, configuration);
             if (hasCoverageData)
             {
                 html.AppendLine("                        <th>Churn</th>");
@@ -121,6 +121,7 @@ public class HtmlReport() : IReport
                 html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
                 html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+                AppendHalsteadCyclomaticCells(html, metrics, configuration);
                 if (hasCoverageData)
                 {
                     string churnValue = metrics.churnScore.HasValue 
@@ -140,7 +141,7 @@ public class HtmlReport() : IReport
         return html.ToString();
     }
 
-    private string RenderMetricsUngrouped(CognitiveMetricsCollection metricsCollection)
+    private string RenderMetricsUngrouped(CognitiveMetricsCollection metricsCollection, CognitiveConfiguration configuration)
     {
         var html = new StringBuilder();
         bool hasCoverageData = metricsCollection.HasCoverageData();
@@ -164,6 +165,7 @@ public class HtmlReport() : IReport
             html.AppendLine("                        <th>Arguments</th>");
             html.AppendLine("                        <th>Nesting</th>");
             html.AppendLine("                        <th>Returns</th>");
+            AppendHalsteadCyclomaticHeaders(html, configuration);
             if (hasCoverageData)
             {
                 html.AppendLine("                        <th>Churn</th>");
@@ -179,6 +181,7 @@ public class HtmlReport() : IReport
             html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
             html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+            AppendHalsteadCyclomaticCells(html, metrics, configuration);
             if (hasCoverageData)
             {
                 string churnValue = metrics.churnScore.HasValue 
@@ -195,6 +198,39 @@ public class HtmlReport() : IReport
 
         return html.ToString();
     }
+
+    private static void AppendHalsteadCyclomaticHeaders(StringBuilder html, CognitiveConfiguration configuration)
+    {
+        if (configuration.ShowHalsteadComplexity)
+        {
+            html.AppendLine("                        <th>Halstead Volume</th>");
+            html.AppendLine("                        <th>Halstead Difficulty</th>");
+            html.AppendLine("                        <th>Halstead Effort</th>");
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            html.AppendLine("                        <th>Cyclomatic Complexity</th>");
+        }
+    }
+
+    private static void AppendHalsteadCyclomaticCells(StringBuilder html, CognitiveMetrics metrics, CognitiveConfiguration configuration)
+    {
+        if (configuration.ShowHalsteadComplexity)
+        {
+            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Volume)}</td>");
+            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Difficulty)}</td>");
+            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Effort)}</td>");
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            html.AppendLine($"                        <td>{metrics.cyclomaticComplexity:F1}</td>");
+        }
+    }
+
+    private static string FormatHalsteadDouble(double? value)
+        => value.HasValue ? value.Value.ToString("F2") : "n/a";
 
     private static string GetScoreClass(double score)
     {

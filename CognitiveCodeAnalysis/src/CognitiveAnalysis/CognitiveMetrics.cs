@@ -2,6 +2,8 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.HalsteadAnalysis;
+
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 /// <summary>
@@ -57,6 +59,8 @@ public class CognitiveMetrics
 
     public double cyclomaticComplexity = 0;
 
+    public HalsteadMetrics? Halstead { get; set; }
+
     public double? lineCoveragePercentage = null;
     public double? branchCoveragePercentage = null;
 
@@ -83,7 +87,8 @@ public class CognitiveMetrics
         int propertyAccessCount = 0,
         double? lineCoveragePercentage = null,
         double? branchCoveragePercentage = null,
-        double? churnScore = null
+        double? churnScore = null,
+        HalsteadMetrics? halstead = null
     )
     {
         MethodName = methodName;
@@ -107,5 +112,6 @@ public class CognitiveMetrics
         this.lineCoveragePercentage = lineCoveragePercentage;
         this.branchCoveragePercentage = branchCoveragePercentage;
         this.churnScore = churnScore;
+        Halstead = halstead;
     }
 }
