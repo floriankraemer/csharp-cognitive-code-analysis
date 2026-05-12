@@ -4,6 +4,8 @@
 
 using System.Text;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis;
+
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -32,18 +34,21 @@ public class HtmlReport() : IReport
         html.AppendLine("        .score-yellow { color: #ffc107; font-weight: bold; }");
         html.AppendLine("        .score-red { color: #dc3545; font-weight: bold; }");
         html.AppendLine("        .class-header { margin-top: 2rem; margin-bottom: 1rem; }");
-        html.AppendLine("        .class-header:first-child { margin-top: 1rem; }");
+        html.AppendLine("        .report-class-section:first-of-type .class-header { margin-top: 1rem; }");
+        html.AppendLine("        .report-filter-bar { max-width: 32rem; }");
         html.AppendLine("    </style>");
         html.AppendLine("</head>");
         html.AppendLine("<body>");
         html.AppendLine("    <div class=\"container-fluid mt-4\">");
         html.AppendLine("        <h1 class=\"mb-4\">Cognitive Code Analysis Report</h1>");
+        AppendFilterControls(html);
 
         CognitiveMetricsCollection filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
         HandleGrouping(filtered, html, configuration);
 
         html.AppendLine("    </div>");
         html.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script>");
+        AppendFilterScript(html);
         html.AppendLine("</body>");
         html.AppendLine("</html>");
 
@@ -59,6 +64,39 @@ public class HtmlReport() : IReport
         }
 
         html.Append(RenderMetricsUngrouped(metricsCollection, configuration));
+    }
+
+    private static void AppendFilterControls(StringBuilder html)
+    {
+        html.AppendLine("        <div class=\"mb-4 report-filter-bar\">");
+        html.AppendLine("            <label for=\"report-filter\" class=\"form-label\">Filter by class or file path</label>");
+        html.AppendLine(
+            "            <input type=\"search\" id=\"report-filter\" class=\"form-control\" placeholder=\"e.g. controller\" autocomplete=\"off\">");
+        html.AppendLine(
+            "            <div class=\"form-text\">Case-insensitive match on class name or full file path. Empty shows all sections.</div>");
+        html.AppendLine("        </div>");
+    }
+
+    private static void AppendFilterScript(StringBuilder html)
+    {
+        html.AppendLine("    <script>");
+        html.AppendLine("(function(){");
+        html.AppendLine("  var input=document.getElementById('report-filter');");
+        html.AppendLine("  if(!input)return;");
+        html.AppendLine("  var sections=document.querySelectorAll('.report-class-section');");
+        html.AppendLine("  function apply(){");
+        html.AppendLine("    var q=input.value.trim().toLowerCase();");
+        html.AppendLine("    sections.forEach(function(sec){");
+        html.AppendLine("      if(!q){ sec.classList.remove('d-none'); return; }");
+        html.AppendLine("      var cn=(sec.getAttribute('data-class-name')||'').toLowerCase();");
+        html.AppendLine("      var fp=(sec.getAttribute('data-file-path')||'').toLowerCase();");
+        html.AppendLine("      var show=cn.indexOf(q)!==-1||fp.indexOf(q)!==-1;");
+        html.AppendLine("      sec.classList.toggle('d-none',!show);");
+        html.AppendLine("    });");
+        html.AppendLine("  }");
+        html.AppendLine("  input.addEventListener('input',apply);");
+        html.AppendLine("})();");
+        html.AppendLine("    </script>");
     }
 
     private void WriteReportToFile(string outputFilePath, StringBuilder html)
@@ -79,12 +117,16 @@ public class HtmlReport() : IReport
         bool hasCoverageData = metricsCollection.HasCoverageData();
         var groupedByClass = metricsCollection
             .GroupBy(m => new { m.ClassName, m.FilePath })
-            .OrderBy(g => g.Key.ClassName);
+            .OrderByDescending(g => g.Max(m => m.totalScore))
+            .ThenBy(g => g.Key.ClassName);
 
         foreach (var classGroup in groupedByClass)
         {
-            var classMetrics = classGroup.ToList();
-            var firstMetric = classMetrics.First();
+            List<CognitiveMetrics> classMetrics = classGroup.OrderByDescending(m => m.totalScore).ToList();
+            CognitiveMetrics firstMetric = classMetrics[0];
+
+            html.AppendLine(
+                $"        <div class=\"report-class-section\" data-class-name=\"{HtmlEncode(firstMetric.ClassName)}\" data-file-path=\"{HtmlEncode(firstMetric.FilePath)}\">");
 
             html.AppendLine("        <div class=\"class-header\">");
             html.AppendLine($"            <h3 class=\"text-primary\">Class: {HtmlEncode(firstMetric.ClassName)}</h3>");
@@ -136,6 +178,7 @@ public class HtmlReport() : IReport
             html.AppendLine("                </tbody>");
             html.AppendLine("            </table>");
             html.AppendLine("        </div>");
+            html.AppendLine("        </div>");
         }
 
         return html.ToString();
@@ -146,8 +189,11 @@ public class HtmlReport() : IReport
         var html = new StringBuilder();
         bool hasCoverageData = metricsCollection.HasCoverageData();
 
-        foreach (var metrics in metricsCollection)
+        foreach (CognitiveMetrics metrics in metricsCollection.OrderByDescending(m => m.totalScore))
         {
+            html.AppendLine(
+                $"        <div class=\"report-class-section\" data-class-name=\"{HtmlEncode(metrics.ClassName)}\" data-file-path=\"{HtmlEncode(metrics.FilePath)}\">");
+
             html.AppendLine("        <div class=\"class-header\">");
             html.AppendLine($"            <h3 class=\"text-primary\">Class: {HtmlEncode(metrics.ClassName)}</h3>");
             html.AppendLine($"            <p class=\"text-success\">Method: {HtmlEncode(metrics.methodSignature)}</p>");
@@ -193,6 +239,7 @@ public class HtmlReport() : IReport
             html.AppendLine("                    </tr>");
             html.AppendLine("                </tbody>");
             html.AppendLine("            </table>");
+            html.AppendLine("        </div>");
             html.AppendLine("        </div>");
         }
 

@@ -48,7 +48,7 @@ Use this structure:
 - `excludePatterns` (`string[]`): configured but currently not applied in source file discovery.
 - `scoreThreshold` (`double`): threshold used in report filtering and summary counts.
 - `showOnlyMethodsExceedingThreshold` (`bool`): if `true`, console report only shows methods above `scoreThreshold`.
-- `groupByClass` (`bool`): groups output by class in console and HTML reports.
+- `groupByClass` (`bool`): groups output by class in console and HTML reports. HTML output also includes a client-side filter (class name / file path) and default ordering by cognitive score: classes by **maximum** method score in the class (highest first), methods within each class by `totalScore` (highest first).
 - `countElseAsNesting` (`bool`): controls whether `else` increases nesting depth.
 - `countElseIfAsNesting` (`bool`): controls whether `else if` increases nesting depth.
 - `showHalsteadComplexity` (`bool`): when `true`, console and HTML reports include Halstead volume, difficulty, and effort columns (metrics are always computed during analysis).
