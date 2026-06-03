@@ -41,6 +41,7 @@ public class Program
         serviceCollection.AddSingleton<IReport, SarifReport>();
         serviceCollection.AddSingleton<IReport, GithubActionsReport>();
         serviceCollection.AddSingleton<IReport, GitlabCodeQualityReport>();
+        serviceCollection.AddSingleton<IReport, CsvReport>();
         serviceCollection.AddSingleton<ReportCoordinator>();
 
         // Create a type registrar and register any dependencies.
