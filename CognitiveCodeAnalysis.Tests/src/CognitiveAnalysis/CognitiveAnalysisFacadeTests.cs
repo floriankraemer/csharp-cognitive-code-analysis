@@ -5,6 +5,7 @@
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CouplingAnalysis;
 
 namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
@@ -23,7 +24,8 @@ public class CognitiveAnalysisFacadeTests
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
             new ScoreCalculator(),
-            new CoberturaReader()
+            new CoberturaReader(),
+            new ClassCouplingAnalyser()
         );
     }
 
@@ -131,7 +133,8 @@ namespace X {
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
             new ScoreCalculator(),
-            new FakeCoverageReaderReturn( new[] { coverage } )
+            new FakeCoverageReaderReturn( new[] { coverage } ),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -161,7 +164,8 @@ namespace X {
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
             new ScoreCalculator(),
-            new FakeCoverageReaderReturn(Enumerable.Empty<Coverage>())
+            new FakeCoverageReaderReturn(Enumerable.Empty<Coverage>()),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -195,7 +199,8 @@ namespace X {
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
             new ScoreCalculator(),
-            new FakeCoverageReaderReturn( new[] { coverage } )
+            new FakeCoverageReaderReturn( new[] { coverage } ),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -219,7 +224,8 @@ namespace X {
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
             new ScoreCalculator(),
-            new FakeCoverageReaderThrowFileNotFound()
+            new FakeCoverageReaderThrowFileNotFound(),
+            new ClassCouplingAnalyser()
         );
 
         // Act

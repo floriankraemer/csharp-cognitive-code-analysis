@@ -4,12 +4,38 @@
 
 using System.Collections.ObjectModel;
 
+using CognitiveCodeAnalysis.CouplingAnalysis;
+
 using Microsoft.Extensions.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class CognitiveMetricsCollection: Collection<CognitiveMetrics>
 {
+    private readonly Dictionary<string, ClassCouplingMetrics> _classCouplingByName =
+        new(StringComparer.Ordinal);
+
+    public void SetClassCouplingMetrics(IEnumerable<ClassCouplingMetrics> metrics)
+    {
+        _classCouplingByName.Clear();
+        foreach (ClassCouplingMetrics metric in metrics)
+        {
+            _classCouplingByName[metric.ClassName] = metric;
+        }
+    }
+
+    public bool TryGetClassCoupling(string className, out ClassCouplingMetrics? coupling)
+    {
+        if (_classCouplingByName.TryGetValue(className, out ClassCouplingMetrics? value))
+        {
+            coupling = value;
+            return true;
+        }
+
+        coupling = null;
+        return false;
+    }
+
     public CognitiveMetricsCollection OnlyMetricsExceedingScoreThreshold(double scoreThreshold)
     {
         CognitiveMetricsCollection filtered = [];

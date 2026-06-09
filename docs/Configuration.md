@@ -24,6 +24,7 @@ Use this structure:
     "showOnlyMethodsExceedingThreshold": true,
     "showHalsteadComplexity": false,
     "showCyclomaticComplexity": false,
+    "showCouplingMetrics": false,
     "showDetailedCognitiveMetrics": true,
     "groupByClass": true,
     "countElseAsNesting": false,
@@ -53,6 +54,7 @@ Use this structure:
 - `countElseIfAsNesting` (`bool`): controls whether `else if` increases nesting depth.
 - `showHalsteadComplexity` (`bool`): when `true`, console and HTML reports include Halstead volume, difficulty, and effort columns (metrics are always computed during analysis).
 - `showCyclomaticComplexity` (`bool`): when `true`, console and HTML reports include cyclomatic complexity (computed during analysis).
+- `showCouplingMetrics` (`bool`): when `true` and `groupByClass` is `true`, console and HTML reports show class coupling (incoming, outgoing, stability) in each class header. Coupling is always computed during analysis.
 - `showDetailedCognitiveMetrics` (`bool`): present in the shipped JSON for parity with other tools; not bound in this project yet (ignored).
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
 
