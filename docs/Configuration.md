@@ -68,23 +68,37 @@ Each metric entry contains:
 
 ## 5) Metric keys
 
-### Keys that map directly to scoring fields
+### Supported metric keys
 
-These align with analyzer metric fields and total score calculation:
+These align with analyzer fields and can contribute to `totalScore` when `enabled` is `true`:
 
-- `ifCount`
-- `elseCount`
-- `loopCount`
-- `switchCount`
-- `tryCatchCount`
-- `returnCount`
-- `argumentCount`
-- `nestingLevels`
+- `linesOfCode` → `linesOfCodeScore`
+- `ifCount` → `ifScore`
+- `elseCount` → `elseScore`
+- `loopCount` → `loopScore`
+- `switchCount` → `switchScore`
+- `tryCatchCount` → `tryCatchScore`
+- `returnCount` → `returnScore`
+- `argumentCount` → `argumentScore`
+- `nestingLevels` → `nestingScore`
+- `localVariableCount` → `localVariableScore`
+- `fieldAccessCount` → `fieldAccessScore`
+- `propertyAccessCount` → `propertyAccessScore`
 
-### Notes on current defaults
+### Legacy config aliases
 
-The shipped `cognitive-metrics-settings.json` contains keys such as `linesOfCode`, `variableCount`, and `propertyCallCount`.
-Those keys do not currently map to active score fields in `ScoreCalculator`, so they do not affect `totalScore`.
+For backward compatibility, these JSON keys map to the fields above:
+
+- `variableCount` → `localVariableCount` / `localVariableScore`
+- `propertyCallCount` → `propertyAccessCount` / `propertyAccessScore`
+
+### Shipped defaults
+
+The shipped `cognitive-metrics-settings.json` enables core control-flow and size metrics (`linesOfCode`, `ifCount`, `elseCount`, `argumentCount`, `returnCount`, `nestingLevels`).
+
+Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `variableCount`, `propertyCallCount`, `fieldAccessCount`) are present but **disabled by default** so existing `totalScore` behavior is unchanged until you opt in by setting `enabled` to `true`.
+
+All listed metrics are counted during analysis and appear in console/CSV output regardless of the `enabled` flag; `enabled` only controls whether the metric contributes to `totalScore`.
 
 `showDetailedCognitiveMetrics` remains unbound in `CognitiveConfiguration` (ignored).
 

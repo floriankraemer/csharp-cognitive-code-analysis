@@ -20,6 +20,7 @@ public class CognitiveMetrics
     public string methodSignature;
     public int methodLineNumber;
     public int linesOfCode = 0;
+    public double linesOfCodeScore = 0;
 
     // Metrics
     public int ifCount = 0;

@@ -99,7 +99,7 @@ public class ConsoleTextReport() : IReport
         {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
             ColorizeScore(metrics.totalScore),
-            metrics.linesOfCode.ToString(),
+            metrics.linesOfCode + " (" + ColorizeScore(metrics.linesOfCodeScore) + ")",
             metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
             metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",

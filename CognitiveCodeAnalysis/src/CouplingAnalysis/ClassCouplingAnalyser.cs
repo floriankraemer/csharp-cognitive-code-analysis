@@ -3,7 +3,8 @@
 /// </copyright>
 
 using System.Collections.Immutable;
-using System.Reflection;
+
+using CognitiveCodeAnalysis.Common;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -32,7 +33,7 @@ public class ClassCouplingAnalyser
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: "CouplingAnalysis",
             syntaxTrees: syntaxTrees,
-            references: GetMetadataReferences(),
+            references: RoslynMetadataReferences.Get(),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -229,34 +230,4 @@ public class ClassCouplingAnalyser
         }
     }
 
-    private static ImmutableArray<MetadataReference> GetMetadataReferences()
-    {
-        var references = new List<MetadataReference>();
-        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        void AddAssembly(Assembly assembly)
-        {
-            if (!string.IsNullOrEmpty(assembly.Location) && seenPaths.Add(assembly.Location))
-            {
-                references.Add(MetadataReference.CreateFromFile(assembly.Location));
-            }
-        }
-
-        AddAssembly(typeof(object).Assembly);
-        AddAssembly(typeof(System.Runtime.CompilerServices.RuntimeHelpers).Assembly);
-        AddAssembly(typeof(System.Linq.Enumerable).Assembly);
-
-        if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedAssemblies)
-        {
-            foreach (string path in trustedAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (seenPaths.Add(path))
-                {
-                    references.Add(MetadataReference.CreateFromFile(path));
-                }
-            }
-        }
-
-        return references.ToImmutableArray();
-    }
 }
