@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -63,7 +63,7 @@ jobs:
           tar -czvf "release/CognitiveCodeAnalysis-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: CognitiveCodeAnalysis ${{ github.ref_name }}
