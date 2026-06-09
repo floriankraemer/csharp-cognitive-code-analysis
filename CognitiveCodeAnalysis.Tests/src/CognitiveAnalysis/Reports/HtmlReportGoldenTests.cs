@@ -50,6 +50,8 @@ public class HtmlReportGoldenTests
             Assert.That(html, Does.Contain("L10"));
             Assert.That(html, Does.Contain("Alpha"));
             Assert.That(html, Does.Contain("2.500"));
+            Assert.That(html, Does.Contain("id=\"report-filter\""));
+            Assert.That(html, Does.Contain("report-class-section"));
         }
         finally
         {

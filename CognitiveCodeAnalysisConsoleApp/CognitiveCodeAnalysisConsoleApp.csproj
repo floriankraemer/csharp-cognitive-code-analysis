@@ -21,7 +21,7 @@
     <Version>1.0.0</Version>
     <Authors>Florian Krämer</Authors>
     <Description>Cognitive complexity analysis for C# — reports for readability and human working-memory load.</Description>
-    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

@@ -15,6 +15,99 @@ public class Tests
     }
 
     [Test]
+    public void CalculateScores_MapsLinesOfCodeToScoreAndTotalScore()
+    {
+        var metrics = new CognitiveMetrics(
+            methodName: "TestMethod",
+            className: "TestClass",
+            filePath: "TestFile.cs",
+            methodSignature: "TestMethod()",
+            methodLineNumber: 10,
+            linesOfCode: 85
+        );
+
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new Dictionary<string, MetricConfiguration>
+            {
+                { "linesOfCode", new MetricConfiguration { Scale = 25.0, Threshold = 60, Enabled = true } },
+            }
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(metrics.linesOfCodeScore, Is.EqualTo(Math.Log(2)));
+            Assert.That(metrics.totalScore, Is.EqualTo(metrics.linesOfCodeScore));
+        }
+    }
+
+    [Test]
+    public void CalculateScores_ResolvesLegacyMetricAliases()
+    {
+        var metrics = new CognitiveMetrics(
+            methodName: "TestMethod",
+            className: "TestClass",
+            filePath: "TestFile.cs",
+            methodSignature: "TestMethod()",
+            methodLineNumber: 10,
+            localVariableCount: 5,
+            propertyAccessCount: 6
+        );
+
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new Dictionary<string, MetricConfiguration>
+            {
+                { "variableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = true } },
+                { "propertyCallCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = true } },
+            }
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(metrics.localVariableScore, Is.EqualTo(Math.Log(1.2)));
+            Assert.That(metrics.propertyAccessScore, Is.EqualTo(Math.Log(1 + 2.0 / 15.0)));
+            Assert.That(metrics.totalScore, Is.EqualTo(metrics.localVariableScore + metrics.propertyAccessScore));
+        }
+    }
+
+    [Test]
+    public void CalculateScores_DisabledMetricsDoNotContribute()
+    {
+        var metrics = new CognitiveMetrics(
+            methodName: "TestMethod",
+            className: "TestClass",
+            filePath: "TestFile.cs",
+            methodSignature: "TestMethod()",
+            methodLineNumber: 10,
+            localVariableCount: 10,
+            fieldAccessCount: 10
+        );
+
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new Dictionary<string, MetricConfiguration>
+            {
+                { "variableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = false } },
+                { "fieldAccessCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = false } },
+            }
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(metrics.localVariableScore, Is.EqualTo(0));
+            Assert.That(metrics.fieldAccessScore, Is.EqualTo(0));
+            Assert.That(metrics.totalScore, Is.EqualTo(0));
+        }
+    }
+
+    [Test]
     public void CalculateScoresWithValidMetric()
     {
         // Arrange
@@ -31,10 +124,10 @@ public class Tests
         );
 
         var configuration = GetConfiguration();
-        ScoreCalculator calculator = new(configuration);
+        var calculator = new ScoreCalculator();
 
         // Act
-        calculator.CalculateScores(metrics);
+        calculator.CalculateScores(metrics, configuration);
 
         // Assert
         using (Assert.EnterMultipleScope())

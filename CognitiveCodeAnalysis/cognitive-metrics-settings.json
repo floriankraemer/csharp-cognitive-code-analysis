@@ -6,6 +6,7 @@
         "showOnlyMethodsExceedingThreshold": true,
         "showHalsteadComplexity": false,
         "showCyclomaticComplexity": false,
+        "showCouplingMetrics": false,
         "showDetailedCognitiveMetrics": true,
         "groupByClass": true,
         "countElseAsNesting": false,
@@ -29,12 +30,17 @@
             "variableCount": {
                 "threshold": 4,
                 "scale": 5.0,
-                "enabled": true
+                "enabled": false
             },
             "propertyCallCount": {
                 "threshold": 4,
                 "scale": 15.0,
-                "enabled": true
+                "enabled": false
+            },
+            "fieldAccessCount": {
+                "threshold": 4,
+                "scale": 15.0,
+                "enabled": false
             },
             "ifCount": {
                 "threshold": 3,
@@ -50,6 +56,21 @@
                 "threshold": 1,
                 "scale": 1.0,
                 "enabled": true
+            },
+            "loopCount": {
+                "threshold": 2,
+                "scale": 1.0,
+                "enabled": false
+            },
+            "switchCount": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": false
+            },
+            "tryCatchCount": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": false
             }
         }
     }

@@ -4,7 +4,10 @@
 
 using System.Collections.Concurrent;
 
+using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CyclomaticAnalysis;
+using CognitiveCodeAnalysis.HalsteadAnalysis;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -31,10 +34,11 @@ public class CognitiveCodeAnalyser
         foreach (string file in files)
         {
             string fileContent = File.ReadAllText(file);
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
             SyntaxNode root = tree.GetRoot();
+            SemanticModel? semanticModel = CreateSemanticModel(tree);
 
-            metricsCollection = AnalyseClasses(configuration, root, metricsCollection, file);
+            metricsCollection = AnalyseClasses(configuration, root, metricsCollection, file, semanticModel);
         }
 
         return metricsCollection;
@@ -64,14 +68,15 @@ public class CognitiveCodeAnalyser
             string fileContent = File.ReadAllText(file);
 #endif
 
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
 
             // GetRootAsync exists and is cancellable – small win
             SyntaxNode root = await tree.GetRootAsync(cancellationToken);
+            SemanticModel? semanticModel = CreateSemanticModel(tree);
 
             // Process this file independently
             var localCollection = new CognitiveMetricsCollection();
-            AnalyseClasses(configuration, root, localCollection, file);
+            AnalyseClasses(configuration, root, localCollection, file, semanticModel);
 
             // Add all metrics from this file to the shared bag
             foreach (var metric in localCollection)
@@ -92,16 +97,30 @@ public class CognitiveCodeAnalyser
         return result;
     }
 
+    private static SemanticModel? CreateSemanticModel(SyntaxTree tree)
+    {
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            assemblyName: "CognitiveAnalysis_" + Guid.NewGuid().ToString("N"),
+            syntaxTrees: [tree],
+            references: RoslynMetadataReferences.Get(),
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        return compilation.GetSemanticModel(tree);
+    }
+
     private static CognitiveMetricsCollection AnalyseClasses(
         CognitiveConfiguration configuration,
         SyntaxNode root,
-        CognitiveMetricsCollection metricsCollection, string file
+        CognitiveMetricsCollection metricsCollection,
+        string file,
+        SemanticModel? semanticModel
     ) {
         IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
 
         foreach (ClassDeclarationSyntax classNode in classNodes)
         {
-            metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file);
+            metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file, semanticModel);
         }
 
         return metricsCollection;
@@ -111,7 +130,8 @@ public class CognitiveCodeAnalyser
         CognitiveConfiguration configuration,
         ClassDeclarationSyntax classNode,
         CognitiveMetricsCollection metricsCollection,
-        string file
+        string file,
+        SemanticModel? semanticModel
     ) {
         string fullClassName = GetFullyQualifiedClassName(classNode);
 
@@ -130,6 +150,15 @@ public class CognitiveCodeAnalyser
                 .OfType<TryStatementSyntax>()
                 .Count();
 
+            int loopCount = CountLoopStatements(methodNode);
+            int switchCount = methodNode.DescendantNodes().OfType<SwitchStatementSyntax>().Count();
+            int localVariableCount = CountLocalVariables(methodNode);
+            (int fieldAccessCount, int propertyAccessCount) = CountFieldAndPropertyAccesses(methodNode, semanticModel);
+
+            int cyclomatic = CyclomaticComplexityCalculator.calculate(methodNode);
+            string halsteadId = fullClassName + "::" + methodNode.Identifier.Text;
+            HalsteadMetrics halstead = HalsteadSyntaxCollector.CollectForMethod(methodNode, halsteadId);
+
             metricsCollection.Add(new CognitiveMetrics(
                 methodName: methodNode.Identifier.Text,
                 className: fullClassName,
@@ -140,13 +169,91 @@ public class CognitiveCodeAnalyser
                 argumentCount: methodNode.ParameterList.Parameters.Count,
                 linesOfCode: GetLinesOfCode(methodNode),
                 elseCount: elseCount,
+                loopCount: loopCount,
+                switchCount: switchCount,
                 tryCatchCount: tryCount,
                 returnCount: methodNode.DescendantNodes().OfType<ReturnStatementSyntax>().Count(),
-                nestingLevels: CalculateNestingLevels(methodNode, configuration)
+                nestingLevels: CalculateNestingLevels(methodNode, configuration),
+                cyclomaticComplexity: cyclomatic,
+                localVariableCount: localVariableCount,
+                fieldAccessCount: fieldAccessCount,
+                propertyAccessCount: propertyAccessCount,
+                halstead: halstead
             ));
         }
 
         return metricsCollection;
+    }
+
+    private static int CountLoopStatements(MethodDeclarationSyntax methodNode)
+    {
+        return methodNode.DescendantNodes().Count(node =>
+            node is ForStatementSyntax
+                or ForEachStatementSyntax
+                or WhileStatementSyntax
+                or DoStatementSyntax);
+    }
+
+    private static int CountLocalVariables(MethodDeclarationSyntax methodNode)
+    {
+        return methodNode.DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .Count(declarator => !IsMethodParameter(declarator, methodNode));
+    }
+
+    private static bool IsMethodParameter(VariableDeclaratorSyntax declarator, MethodDeclarationSyntax methodNode)
+    {
+        return declarator.Ancestors()
+            .OfType<ParameterSyntax>()
+            .Any(parameter => parameter.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault() == methodNode);
+    }
+
+    private static (int FieldAccessCount, int PropertyAccessCount) CountFieldAndPropertyAccesses(
+        MethodDeclarationSyntax methodNode,
+        SemanticModel? semanticModel
+    ) {
+        if (semanticModel == null)
+        {
+            return (0, 0);
+        }
+
+        int fieldAccessCount = 0;
+        int propertyAccessCount = 0;
+
+        foreach (MemberAccessExpressionSyntax memberAccess in methodNode.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+        {
+            ClassifyMemberSymbol(semanticModel.GetSymbolInfo(memberAccess).Symbol, ref fieldAccessCount, ref propertyAccessCount);
+        }
+
+        foreach (IdentifierNameSyntax identifier in methodNode.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (identifier.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == identifier)
+            {
+                continue;
+            }
+
+            if (identifier.Parent is MemberBindingExpressionSyntax)
+            {
+                continue;
+            }
+
+            ClassifyMemberSymbol(semanticModel.GetSymbolInfo(identifier).Symbol, ref fieldAccessCount, ref propertyAccessCount);
+        }
+
+        return (fieldAccessCount, propertyAccessCount);
+    }
+
+    private static void ClassifyMemberSymbol(ISymbol? symbol, ref int fieldAccessCount, ref int propertyAccessCount)
+    {
+        switch (symbol)
+        {
+            case IFieldSymbol:
+                fieldAccessCount++;
+                break;
+            case IPropertySymbol:
+                propertyAccessCount++;
+                break;
+        }
     }
 
     private static string GetFullSignature(MethodDeclarationSyntax methodNode)

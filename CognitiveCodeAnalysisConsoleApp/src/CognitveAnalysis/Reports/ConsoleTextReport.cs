@@ -2,6 +2,8 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Globalization;
+
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
@@ -22,21 +24,25 @@ public class ConsoleTextReport() : IReport
 
         if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(filteredCollection, hasCoverageData);
+            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration, metricsCollection);
             RenderSummary(metricsCollection, configuration);
             return;
         }
 
         foreach (CognitiveMetrics metrics in filteredCollection)
         {
-            RenderMetrics(metrics, hasCoverageData);
+            RenderMetrics(metrics, hasCoverageData, configuration);
         }
 
         RenderSummary(metricsCollection, configuration);
     }
 
-    private static void RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection, bool hasCoverageData)
-    {
+    private static void RenderMetricsGrouped(
+        CognitiveMetricsCollection metricsCollection,
+        bool hasCoverageData,
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection fullMetricsCollection
+    ) {
         var groupedByClass = metricsCollection
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
             .OrderBy(g => g.Key.ClassName);
@@ -55,25 +61,29 @@ public class ConsoleTextReport() : IReport
 
             AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(firstMetric.ClassName)}");
             AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
+            RenderCouplingLine(configuration, fullMetricsCollection, firstMetric.ClassName);
 
             Table table = new();
-            table = AddTableHeaders(table, hasCoverageData);
+            table = AddTableHeaders(table, hasCoverageData, configuration);
             table.ShowRowSeparators();
 
-            table = classMetrics.Aggregate(table, (current, metrics) => AddTableRow(current, metrics, hasCoverageData));
+            table = classMetrics.Aggregate(
+                table,
+                (current, metrics) => AddTableRow(current, metrics, hasCoverageData, configuration)
+            );
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
         }
     }
 
-    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData)
+    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData, CognitiveConfiguration configuration)
     {
         RenderMetricsSummary(metrics);
 
         Table table = new();
-        table = AddTableHeaders(table, hasCoverageData);
-        table = AddTableRow(table, metrics, hasCoverageData);
+        table = AddTableHeaders(table, hasCoverageData, configuration);
+        table = AddTableRow(table, metrics, hasCoverageData, configuration);
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -82,13 +92,14 @@ public class ConsoleTextReport() : IReport
     private static Table AddTableRow(
         Table table,
         CognitiveMetrics metrics,
-        bool hasCoverageData
+        bool hasCoverageData,
+        CognitiveConfiguration configuration
     ) {
         var rowData = new List<string>
         {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
             ColorizeScore(metrics.totalScore),
-            metrics.linesOfCode.ToString(),
+            metrics.linesOfCode + " (" + ColorizeScore(metrics.linesOfCodeScore) + ")",
             metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
             metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
             metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
@@ -97,6 +108,18 @@ public class ConsoleTextReport() : IReport
             metrics.fieldAccessCount + " (" + ColorizeScore(metrics.fieldAccessScore) + ")",
             metrics.propertyAccessCount + " (" + ColorizeScore(metrics.propertyAccessScore) + ")",
         };
+
+        if (configuration.ShowHalsteadComplexity)
+        {
+            rowData.Add(FormatHalsteadVolume(metrics));
+            rowData.Add(FormatHalsteadDifficulty(metrics));
+            rowData.Add(FormatHalsteadEffort(metrics));
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            rowData.Add(metrics.cyclomaticComplexity.ToString("F1"));
+        }
 
         if (hasCoverageData)
         {
@@ -228,6 +251,33 @@ public class ConsoleTextReport() : IReport
         return $"[{color}]{score:F3}[/]";
     }
 
+    private static void RenderCouplingLine(
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection metricsCollection,
+        string className
+    ) {
+        if (!configuration.GroupByClass || !configuration.ShowCouplingMetrics)
+        {
+            return;
+        }
+
+        string couplingText = FormatCouplingMetrics(metricsCollection, className);
+        AnsiConsole.MarkupLine($"[cyan]Coupling:[/] {Markup.Escape(couplingText)}");
+    }
+
+    private static string FormatCouplingMetrics(CognitiveMetricsCollection metricsCollection, string className)
+    {
+        if (!metricsCollection.TryGetClassCoupling(className, out var coupling) || coupling == null)
+        {
+            return "n/a";
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"In={coupling.IncomingCoupling}, Out={coupling.OutgoingCoupling}, Stability={coupling.Stability:F3}"
+        );
+    }
+
     private static void RenderMetricsSummary(CognitiveMetrics metrics)
     {
         AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(metrics.ClassName)}");
@@ -237,7 +287,16 @@ public class ConsoleTextReport() : IReport
         AnsiConsole.WriteLine();
     }
 
-    private static Table AddTableHeaders(Table table, bool hasCoverageData)
+    private static string FormatHalsteadVolume(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Volume.ToString("F2") : "[dim]n/a[/]";
+
+    private static string FormatHalsteadDifficulty(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Difficulty.ToString("F2") : "[dim]n/a[/]";
+
+    private static string FormatHalsteadEffort(CognitiveMetrics metrics)
+        => metrics.Halstead is { } h ? h.Effort.ToString("F2") : "[dim]n/a[/]";
+
+    private static Table AddTableHeaders(Table table, bool hasCoverageData, CognitiveConfiguration configuration)
     {
         table.AddColumn("Method");
         table.AddColumn("Score");
@@ -249,6 +308,18 @@ public class ConsoleTextReport() : IReport
         table.AddColumn("Locals");
         table.AddColumn("Fields");
         table.AddColumn("Props");
+
+        if (configuration.ShowHalsteadComplexity)
+        {
+            table.AddColumn("Halstead Vol");
+            table.AddColumn("Halstead Diff");
+            table.AddColumn("Halstead Effort");
+        }
+
+        if (configuration.ShowCyclomaticComplexity)
+        {
+            table.AddColumn("Cyclomatic");
+        }
 
         if (!hasCoverageData)
         {

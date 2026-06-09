@@ -7,6 +7,7 @@ using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CouplingAnalysis;
 using CognitiveCodeAnalysisConsoleApp.Commands;
 using CognitiveCodeAnalysisConsoleApp.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysisConsoleApp.DependencyInjection;
@@ -33,6 +34,7 @@ public class Program
         serviceCollection.AddSingleton<SourceFileFinder>();
         serviceCollection.AddSingleton<CognitiveCodeAnalyser>();
         serviceCollection.AddSingleton<ScoreCalculator>();
+        serviceCollection.AddSingleton<ClassCouplingAnalyser>();
         serviceCollection.AddSingleton<CognitiveAnalysisFacade>();
         serviceCollection.AddSingleton<ICoverageReader, AutoDetectCoverageReader>();
 
@@ -41,6 +43,7 @@ public class Program
         serviceCollection.AddSingleton<IReport, SarifReport>();
         serviceCollection.AddSingleton<IReport, GithubActionsReport>();
         serviceCollection.AddSingleton<IReport, GitlabCodeQualityReport>();
+        serviceCollection.AddSingleton<IReport, CsvReport>();
         serviceCollection.AddSingleton<ReportCoordinator>();
 
         // Create a type registrar and register any dependencies.

@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+  pull_request:
+    branches:
+      - master
+      - main
+      - develop
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Run tests
+        run: dotnet test "CognitiveCodeAnalysis.sln" --configuration Release --verbosity normal

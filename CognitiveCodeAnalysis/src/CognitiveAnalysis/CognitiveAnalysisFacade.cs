@@ -4,6 +4,7 @@
 
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CouplingAnalysis;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
@@ -12,7 +13,8 @@ public class CognitiveAnalysisFacade(
     CognitiveCodeAnalyser analyser,
     CognitiveConfiguration cognitiveConfiguration,
     ScoreCalculator calculator,
-    ICoverageReader coverageReader
+    ICoverageReader coverageReader,
+    ClassCouplingAnalyser classCouplingAnalyser
 ) {
     public List<string> FindSourceFiles(string[] sourcePaths)
     {
@@ -24,18 +26,24 @@ public class CognitiveAnalysisFacade(
         return sourceFileFinder.FindSourceFiles([sourcePath]);
     }
 
-    public  CognitiveMetricsCollection AnalyseSourceFiles(
-        List<string> files
+    public CognitiveMetricsCollection AnalyseSourceFiles(List<string> files)
+        => AnalyseSourceFiles(files, cognitiveConfiguration);
+
+    public CognitiveMetricsCollection AnalyseSourceFiles(
+        List<string> files,
+        CognitiveConfiguration configuration
     ) {
         CognitiveMetricsCollection metricsCollection = analyser
-            .AnalyseFilesAsync(files, cognitiveConfiguration)
+            .AnalyseFilesAsync(files, configuration)
             .GetAwaiter()
             .GetResult();
 
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
-            calculator.CalculateScores(metrics);
+            calculator.CalculateScores(metrics, configuration);
         }
+
+        metricsCollection.SetClassCouplingMetrics(classCouplingAnalyser.Analyse(files));
 
         return metricsCollection;
     }

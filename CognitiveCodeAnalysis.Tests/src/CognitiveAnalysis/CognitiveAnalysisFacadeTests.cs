@@ -5,6 +5,7 @@
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CouplingAnalysis;
 
 namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
@@ -22,10 +23,9 @@ public class CognitiveAnalysisFacadeTests
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(
-                new CognitiveConfiguration()
-            ),
-            new CoberturaReader()
+            new ScoreCalculator(),
+            new CoberturaReader(),
+            new ClassCouplingAnalyser()
         );
     }
 
@@ -93,6 +93,9 @@ namespace X {
         Assert.That(metrics.MethodName, Is.EqualTo("DoWork"));
         Assert.That(metrics.FilePath, Is.Not.Null.And.Not.Empty);
         Assert.That(metrics.linesOfCode, Is.GreaterThan(0));
+        Assert.That(metrics.ifCount, Is.EqualTo(1));
+        Assert.That(metrics.cyclomaticComplexity, Is.GreaterThanOrEqualTo(2));
+        Assert.That(metrics.Halstead, Is.Not.Null);
     }
 
     [Test]
@@ -130,8 +133,9 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
-            new FakeCoverageReaderReturn( new[] { coverage } )
+            new ScoreCalculator(),
+            new FakeCoverageReaderReturn( new[] { coverage } ),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -160,8 +164,9 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
-            new FakeCoverageReaderReturn(Enumerable.Empty<Coverage>())
+            new ScoreCalculator(),
+            new FakeCoverageReaderReturn(Enumerable.Empty<Coverage>()),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -194,8 +199,9 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
-            new FakeCoverageReaderReturn( new[] { coverage } )
+            new ScoreCalculator(),
+            new FakeCoverageReaderReturn( new[] { coverage } ),
+            new ClassCouplingAnalyser()
         );
 
         // Act
@@ -218,8 +224,9 @@ namespace X {
             new SourceFileFinder(),
             new CognitiveCodeAnalyser(),
             new CognitiveConfiguration(),
-            new ScoreCalculator(new CognitiveConfiguration()),
-            new FakeCoverageReaderThrowFileNotFound()
+            new ScoreCalculator(),
+            new FakeCoverageReaderThrowFileNotFound(),
+            new ClassCouplingAnalyser()
         );
 
         // Act

@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      # SemVer without leading "v": 1.2.3
+      - "[0-9]*.[0-9]*.[0-9]*"
+      # Prerelease suffix after patch: 1.0.0-rc, 1.0.0-rc.1
+      - "[0-9]*.[0-9]*.[0-9]*-*"
+
+jobs:
+  release:
+    name: Build and publish release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish for each RID (small single-file executables)
+        run: |
+          set -euxo pipefail
+          project="CognitiveCodeAnalysisConsoleApp/CognitiveCodeAnalysisConsoleApp.csproj"
+          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+            dotnet publish "$project" \
+              -c Release \
+              -r "$rid" \
+              --self-contained true \
+              -o "dist/$rid" \
+              -p:PublishSingleFile=true \
+              -p:IncludeNativeLibrariesForSelfExtract=true \
+              -p:IncludeAllContentForSelfExtract=true \
+              -p:EnableCompressionInSingleFile=true \
+              -p:DebugType=None \
+              -p:DebugSymbols=false
+
+            # Keep assembly names unique (avoid CognitiveCodeAnalysis.dll clash),
+            # but ship stable executable name across platforms.
+            if [[ "$rid" == win-* ]]; then
+              mv "dist/$rid/CognitiveCodeAnalysisConsoleApp.exe" "dist/$rid/CognitiveCodeAnalysis.exe"
+            else
+              mv "dist/$rid/CognitiveCodeAnalysisConsoleApp" "dist/$rid/CognitiveCodeAnalysis"
+              chmod +x "dist/$rid/CognitiveCodeAnalysis"
+            fi
+          done
+
+      - name: Package archives
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euxo pipefail
+          mkdir -p release
+          (cd dist/win-x64 && zip -r "../../release/CognitiveCodeAnalysis-${TAG}-win-x64.zip" .)
+          tar -czvf "release/CognitiveCodeAnalysis-${TAG}-linux-x64.tar.gz" -C dist/linux-x64 .
+          tar -czvf "release/CognitiveCodeAnalysis-${TAG}-osx-x64.tar.gz" -C dist/osx-x64 .
+          tar -czvf "release/CognitiveCodeAnalysis-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: CognitiveCodeAnalysis ${{ github.ref_name }}
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

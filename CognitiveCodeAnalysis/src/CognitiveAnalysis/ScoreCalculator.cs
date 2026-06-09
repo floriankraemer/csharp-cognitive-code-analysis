@@ -7,9 +7,15 @@ using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
-public class ScoreCalculator(CognitiveConfiguration configuration)
+public class ScoreCalculator
 {
-    public CognitiveMetrics CalculateScores(CognitiveMetrics metrics)
+    private static readonly Dictionary<string, string> MetricKeyAliases = new(StringComparer.Ordinal)
+    {
+        { "variableCount", "localVariableCount" },
+        { "propertyCallCount", "propertyAccessCount" },
+    };
+
+    public CognitiveMetrics CalculateScores(CognitiveMetrics metrics, CognitiveConfiguration configuration)
     {
         foreach (KeyValuePair<string, MetricConfiguration> keyValuePair in configuration.Metrics)
         {
@@ -30,7 +36,7 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
             return metrics;
         }
 
-        string metricField = keyValuePair.Key;
+        string metricField = ResolveMetricFieldName(keyValuePair.Key);
 
         // Convert metric key to PascalCase property name (simple conversion)
         string countPropertyName = ToPascalCase(metricField);
@@ -63,7 +69,7 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
         );
 
         // Set score to property/field with same name but "Score" suffix (e.g., "ifCount" -> "ifScore" or "IfScore")
-        string scoreFieldName = metricField.Replace("Count", "Score").Replace("Levels", "Score");
+        string scoreFieldName = GetScoreFieldName(metricField);
         string scorePropertyName = ToPascalCase(scoreFieldName);
 
         PropertyInfo? scoreProperty = metricsType.GetProperty(scorePropertyName, BindingFlags.Public | BindingFlags.Instance);
@@ -102,9 +108,30 @@ public class ScoreCalculator(CognitiveConfiguration configuration)
             metrics.tryCatchScore +
             metrics.returnScore +
             metrics.argumentScore +
-            metrics.nestingScore;
+            metrics.nestingScore +
+            metrics.linesOfCodeScore +
+            metrics.localVariableScore +
+            metrics.fieldAccessScore +
+            metrics.propertyAccessScore;
 
         return metrics;
+    }
+
+    private static string ResolveMetricFieldName(string configKey)
+    {
+        return MetricKeyAliases.TryGetValue(configKey, out string? alias)
+            ? alias
+            : configKey;
+    }
+
+    private static string GetScoreFieldName(string countFieldName)
+    {
+        if (countFieldName == "linesOfCode")
+        {
+            return "linesOfCodeScore";
+        }
+
+        return countFieldName.Replace("Count", "Score").Replace("Levels", "Score");
     }
 
     private static string ToPascalCase(string name)
