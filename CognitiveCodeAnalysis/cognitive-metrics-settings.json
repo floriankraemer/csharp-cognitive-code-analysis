@@ -6,6 +6,7 @@
         "showOnlyMethodsExceedingThreshold": true,
         "showHalsteadComplexity": false,
         "showCyclomaticComplexity": false,
+        "showCouplingMetrics": false,
         "showDetailedCognitiveMetrics": true,
         "groupByClass": true,
         "countElseAsNesting": false,

@@ -15,5 +15,6 @@ public class CognitiveConfiguration
     public bool CountElseIfAsNesting { get; set; } = false;
     public bool ShowHalsteadComplexity { get; set; }
     public bool ShowCyclomaticComplexity { get; set; }
+    public bool ShowCouplingMetrics { get; set; }
     public Dictionary<string, MetricConfiguration> Metrics { get; set; } = new();
 }

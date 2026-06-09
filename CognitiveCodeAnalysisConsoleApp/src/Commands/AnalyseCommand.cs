@@ -51,6 +51,10 @@ internal sealed class AnalyseCommand(
         [Description("Show cyclomatic complexity in reports (overrides config when set)")]
         [CommandOption("--show-cyclomatic")]
         public bool? ShowCyclomatic { get; init; }
+
+        [Description("Show class coupling metrics in reports (overrides config when set)")]
+        [CommandOption("--show-coupling")]
+        public bool? ShowCoupling { get; init; }
     }
 
     public override int Execute(
@@ -111,6 +115,11 @@ internal sealed class AnalyseCommand(
         if (settings.ShowCyclomatic.HasValue)
         {
             configuration.ShowCyclomaticComplexity = settings.ShowCyclomatic.Value;
+        }
+
+        if (settings.ShowCoupling.HasValue)
+        {
+            configuration.ShowCouplingMetrics = settings.ShowCoupling.Value;
         }
     }
 

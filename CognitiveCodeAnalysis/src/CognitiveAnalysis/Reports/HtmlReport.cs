@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Globalization;
 using System.Text;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
@@ -44,7 +45,7 @@ public class HtmlReport() : IReport
         AppendFilterControls(html);
 
         CognitiveMetricsCollection filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
-        HandleGrouping(filtered, html, configuration);
+        HandleGrouping(filtered, html, configuration, metricsCollection);
 
         html.AppendLine("    </div>");
         html.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script>");
@@ -55,11 +56,15 @@ public class HtmlReport() : IReport
         WriteReportToFile(outputFile, html);
     }
 
-    private void HandleGrouping(CognitiveMetricsCollection metricsCollection, StringBuilder html, CognitiveConfiguration configuration)
-    {
+    private void HandleGrouping(
+        CognitiveMetricsCollection metricsCollection,
+        StringBuilder html,
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection fullMetricsCollection
+    ) {
         if (configuration.GroupByClass)
         {
-            html.Append(RenderMetricsGrouped(metricsCollection, configuration));
+            html.Append(RenderMetricsGrouped(metricsCollection, configuration, fullMetricsCollection));
             return;
         }
 
@@ -111,7 +116,11 @@ public class HtmlReport() : IReport
         File.WriteAllText(outputFilePath, html.ToString());
     }
 
-    private string RenderMetricsGrouped(CognitiveMetricsCollection metricsCollection, CognitiveConfiguration configuration)
+    private string RenderMetricsGrouped(
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection fullMetricsCollection
+    )
     {
         var html = new StringBuilder();
         bool hasCoverageData = metricsCollection.HasCoverageData();
@@ -131,6 +140,7 @@ public class HtmlReport() : IReport
             html.AppendLine("        <div class=\"class-header\">");
             html.AppendLine($"            <h3 class=\"text-primary\">Class: {HtmlEncode(firstMetric.ClassName)}</h3>");
             html.AppendLine($"            <p class=\"text-muted\">File: {HtmlEncode(firstMetric.FilePath)}</p>");
+            AppendCouplingLine(html, configuration, fullMetricsCollection, firstMetric.ClassName);
             html.AppendLine("        </div>");
 
             html.AppendLine("        <div class=\"table-responsive\">");
@@ -157,17 +167,17 @@ public class HtmlReport() : IReport
             {
                 html.AppendLine("                    <tr>");
                 html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
+                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{FormatInvariant(metrics.totalScore, "F3")}</span></td>");
                 html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-                html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
-                html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+                html.AppendLine($"                        <td>{metrics.ifCount} ({FormatInvariant(metrics.ifScore, "F3")})</td>");
+                html.AppendLine($"                        <td>{metrics.argumentCount} ({FormatInvariant(metrics.argumentScore, "F3")})</td>");
+                html.AppendLine($"                        <td>{metrics.nestingLevels} ({FormatInvariant(metrics.nestingScore, "F3")})</td>");
+                html.AppendLine($"                        <td>{metrics.returnCount} ({FormatInvariant(metrics.returnScore, "F3")})</td>");
                 AppendHalsteadCyclomaticCells(html, metrics, configuration);
                 if (hasCoverageData)
                 {
                     string churnValue = metrics.churnScore.HasValue 
-                        ? metrics.churnScore.Value.ToString("F3") 
+                        ? FormatInvariant(metrics.churnScore.Value, "F3")
                         : "n/a";
                     double churnScoreForColor = metrics.churnScore ?? 0;
                     html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
@@ -221,17 +231,17 @@ public class HtmlReport() : IReport
             html.AppendLine("                <tbody>");
             html.AppendLine("                    <tr>");
             html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{metrics.totalScore:F3}</span></td>");
+            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{FormatInvariant(metrics.totalScore, "F3")}</span></td>");
             html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-            html.AppendLine($"                        <td>{metrics.ifCount} ({metrics.ifScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.argumentCount} ({metrics.argumentScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.nestingLevels} ({metrics.nestingScore:F3})</td>");
-            html.AppendLine($"                        <td>{metrics.returnCount} ({metrics.returnScore:F3})</td>");
+            html.AppendLine($"                        <td>{metrics.ifCount} ({FormatInvariant(metrics.ifScore, "F3")})</td>");
+            html.AppendLine($"                        <td>{metrics.argumentCount} ({FormatInvariant(metrics.argumentScore, "F3")})</td>");
+            html.AppendLine($"                        <td>{metrics.nestingLevels} ({FormatInvariant(metrics.nestingScore, "F3")})</td>");
+            html.AppendLine($"                        <td>{metrics.returnCount} ({FormatInvariant(metrics.returnScore, "F3")})</td>");
             AppendHalsteadCyclomaticCells(html, metrics, configuration);
             if (hasCoverageData)
             {
                 string churnValue = metrics.churnScore.HasValue 
-                    ? metrics.churnScore.Value.ToString("F3") 
+                    ? FormatInvariant(metrics.churnScore.Value, "F3")
                     : "n/a";
                 double churnScoreForColor = metrics.churnScore ?? 0;
                 html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
@@ -272,12 +282,15 @@ public class HtmlReport() : IReport
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            html.AppendLine($"                        <td>{metrics.cyclomaticComplexity:F1}</td>");
+            html.AppendLine($"                        <td>{FormatInvariant(metrics.cyclomaticComplexity, "F1")}</td>");
         }
     }
 
+    private static string FormatInvariant(double value, string format)
+        => value.ToString(format, CultureInfo.InvariantCulture);
+
     private static string FormatHalsteadDouble(double? value)
-        => value.HasValue ? value.Value.ToString("F2") : "n/a";
+        => value.HasValue ? value.Value.ToString("F2", CultureInfo.InvariantCulture) : "n/a";
 
     private static string GetScoreClass(double score)
     {
@@ -305,6 +318,34 @@ public class HtmlReport() : IReport
             <= 0.7 => "score-yellow",
             _ => "score-red",
         };
+    }
+
+    private static void AppendCouplingLine(
+        StringBuilder html,
+        CognitiveConfiguration configuration,
+        CognitiveMetricsCollection metricsCollection,
+        string className
+    ) {
+        if (!configuration.GroupByClass || !configuration.ShowCouplingMetrics)
+        {
+            return;
+        }
+
+        string couplingText = FormatCouplingMetrics(metricsCollection, className);
+        html.AppendLine($"            <p class=\"text-muted\">Coupling: {HtmlEncode(couplingText)}</p>");
+    }
+
+    private static string FormatCouplingMetrics(CognitiveMetricsCollection metricsCollection, string className)
+    {
+        if (!metricsCollection.TryGetClassCoupling(className, out var coupling) || coupling == null)
+        {
+            return "n/a";
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"In={coupling.IncomingCoupling}, Out={coupling.OutgoingCoupling}, Stability={coupling.Stability:F3}"
+        );
     }
 
     private static string HtmlEncode(string? text)
