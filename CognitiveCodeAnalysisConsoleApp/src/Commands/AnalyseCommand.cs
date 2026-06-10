@@ -74,11 +74,15 @@ internal sealed class AnalyseCommand(
 
             var sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
             var absoluteSourcePath = Path.GetFullPath(sourcePath);
+            var reportType = settings.ReportType ?? "ConsoleText";
+            var isConsoleText = string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase);
 
             CognitiveMetricsCollection? metricsCollection = null;
             var filesNotFound = false;
+            var coverageFailed = false;
+            CognitiveBaselineComparison? baselineComparison = null;
 
-            SpectreProgressSession.Run((_, progress) =>
+            SpectreProgressSession.Run((reporter, progress) =>
             {
                 var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
                 if (!FilesWereFound(files, absoluteSourcePath))
@@ -88,23 +92,37 @@ internal sealed class AnalyseCommand(
                 }
 
                 metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
+
+                if (isConsoleText)
+                {
+                    return;
+                }
+
+                if (!TryApplyCoverage(settings, metricsCollection!, out coverageFailed))
+                {
+                    return;
+                }
+
+                baselineComparison = LoadBaselineComparison(settings, metricsCollection!);
+
+                GenerateReport(
+                    settings: settings,
+                    configuration: configuration,
+                    metricsCollection: metricsCollection!,
+                    baselineComparison: baselineComparison,
+                    progress: progress,
+                    progressReporter: reporter
+                );
             });
 
-            if (filesNotFound) return Error;
+            if (filesNotFound || coverageFailed) return Error;
 
-            if (!HandleCoverage(settings, metricsCollection!)) return Error;
-
-            CognitiveBaselineComparison? baselineComparison = null;
-            if (!string.IsNullOrWhiteSpace(settings.BaselineFile))
+            if (isConsoleText)
             {
-                var baseline = BaselineLoader.Load(settings.BaselineFile);
-                baselineComparison = BaselineComparer.Compare(metricsCollection!, baseline);
-            }
+                if (!HandleCoverage(settings, metricsCollection!)) return Error;
 
-            var reportType = settings.ReportType ?? "ConsoleText";
+                baselineComparison = LoadBaselineComparison(settings, metricsCollection!);
 
-            if (string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase))
-            {
                 GenerateReport(
                     settings: settings,
                     configuration: configuration,
@@ -112,26 +130,43 @@ internal sealed class AnalyseCommand(
                     baselineComparison: baselineComparison
                 );
             }
-            else
-            {
-                SpectreProgressSession.Run((reporter, progress) =>
-                {
-                    GenerateReport(
-                        settings: settings,
-                        configuration: configuration,
-                        metricsCollection: metricsCollection!,
-                        baselineComparison: baselineComparison,
-                        progress: progress,
-                        progressReporter: reporter
-                    );
-                });
-            }
 
             return Success;
         } catch (Exception exception) {
             AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(exception.Message)}[/]");
             return Error;
         }
+    }
+
+    private bool TryApplyCoverage(Settings settings, CognitiveMetricsCollection metricsCollection, out bool failed)
+    {
+        failed = false;
+
+        if (string.IsNullOrEmpty(settings.CoverageCobertura))
+        {
+            return true;
+        }
+
+        if (HandleCoverage(settings, metricsCollection))
+        {
+            return true;
+        }
+
+        failed = true;
+        return false;
+    }
+
+    private static CognitiveBaselineComparison? LoadBaselineComparison(
+        Settings settings,
+        CognitiveMetricsCollection metricsCollection
+    ) {
+        if (string.IsNullOrWhiteSpace(settings.BaselineFile))
+        {
+            return null;
+        }
+
+        var baseline = BaselineLoader.Load(settings.BaselineFile);
+        return BaselineComparer.Compare(metricsCollection, baseline);
     }
 
     private bool HandleCoverage(Settings settings, CognitiveMetricsCollection metricsCollection)

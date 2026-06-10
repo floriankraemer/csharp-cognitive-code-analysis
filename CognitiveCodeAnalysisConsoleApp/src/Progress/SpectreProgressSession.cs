@@ -17,6 +17,7 @@ internal static class SpectreProgressSession
             var silentReporter = new SpectreAnalysisProgressReporter();
             var silentProgress = new Progress<AnalysisProgress>(silentReporter.Report);
             action(silentReporter, silentProgress);
+            silentReporter.FinalizeSession();
             silentReporter.FlushPendingMessages();
             return;
         }
@@ -24,8 +25,8 @@ internal static class SpectreProgressSession
         SpectreAnalysisProgressReporter? reporter = null;
 
         AnsiConsole.Progress()
-            .AutoClear(true)
-            .HideCompleted(true)
+            .AutoClear(false)
+            .HideCompleted(false)
             .Columns(
                 new TaskDescriptionColumn(),
                 new ProgressBarColumn(),
@@ -38,6 +39,7 @@ internal static class SpectreProgressSession
                 reporter.Attach(ctx);
                 var progress = new Progress<AnalysisProgress>(reporter.Report);
                 action(reporter, progress);
+                reporter.FinalizeSession();
             });
 
         reporter?.FlushPendingMessages();

@@ -15,8 +15,8 @@ public sealed class SpectreAnalysisProgressReporter
     private ProgressTask? _searchTask;
     private ProgressTask? _analysisTask;
     private ProgressTask? _reportTask;
-    private int _lastAnalysisProcessed;
-    private int _lastReportProcessed;
+    private int _lastAnalysisProcessed = -1;
+    private int _lastReportProcessed = -1;
 
     public SpectreAnalysisProgressState State { get; } = new();
 
@@ -30,7 +30,10 @@ public sealed class SpectreAnalysisProgressReporter
 
     public void Report(AnalysisProgress update)
     {
-        ApplyProgress(update);
+        if (!ApplyProgress(update))
+        {
+            return;
+        }
 
         if (_context == null)
         {
@@ -51,12 +54,6 @@ public sealed class SpectreAnalysisProgressReporter
 
     public void FlushPendingMessages()
     {
-        if (State.SearchCompleteMessage is { } searchMessage)
-        {
-            AnsiConsole.MarkupLine($"[green]{Markup.Escape(searchMessage)}[/]");
-            State.SearchCompleteMessage = null;
-        }
-
         if (State.ReportGeneratedMessage is { } reportMessage)
         {
             AnsiConsole.MarkupLine($"[green]{Markup.Escape(reportMessage)}[/]");
@@ -64,7 +61,42 @@ public sealed class SpectreAnalysisProgressReporter
         }
     }
 
-    public void ApplyProgress(AnalysisProgress update)
+    public void FinalizeSession()
+    {
+        lock (_lock)
+        {
+            if (_context == null)
+            {
+                return;
+            }
+
+            if (_searchTask != null)
+            {
+                _searchTask.IsIndeterminate(false);
+                _searchTask.MaxValue = 1;
+                _searchTask.Description = State.SearchCompleteMessage ?? "Search complete";
+                _searchTask.Value = 1;
+            }
+
+            if (_analysisTask != null && State.AnalysisMaxValue > 0)
+            {
+                _analysisTask.MaxValue = State.AnalysisMaxValue;
+                _analysisTask.Description = State.AnalysisDescription ?? "Analysing files";
+                _analysisTask.Value = State.AnalysisMaxValue;
+            }
+
+            if (_reportTask != null && State.ReportMaxValue > 0)
+            {
+                _reportTask.MaxValue = State.ReportMaxValue;
+                _reportTask.Description = State.ReportDescription ?? "Writing report";
+                _reportTask.Value = State.ReportMaxValue;
+            }
+
+            _context.Refresh();
+        }
+    }
+
+    public bool ApplyProgress(AnalysisProgress update)
     {
         lock (_lock)
         {
@@ -72,49 +104,56 @@ public sealed class SpectreAnalysisProgressReporter
             {
                 case AnalysisProgressPhase.SearchingFiles:
                     State.SearchStarted = true;
-                    break;
+                    return true;
 
                 case AnalysisProgressPhase.SearchCompleted:
                     State.SearchCompleted = true;
                     State.FoundFileCount = update.TotalFiles;
                     State.SearchCompleteMessage = $"Found {update.TotalFiles} C# file(s)";
-                    break;
+                    return true;
 
                 case AnalysisProgressPhase.AnalysingFiles:
                     if (update.ProcessedFiles < _lastAnalysisProcessed)
                     {
-                        break;
+                        return false;
                     }
 
                     _lastAnalysisProcessed = update.ProcessedFiles;
                     State.AnalysisDescription = $"Analysing files ({update.ProcessedFiles}/{update.TotalFiles})";
                     State.AnalysisValue = update.ProcessedFiles;
                     State.AnalysisMaxValue = update.TotalFiles;
-                    break;
+                    return true;
 
                 case AnalysisProgressPhase.AnalysisCompleted:
+                    _lastAnalysisProcessed = update.TotalFiles;
                     State.AnalysisCompleted = true;
-                    State.AnalysisValue = update.ProcessedFiles;
+                    State.AnalysisDescription = $"Analysing files ({update.ProcessedFiles}/{update.TotalFiles})";
+                    State.AnalysisValue = update.TotalFiles;
                     State.AnalysisMaxValue = update.TotalFiles;
-                    break;
+                    return true;
 
                 case AnalysisProgressPhase.WritingReport:
                     if (update.ProcessedFiles < _lastReportProcessed)
                     {
-                        break;
+                        return false;
                     }
 
                     _lastReportProcessed = update.ProcessedFiles;
                     State.ReportDescription = FormatReportDescription(update);
                     State.ReportValue = update.ProcessedFiles;
                     State.ReportMaxValue = update.TotalFiles;
-                    break;
+                    return true;
 
                 case AnalysisProgressPhase.ReportCompleted:
+                    _lastReportProcessed = update.TotalFiles;
                     State.ReportCompleted = true;
-                    State.ReportValue = update.ProcessedFiles;
+                    State.ReportDescription = FormatReportDescription(update);
+                    State.ReportValue = update.TotalFiles;
                     State.ReportMaxValue = update.TotalFiles;
-                    break;
+                    return true;
+
+                default:
+                    return false;
             }
         }
     }
@@ -144,64 +183,66 @@ public sealed class SpectreAnalysisProgressReporter
                 case AnalysisProgressPhase.SearchCompleted:
                     if (_searchTask != null)
                     {
-                        _searchTask.StopTask();
-                        _searchTask.Value = _searchTask.MaxValue;
+                        _searchTask.IsIndeterminate(false);
+                        _searchTask.MaxValue = 1;
+                        _searchTask.Description = State.SearchCompleteMessage ?? "Search complete";
+                        _searchTask.Value = 1;
                     }
 
                     break;
 
                 case AnalysisProgressPhase.AnalysingFiles:
-                    if (_analysisTask == null && update.TotalFiles > 0)
+                    if (_analysisTask == null && State.AnalysisMaxValue > 0)
                     {
                         _analysisTask = _context.AddTask(
                             State.AnalysisDescription ?? "Analysing files",
-                            maxValue: update.TotalFiles
+                            maxValue: State.AnalysisMaxValue
                         );
                     }
 
                     if (_analysisTask != null)
                     {
+                        _analysisTask.MaxValue = State.AnalysisMaxValue;
                         _analysisTask.Description = State.AnalysisDescription ?? "Analysing files";
-                        _analysisTask.Value = update.ProcessedFiles;
+                        _analysisTask.Value = State.AnalysisValue;
                     }
 
                     break;
 
                 case AnalysisProgressPhase.AnalysisCompleted:
-                    _lastAnalysisProcessed = update.TotalFiles;
-
                     if (_analysisTask != null)
                     {
-                        _analysisTask.MaxValue = update.TotalFiles;
-                        _analysisTask.Value = update.TotalFiles;
+                        _analysisTask.MaxValue = State.AnalysisMaxValue;
+                        _analysisTask.Description = State.AnalysisDescription ?? "Analysing files";
+                        _analysisTask.Value = State.AnalysisMaxValue;
                     }
 
                     break;
 
                 case AnalysisProgressPhase.WritingReport:
-                    if (_reportTask == null && update.TotalFiles > 0)
+                    if (_reportTask == null && State.ReportMaxValue > 0)
                     {
                         _reportTask = _context.AddTask(
                             State.ReportDescription ?? "Writing report",
-                            maxValue: update.TotalFiles
+                            maxValue: State.ReportMaxValue
                         );
                     }
 
                     if (_reportTask != null)
                     {
+                        _reportTask.MaxValue = State.ReportMaxValue;
                         _reportTask.Description = State.ReportDescription ?? "Writing report";
-                        _reportTask.Value = update.ProcessedFiles;
+                        _reportTask.Value = State.ReportValue;
                     }
 
                     break;
 
                 case AnalysisProgressPhase.ReportCompleted:
-                    _lastReportProcessed = update.TotalFiles;
-
                     if (_reportTask != null)
                     {
-                        _reportTask.MaxValue = update.TotalFiles;
-                        _reportTask.Value = update.TotalFiles;
+                        _reportTask.MaxValue = State.ReportMaxValue;
+                        _reportTask.Description = State.ReportDescription ?? "Writing report";
+                        _reportTask.Value = State.ReportMaxValue;
                     }
 
                     break;

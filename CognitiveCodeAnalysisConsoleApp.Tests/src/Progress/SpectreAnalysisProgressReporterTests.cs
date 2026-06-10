@@ -115,16 +115,16 @@ public class SpectreAnalysisProgressReporterTests
     {
         var reporter = new SpectreAnalysisProgressReporter();
 
-        reporter.ApplyProgress(new AnalysisProgress(
+        Assert.That(reporter.ApplyProgress(new AnalysisProgress(
             AnalysisProgressPhase.AnalysingFiles,
             TotalFiles: 10,
             ProcessedFiles: 5
-        ));
-        reporter.ApplyProgress(new AnalysisProgress(
+        )), Is.True);
+        Assert.That(reporter.ApplyProgress(new AnalysisProgress(
             AnalysisProgressPhase.AnalysingFiles,
             TotalFiles: 10,
             ProcessedFiles: 3
-        ));
+        )), Is.False);
 
         Assert.That(reporter.State.AnalysisValue, Is.EqualTo(5));
     }
