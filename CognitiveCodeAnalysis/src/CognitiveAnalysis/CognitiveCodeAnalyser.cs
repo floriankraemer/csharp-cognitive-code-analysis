@@ -100,7 +100,11 @@ public class CognitiveCodeAnalyser
         {
             try
             {
+#if NETSTANDARD2_1_OR_GREATER
                 string fileContent = await File.ReadAllTextAsync(file, cancellationToken);
+#else
+                string fileContent = File.ReadAllText(file);
+#endif
 
                 SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
 

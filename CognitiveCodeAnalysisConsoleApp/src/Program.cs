@@ -44,6 +44,7 @@ public class Program
         serviceCollection.AddSingleton<IReport, GithubActionsReport>();
         serviceCollection.AddSingleton<IReport, GitlabCodeQualityReport>();
         serviceCollection.AddSingleton<IReport, CsvReport>();
+        serviceCollection.AddSingleton<IReport, MarkdownReport>();
         serviceCollection.AddSingleton<IReport, JsonReport>();
         serviceCollection.AddSingleton<ReportCoordinator>();
 

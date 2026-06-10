@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -56,6 +56,14 @@ public sealed class CsvReport : IReport
         AddMetricHeaders(headers, "LinesOfCode", includeDeltas);
         AddMetricHeaders(headers, "IfCount", includeDeltas);
         AddMetricHeaders(headers, "IfScore", includeDeltas);
+        AddMetricHeaders(headers, "ElseCount", includeDeltas);
+        AddMetricHeaders(headers, "ElseScore", includeDeltas);
+        AddMetricHeaders(headers, "LoopCount", includeDeltas);
+        AddMetricHeaders(headers, "LoopScore", includeDeltas);
+        AddMetricHeaders(headers, "SwitchCount", includeDeltas);
+        AddMetricHeaders(headers, "SwitchScore", includeDeltas);
+        AddMetricHeaders(headers, "TryCatchCount", includeDeltas);
+        AddMetricHeaders(headers, "TryCatchScore", includeDeltas);
         AddMetricHeaders(headers, "ArgumentCount", includeDeltas);
         AddMetricHeaders(headers, "ArgumentScore", includeDeltas);
         AddMetricHeaders(headers, "NestingLevels", includeDeltas);
@@ -121,6 +129,14 @@ public sealed class CsvReport : IReport
         AddMetricValue(row, m.linesOfCode.ToString(CultureInfo.InvariantCulture), comparison?.LinesOfCode, "F0", includeDeltas);
         AddMetricValue(row, m.ifCount.ToString(CultureInfo.InvariantCulture), comparison?.IfCount, "F0", includeDeltas);
         AddMetricValue(row, m.ifScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.IfScore, "F3", includeDeltas);
+        AddMetricValue(row, m.elseCount.ToString(CultureInfo.InvariantCulture), comparison?.ElseCount, "F0", includeDeltas);
+        AddMetricValue(row, m.elseScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.ElseScore, "F3", includeDeltas);
+        AddMetricValue(row, m.loopCount.ToString(CultureInfo.InvariantCulture), comparison?.LoopCount, "F0", includeDeltas);
+        AddMetricValue(row, m.loopScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LoopScore, "F3", includeDeltas);
+        AddMetricValue(row, m.switchCount.ToString(CultureInfo.InvariantCulture), comparison?.SwitchCount, "F0", includeDeltas);
+        AddMetricValue(row, m.switchScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.SwitchScore, "F3", includeDeltas);
+        AddMetricValue(row, m.tryCatchCount.ToString(CultureInfo.InvariantCulture), comparison?.TryCatchCount, "F0", includeDeltas);
+        AddMetricValue(row, m.tryCatchScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.TryCatchScore, "F3", includeDeltas);
         AddMetricValue(row, m.argumentCount.ToString(CultureInfo.InvariantCulture), comparison?.ArgumentCount, "F0", includeDeltas);
         AddMetricValue(row, m.argumentScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.ArgumentScore, "F3", includeDeltas);
         AddMetricValue(row, m.nestingLevels.ToString(CultureInfo.InvariantCulture), comparison?.NestingLevels, "F0", includeDeltas);
@@ -187,7 +203,7 @@ public sealed class CsvReport : IReport
 
     private static string EscapeCsvField(string? value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (value is null or { Length: 0 })
         {
             return "";
         }

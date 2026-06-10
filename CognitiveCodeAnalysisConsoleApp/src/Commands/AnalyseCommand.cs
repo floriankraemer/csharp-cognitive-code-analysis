@@ -33,7 +33,7 @@ internal sealed class AnalyseCommand(
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
 
-        [Description("Report type: ConsoleText, Html, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+        [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
         [CommandOption("-r|--report-type")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }

@@ -85,18 +85,11 @@ These align with analyzer fields and can contribute to `totalScore` when `enable
 - `fieldAccessCount` → `fieldAccessScore`
 - `propertyAccessCount` → `propertyAccessScore`
 
-### Legacy config aliases
-
-For backward compatibility, these JSON keys map to the fields above:
-
-- `variableCount` → `localVariableCount` / `localVariableScore`
-- `propertyCallCount` → `propertyAccessCount` / `propertyAccessScore`
-
 ### Shipped defaults
 
 The shipped `cognitive-metrics-settings.json` enables core control-flow and size metrics (`linesOfCode`, `ifCount`, `elseCount`, `argumentCount`, `returnCount`, `nestingLevels`).
 
-Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `variableCount`, `propertyCallCount`, `fieldAccessCount`) are present but **disabled by default** so existing `totalScore` behavior is unchanged until you opt in by setting `enabled` to `true`.
+Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`) are present but **disabled by default** so existing `totalScore` behavior is unchanged until you opt in by setting `enabled` to `true`.
 
 All listed metrics are counted during analysis and appear in console/CSV output regardless of the `enabled` flag; `enabled` only controls whether the metric contributes to `totalScore`.
 
