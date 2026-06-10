@@ -1,0 +1,155 @@
+/// <copyright company="Florian Krämer">
+///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/// </copyright>
+
+using CognitiveCodeAnalysis.Application;
+using CognitiveCodeAnalysis.CodeCoverage;
+using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
+using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.CouplingAnalysis;
+
+namespace CognitiveCodeAnalysis.Tests.Application;
+
+public class AnalysisWorkflowTests
+{
+    [Test]
+    public void Prepare_ResolvesPathsAndDefaults()
+    {
+        var workflow = CreateWorkflow();
+
+        var prepared = workflow.Prepare(new AnalysisRequest(
+            SourcePath: ".",
+            ConfigFile: null,
+            ReportType: "Html",
+            BaselineFile: null,
+            OutputFile: null,
+            CoverageCobertura: null
+        ));
+
+        Assert.That(prepared.AbsoluteSourcePath, Is.EqualTo(Path.GetFullPath(".")));
+        Assert.That(prepared.ReportType, Is.EqualTo("Html"));
+        Assert.That(prepared.OutputFile, Is.EqualTo("cognitive-analysis-report"));
+        Assert.That(prepared.IsConsoleTextReport, Is.False);
+    }
+
+    [Test]
+    public void Prepare_RecognizesConsoleTextReport()
+    {
+        var workflow = CreateWorkflow();
+
+        var prepared = workflow.Prepare(new AnalysisRequest(
+            SourcePath: null,
+            ConfigFile: null,
+            ReportType: "consoletext",
+            BaselineFile: null,
+            OutputFile: "out.txt",
+            CoverageCobertura: null
+        ));
+
+        Assert.That(prepared.IsConsoleTextReport, Is.True);
+        Assert.That(prepared.OutputFile, Is.EqualTo("out.txt"));
+    }
+
+    [Test]
+    public void ApplyCoverageIfRequested_WhenPathMissing_ReturnsSuccess()
+    {
+        var workflow = CreateWorkflow();
+
+        var result = workflow.ApplyCoverageIfRequested(
+            coverageFilePath: null,
+            metricsCollection: new CognitiveMetricsCollection()
+        );
+
+        Assert.That(result.Success, Is.True);
+        Assert.That(result.WarningMessage, Is.Null);
+    }
+
+    [Test]
+    public void ApplyCoverageIfRequested_WhenFileMissing_ReturnsWarningMessage()
+    {
+        var workflow = CreateWorkflow();
+
+        var result = workflow.ApplyCoverageIfRequested(
+            coverageFilePath: "missing-coverage-file.xml",
+            metricsCollection: new CognitiveMetricsCollection()
+        );
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.WarningMessage, Does.Contain("Coverage file not found"));
+    }
+
+    [Test]
+    public void CompareBaselineIfRequested_WhenBaselineMissing_ReturnsNull()
+    {
+        var workflow = CreateWorkflow();
+
+        var comparison = workflow.CompareBaselineIfRequested(
+            baselineFile: null,
+            metricsCollection: new CognitiveMetricsCollection()
+        );
+
+        Assert.That(comparison, Is.Null);
+    }
+
+    [Test]
+    public void GenerateReport_DelegatesToCoordinator()
+    {
+        var fakeReport = new FakeReport();
+        var coordinator = new ReportCoordinator([fakeReport]);
+        var workflow = CreateWorkflow(reportCoordinator: coordinator);
+        var configuration = new CognitiveConfiguration();
+        var metrics = new CognitiveMetricsCollection();
+
+        workflow.GenerateReport(
+            reportType: "Html",
+            outputFile: "report.html",
+            configuration: configuration,
+            metricsCollection: metrics
+        );
+
+        Assert.That(fakeReport.RenderCalls, Is.EqualTo(1));
+        Assert.That(fakeReport.LastOutputFile, Is.EqualTo("report.html"));
+    }
+
+    private static AnalysisWorkflow CreateWorkflow(ReportCoordinator? reportCoordinator = null)
+    {
+        var facade = new CognitiveAnalysisFacade(
+            new SourceFileFinder(),
+            new CognitiveCodeAnalyser(),
+            new CognitiveConfiguration(),
+            new ScoreCalculator(),
+            new CoberturaReader(),
+            new ClassCouplingAnalyser()
+        );
+
+        reportCoordinator ??= new ReportCoordinator(Array.Empty<IReport>());
+
+        return new AnalysisWorkflow(
+            facade,
+            new BaselineComparisonService(),
+            reportCoordinator
+        );
+    }
+
+    private sealed class FakeReport : IReport
+    {
+        public string Name => "Html";
+
+        public int RenderCalls { get; private set; }
+
+        public string? LastOutputFile { get; private set; }
+
+        public void RenderMetrics(
+            string outputFile,
+            CognitiveMetricsCollection metricsCollection,
+            CognitiveConfiguration configuration,
+            CognitiveBaselineComparison? baselineComparison = null,
+            IProgress<AnalysisProgress>? progress = null
+        ) {
+            RenderCalls++;
+            LastOutputFile = outputFile;
+        }
+    }
+}

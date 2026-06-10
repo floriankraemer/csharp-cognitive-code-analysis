@@ -3,14 +3,17 @@
 /// </copyright>
 
 using System.Collections.ObjectModel;
+using CognitiveCodeAnalysis.Application;
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.CouplingAnalysis;
+using CognitiveCodeAnalysisConsoleApp.Application;
 using CognitiveCodeAnalysisConsoleApp.Commands;
 using CognitiveCodeAnalysisConsoleApp.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysisConsoleApp.DependencyInjection;
+using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
@@ -47,6 +50,11 @@ public class Program
         serviceCollection.AddSingleton<IReport, MarkdownReport>();
         serviceCollection.AddSingleton<IReport, JsonReport>();
         serviceCollection.AddSingleton<ReportCoordinator>();
+        serviceCollection.AddSingleton<BaselineComparisonService>();
+        serviceCollection.AddSingleton<AnalysisWorkflow>();
+        serviceCollection.AddSingleton<IConsoleNotifier, SpectreConsoleNotifier>();
+        serviceCollection.AddSingleton<IReportGenerationService, SpectreReportGenerationService>();
+        serviceCollection.AddSingleton<AnalyseApplicationService>();
 
         // Create a type registrar and register any dependencies.
         // A type registrar is an adapter for a DI framework.
