@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Text;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -20,11 +21,29 @@ internal static class CognitiveCiSeverity
     internal static string GithubCommandKind(CognitiveMetrics m, CognitiveConfiguration c) =>
         m.totalScore > c.ScoreThreshold ? "warning" : "notice";
 
-    internal static string BuildMessage(CognitiveMetrics m, CognitiveConfiguration c)
+    internal static string BuildMessage(
+        CognitiveMetrics m,
+        CognitiveConfiguration c,
+        CognitiveBaselineComparison? baselineComparison = null
+    )
     {
         var sb = new StringBuilder();
-        sb.Append(CultureInfo.InvariantCulture, $"Cognitive complexity score {m.totalScore:F3} for {m.ClassName}.{m.MethodName} (threshold {c.ScoreThreshold:F3}). ");
+        sb.Append(string.Format(
+            CultureInfo.InvariantCulture,
+            "Cognitive complexity score {0:F3} for {1}.{2} (threshold {3:F3}). ",
+            m.totalScore,
+            m.ClassName,
+            m.MethodName,
+            c.ScoreThreshold));
         AppendMetricBreakdown(sb, m, c);
+
+        if (baselineComparison != null
+            && baselineComparison.TryGetMethodComparison(m, out MethodMetricsComparison? comparison)
+            && comparison != null)
+        {
+            sb.Append(CognitiveReportDeltaFormatter.FormatCiSuffix(comparison.TotalScore, "F3"));
+        }
+
         return sb.ToString();
     }
 
@@ -73,12 +92,12 @@ internal static class CognitiveCiSeverity
             }
         }
 
-        if (sb.Length > 0 && sb[^1] == ' ')
+        if (sb.Length > 0 && sb[sb.Length - 1] == ' ')
         {
             sb.Length--;
         }
 
-        if (sb.Length > 0 && sb[^1] == ';')
+        if (sb.Length > 0 && sb[sb.Length - 1] == ';')
         {
             sb.Length--;
         }
@@ -86,7 +105,7 @@ internal static class CognitiveCiSeverity
 
     private static void AppendMetricSegment(StringBuilder sb, string name, int count, double score)
     {
-        sb.Append(CultureInfo.InvariantCulture, $"{name}={count}({score:F3}); ");
+        sb.Append(string.Format(CultureInfo.InvariantCulture, "{0}={1}({2:F3}); ", name, count, score));
     }
 
     private static void AppendRawSegment(StringBuilder sb, string segment)

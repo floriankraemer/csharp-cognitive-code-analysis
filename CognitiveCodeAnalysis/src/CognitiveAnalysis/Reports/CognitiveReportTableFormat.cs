@@ -111,5 +111,5 @@ internal static class CognitiveReportTableFormat
         => value.HasValue ? value.Value.ToString("F2", CultureInfo.InvariantCulture) : "n/a";
 
     internal static string EscapeMarkdownTableCell(string value)
-        => value.Replace("|", "\\|", StringComparison.Ordinal);
+        => value.Replace("|", "\\|");
 }

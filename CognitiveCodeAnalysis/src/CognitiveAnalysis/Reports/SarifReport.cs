@@ -5,6 +5,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -24,7 +25,8 @@ public sealed class SarifReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
@@ -54,7 +56,7 @@ public sealed class SarifReport : IReport
             {
                 RuleId = RuleId,
                 Level = CognitiveCiSeverity.SarifLevel(m, configuration),
-                Message = new CognitiveSarifText { Text = CognitiveCiSeverity.BuildMessage(m, configuration) },
+                Message = new CognitiveSarifText { Text = CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison) },
                 Locations =
                 [
                     new CognitiveSarifLocation

@@ -17,14 +17,16 @@ public class CognitiveAnalysisFacade(
     ClassCouplingAnalyser classCouplingAnalyser
 ) {
     public List<string> FindSourceFiles(string[] sourcePaths)
-    {
-        return sourceFileFinder.FindSourceFiles(sourcePaths);
-    }
+        => sourceFileFinder.FindSourceFiles(sourcePaths);
+
+    public List<string> FindSourceFiles(string[] sourcePaths, IProgress<AnalysisProgress>? progress)
+        => sourceFileFinder.FindSourceFiles(sourcePaths, progress);
 
     public List<string> FindSourceFiles(string sourcePath)
-    {
-        return sourceFileFinder.FindSourceFiles([sourcePath]);
-    }
+        => sourceFileFinder.FindSourceFiles([sourcePath]);
+
+    public List<string> FindSourceFiles(string sourcePath, IProgress<AnalysisProgress>? progress)
+        => sourceFileFinder.FindSourceFiles([sourcePath], progress);
 
     public CognitiveMetricsCollection AnalyseSourceFiles(List<string> files)
         => AnalyseSourceFiles(files, cognitiveConfiguration);
@@ -32,9 +34,15 @@ public class CognitiveAnalysisFacade(
     public CognitiveMetricsCollection AnalyseSourceFiles(
         List<string> files,
         CognitiveConfiguration configuration
+    ) => AnalyseSourceFiles(files, configuration, progress: null);
+
+    public CognitiveMetricsCollection AnalyseSourceFiles(
+        List<string> files,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress
     ) {
         CognitiveMetricsCollection metricsCollection = analyser
-            .AnalyseFilesAsync(files, configuration)
+            .AnalyseFilesAsync(files, configuration, progress)
             .GetAwaiter()
             .GetResult();
 

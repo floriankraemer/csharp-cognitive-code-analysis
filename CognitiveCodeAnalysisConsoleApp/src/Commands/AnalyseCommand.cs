@@ -5,8 +5,10 @@
 using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysisConsoleApp.Progress;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -31,10 +33,14 @@ internal sealed class AnalyseCommand(
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
 
-        [Description("Report type: ConsoleText, Html, Markdown, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+        [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
         [CommandOption("-r|--report-type")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }
+
+        [Description("Path to a JSON baseline snapshot for delta comparison")]
+        [CommandOption("-b|--baseline")]
+        public string? BaselineFile { get; init; }
 
         [Description("Output file")]
         [CommandOption("-o|--output-file")]
@@ -68,18 +74,51 @@ internal sealed class AnalyseCommand(
 
             var sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
             var absoluteSourcePath = Path.GetFullPath(sourcePath);
-            var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath);
 
-            if (!FilesWereFound(files , absoluteSourcePath)) return Error;
+            CognitiveMetricsCollection? metricsCollection = null;
+            var filesNotFound = false;
 
-            var metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration);
+            AnsiConsole.Progress()
+                .AutoClear(true)
+                .HideCompleted(true)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new SpinnerColumn()
+                )
+                .Start(ctx =>
+                {
+                    var reporter = new SpectreAnalysisProgressReporter();
+                    reporter.Attach(ctx);
+                    var progress = new Progress<AnalysisProgress>(reporter.Report);
 
-            if (!HandleCoverage(settings , metricsCollection)) return Error;
+                    var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
+                    if (!FilesWereFound(files, absoluteSourcePath))
+                    {
+                        filesNotFound = true;
+                        return;
+                    }
+
+                    metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
+                });
+
+            if (filesNotFound) return Error;
+
+            if (!HandleCoverage(settings, metricsCollection!)) return Error;
+
+            CognitiveBaselineComparison? baselineComparison = null;
+            if (!string.IsNullOrWhiteSpace(settings.BaselineFile))
+            {
+                var baseline = BaselineLoader.Load(settings.BaselineFile);
+                baselineComparison = BaselineComparer.Compare(metricsCollection!, baseline);
+            }
 
             GenerateReport(
-                settings: settings ,
-                configuration: configuration ,
-                metricsCollection: metricsCollection
+                settings: settings,
+                configuration: configuration,
+                metricsCollection: metricsCollection!,
+                baselineComparison: baselineComparison
             );
 
             return Success;
@@ -137,7 +176,8 @@ internal sealed class AnalyseCommand(
     private void GenerateReport(
         Settings settings,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection metricsCollection
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveBaselineComparison? baselineComparison
     ) {
         var reportType = settings.ReportType ?? "ConsoleText";
         var outputFile = settings.OutputFile ?? "cognitive-analysis-report";
@@ -147,7 +187,8 @@ internal sealed class AnalyseCommand(
             reportType,
             outputFile,
             configuration,
-            metricsCollection
+            metricsCollection,
+            baselineComparison
         );
     }
 
