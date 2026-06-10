@@ -94,6 +94,53 @@ public class AnalysisWorkflowTests
     }
 
     [Test]
+    public void CompareBaselineIfRequested_WithBaselineFile_ReturnsComparison()
+    {
+        var workflow = CreateWorkflow();
+        var baselineMetrics = new CognitiveMetrics(
+            methodName: "Run",
+            className: "App.Service",
+            filePath: "src/Service.cs",
+            methodSignature: "void Run()",
+            methodLineNumber: 5
+        );
+        baselineMetrics.totalScore = 1.0;
+
+        var snapshot = BaselineSnapshotFactory.FromMetricsCollection(new CognitiveMetricsCollection { baselineMetrics });
+        var path = Path.Combine(Path.GetTempPath(), "workflow-baseline-" + Guid.NewGuid() + ".json");
+
+        try
+        {
+            File.WriteAllText(path, BaselineLoader.Serialize(snapshot));
+
+            var currentMetrics = new CognitiveMetrics(
+                methodName: "Run",
+                className: "App.Service",
+                filePath: "src/Service.cs",
+                methodSignature: "void Run()",
+                methodLineNumber: 5
+            );
+            currentMetrics.totalScore = 3.0;
+
+            var comparison = workflow.CompareBaselineIfRequested(
+                baselineFile: path,
+                metricsCollection: new CognitiveMetricsCollection { currentMetrics }
+            );
+
+            Assert.That(comparison, Is.Not.Null);
+            Assert.That(comparison!.TryGetMethodComparison(currentMetrics, out MethodMetricsComparison? methodComparison), Is.True);
+            Assert.That(methodComparison!.TotalScore.Delta, Is.EqualTo(2.0).Within(0.0001));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
     public void GenerateReport_DelegatesToCoordinator()
     {
         var fakeReport = new FakeReport();
