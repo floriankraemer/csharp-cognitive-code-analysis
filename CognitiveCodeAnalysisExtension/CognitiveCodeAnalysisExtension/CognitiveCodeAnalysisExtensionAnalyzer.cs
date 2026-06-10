@@ -95,8 +95,7 @@ namespace CognitiveCodeAnalysisExtension
             {
                 var metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel , configuration);
 
-                var calculator = new ScoreCalculator(configuration);
-                calculator.CalculateScores(metrics);
+                metrics = new ScoreCalculator().CalculateScores(metrics, configuration);
 
                 if (!ShouldReportMethodDiagnostic(configuration , metrics.totalScore))
                 {
@@ -121,14 +120,14 @@ namespace CognitiveCodeAnalysisExtension
                 IEnumerable<MethodDeclarationSyntax> methodDeclarations = classDeclaration.Members.OfType<MethodDeclarationSyntax>();
 
                 double totalClassScore = 0;
-                var calculator = new ScoreCalculator(configuration);
+                var calculator = new ScoreCalculator();
 
                 var perMethodTotals = new List<double>();
 
                 foreach (var methodDeclaration in methodDeclarations)
                 {
                     CognitiveMetrics metrics = ExtractMethodMetrics(methodDeclaration, classDeclaration, context.SemanticModel , configuration);
-                    calculator.CalculateScores(metrics);
+                    calculator.CalculateScores(metrics, configuration);
                     totalClassScore += metrics.totalScore;
                     perMethodTotals.Add(metrics.totalScore);
                 }

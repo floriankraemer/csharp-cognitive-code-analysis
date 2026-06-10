@@ -44,7 +44,7 @@ public class Tests
     }
 
     [Test]
-    public void CalculateScores_ResolvesLegacyMetricAliases()
+    public void CalculateScores_MapsLocalVariableAndPropertyAccessCounts()
     {
         var metrics = new CognitiveMetrics(
             methodName: "TestMethod",
@@ -60,8 +60,8 @@ public class Tests
         {
             Metrics = new Dictionary<string, MetricConfiguration>
             {
-                { "variableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = true } },
-                { "propertyCallCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = true } },
+                { "localVariableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = true } },
+                { "propertyAccessCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = true } },
             }
         };
 
@@ -92,7 +92,7 @@ public class Tests
         {
             Metrics = new Dictionary<string, MetricConfiguration>
             {
-                { "variableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = false } },
+                { "localVariableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = false } },
                 { "fieldAccessCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = false } },
             }
         };
@@ -155,8 +155,8 @@ public class Tests
                 { "linesOfCode", new MetricConfiguration { Scale = 25.0, Threshold = 60, Enabled = true } },
                 { "argumentCount", new MetricConfiguration { Scale = 1.0, Threshold = 4, Enabled = true } },
                 { "returnCount", new MetricConfiguration { Scale = 5.0, Threshold = 2, Enabled = true } },
-                { "variableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = true } },
-                { "propertyCallCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = true } },
+                { "localVariableCount", new MetricConfiguration { Scale = 5.0, Threshold = 4, Enabled = true } },
+                { "propertyAccessCount", new MetricConfiguration { Scale = 15.0, Threshold = 4, Enabled = true } },
                 { "ifCount", new MetricConfiguration { Scale = 1.0, Threshold = 3, Enabled = true } },
                 { "nestingLevels", new MetricConfiguration { Scale = 1.0, Threshold = 1, Enabled = true } },
                 { "elseCount", new MetricConfiguration { Scale = 1.0, Threshold = 1, Enabled = true } }

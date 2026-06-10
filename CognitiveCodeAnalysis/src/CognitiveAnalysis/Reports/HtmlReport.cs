@@ -106,7 +106,6 @@ public class HtmlReport() : IReport
 
     private void WriteReportToFile(string outputFilePath, StringBuilder html)
     {
-        // Ensure directory exists
         string? directory = Path.GetDirectoryName(outputFilePath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
@@ -143,51 +142,8 @@ public class HtmlReport() : IReport
             AppendCouplingLine(html, configuration, fullMetricsCollection, firstMetric.ClassName);
             html.AppendLine("        </div>");
 
-            html.AppendLine("        <div class=\"table-responsive\">");
-            html.AppendLine("            <table class=\"table table-striped table-bordered\">");
-            html.AppendLine("                <thead class=\"table-dark\">");
-            html.AppendLine("                    <tr>");
-            html.AppendLine("                        <th>Method</th>");
-            html.AppendLine("                        <th>Score</th>");
-            html.AppendLine("                        <th>Lines</th>");
-            html.AppendLine("                        <th>Ifs</th>");
-            html.AppendLine("                        <th>Arguments</th>");
-            html.AppendLine("                        <th>Nesting</th>");
-            html.AppendLine("                        <th>Returns</th>");
-            AppendHalsteadCyclomaticHeaders(html, configuration);
-            if (hasCoverageData)
-            {
-                html.AppendLine("                        <th>Churn</th>");
-            }
-            html.AppendLine("                    </tr>");
-            html.AppendLine("                </thead>");
-            html.AppendLine("                <tbody>");
+            AppendMetricsTable(html, classMetrics, configuration, hasCoverageData);
 
-            foreach (var metrics in classMetrics)
-            {
-                html.AppendLine("                    <tr>");
-                html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-                html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{FormatInvariant(metrics.totalScore, "F3")}</span></td>");
-                html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-                html.AppendLine($"                        <td>{metrics.ifCount} ({FormatInvariant(metrics.ifScore, "F3")})</td>");
-                html.AppendLine($"                        <td>{metrics.argumentCount} ({FormatInvariant(metrics.argumentScore, "F3")})</td>");
-                html.AppendLine($"                        <td>{metrics.nestingLevels} ({FormatInvariant(metrics.nestingScore, "F3")})</td>");
-                html.AppendLine($"                        <td>{metrics.returnCount} ({FormatInvariant(metrics.returnScore, "F3")})</td>");
-                AppendHalsteadCyclomaticCells(html, metrics, configuration);
-                if (hasCoverageData)
-                {
-                    string churnValue = metrics.churnScore.HasValue 
-                        ? FormatInvariant(metrics.churnScore.Value, "F3")
-                        : "n/a";
-                    double churnScoreForColor = metrics.churnScore ?? 0;
-                    html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
-                }
-                html.AppendLine("                    </tr>");
-            }
-
-            html.AppendLine("                </tbody>");
-            html.AppendLine("            </table>");
-            html.AppendLine("        </div>");
             html.AppendLine("        </div>");
         }
 
@@ -210,87 +166,102 @@ public class HtmlReport() : IReport
             html.AppendLine($"            <p class=\"text-muted\">File: {HtmlEncode(metrics.FilePath)}</p>");
             html.AppendLine("        </div>");
 
-            html.AppendLine("        <div class=\"table-responsive\">");
-            html.AppendLine("            <table class=\"table table-striped table-bordered\">");
-            html.AppendLine("                <thead class=\"table-dark\">");
-            html.AppendLine("                    <tr>");
-            html.AppendLine("                        <th>Method</th>");
-            html.AppendLine("                        <th>Score</th>");
-            html.AppendLine("                        <th>Lines</th>");
-            html.AppendLine("                        <th>Ifs</th>");
-            html.AppendLine("                        <th>Arguments</th>");
-            html.AppendLine("                        <th>Nesting</th>");
-            html.AppendLine("                        <th>Returns</th>");
-            AppendHalsteadCyclomaticHeaders(html, configuration);
-            if (hasCoverageData)
-            {
-                html.AppendLine("                        <th>Churn</th>");
-            }
-            html.AppendLine("                    </tr>");
-            html.AppendLine("                </thead>");
-            html.AppendLine("                <tbody>");
-            html.AppendLine("                    <tr>");
-            html.AppendLine($"                        <td>L{metrics.methodLineNumber} {HtmlEncode(metrics.MethodName)}</td>");
-            html.AppendLine($"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{FormatInvariant(metrics.totalScore, "F3")}</span></td>");
-            html.AppendLine($"                        <td>{metrics.linesOfCode}</td>");
-            html.AppendLine($"                        <td>{metrics.ifCount} ({FormatInvariant(metrics.ifScore, "F3")})</td>");
-            html.AppendLine($"                        <td>{metrics.argumentCount} ({FormatInvariant(metrics.argumentScore, "F3")})</td>");
-            html.AppendLine($"                        <td>{metrics.nestingLevels} ({FormatInvariant(metrics.nestingScore, "F3")})</td>");
-            html.AppendLine($"                        <td>{metrics.returnCount} ({FormatInvariant(metrics.returnScore, "F3")})</td>");
-            AppendHalsteadCyclomaticCells(html, metrics, configuration);
-            if (hasCoverageData)
-            {
-                string churnValue = metrics.churnScore.HasValue 
-                    ? FormatInvariant(metrics.churnScore.Value, "F3")
-                    : "n/a";
-                double churnScoreForColor = metrics.churnScore ?? 0;
-                html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
-            }
-            html.AppendLine("                    </tr>");
-            html.AppendLine("                </tbody>");
-            html.AppendLine("            </table>");
-            html.AppendLine("        </div>");
+            AppendMetricsTable(html, [metrics], configuration, hasCoverageData);
+
             html.AppendLine("        </div>");
         }
 
         return html.ToString();
     }
 
-    private static void AppendHalsteadCyclomaticHeaders(StringBuilder html, CognitiveConfiguration configuration)
+    private static void AppendMetricsTable(
+        StringBuilder html,
+        IReadOnlyList<CognitiveMetrics> metricsList,
+        CognitiveConfiguration configuration,
+        bool hasCoverageData
+    )
     {
+        IReadOnlyList<string> headers = CognitiveReportTableFormat.BuildColumnHeaders(configuration, hasCoverageData);
+
+        html.AppendLine("        <div class=\"table-responsive\">");
+        html.AppendLine("            <table class=\"table table-striped table-bordered\">");
+        html.AppendLine("                <thead class=\"table-dark\">");
+        html.AppendLine("                    <tr>");
+        foreach (string header in headers)
+        {
+            html.AppendLine($"                        <th>{HtmlEncode(header)}</th>");
+        }
+        html.AppendLine("                    </tr>");
+        html.AppendLine("                </thead>");
+        html.AppendLine("                <tbody>");
+
+        foreach (CognitiveMetrics metrics in metricsList)
+        {
+            AppendMetricsRow(html, metrics, configuration, hasCoverageData);
+        }
+
+        html.AppendLine("                </tbody>");
+        html.AppendLine("            </table>");
+        html.AppendLine("        </div>");
+    }
+
+    private static void AppendMetricsRow(
+        StringBuilder html,
+        CognitiveMetrics metrics,
+        CognitiveConfiguration configuration,
+        bool hasCoverageData
+    )
+    {
+        IReadOnlyList<string> cells = CognitiveReportTableFormat.BuildRowValues(metrics, configuration, hasCoverageData);
+        int churnColumnIndex = FindChurnColumnIndex(configuration, hasCoverageData);
+
+        html.AppendLine("                    <tr>");
+        for (int i = 0; i < cells.Count; i++)
+        {
+            string cell = cells[i];
+            if (i == 0)
+            {
+                html.AppendLine($"                        <td>{HtmlEncode(cell)}</td>");
+            }
+            else if (i == 1)
+            {
+                html.AppendLine(
+                    $"                        <td><span class=\"{GetScoreClass(metrics.totalScore)}\">{HtmlEncode(cell)}</span></td>");
+            }
+            else if (hasCoverageData && i == churnColumnIndex)
+            {
+                double churnScoreForColor = metrics.churnScore ?? 0;
+                html.AppendLine(
+                    $"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{HtmlEncode(cell)}</span></td>");
+            }
+            else
+            {
+                html.AppendLine($"                        <td>{HtmlEncode(cell)}</td>");
+            }
+        }
+        html.AppendLine("                    </tr>");
+    }
+
+    private static int FindChurnColumnIndex(CognitiveConfiguration configuration, bool hasCoverageData)
+    {
+        if (!hasCoverageData)
+        {
+            return -1;
+        }
+
+        int index = 14;
         if (configuration.ShowHalsteadComplexity)
         {
-            html.AppendLine("                        <th>Halstead Volume</th>");
-            html.AppendLine("                        <th>Halstead Difficulty</th>");
-            html.AppendLine("                        <th>Halstead Effort</th>");
+            index += 3;
         }
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            html.AppendLine("                        <th>Cyclomatic Complexity</th>");
+            index += 1;
         }
+
+        return index;
     }
-
-    private static void AppendHalsteadCyclomaticCells(StringBuilder html, CognitiveMetrics metrics, CognitiveConfiguration configuration)
-    {
-        if (configuration.ShowHalsteadComplexity)
-        {
-            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Volume)}</td>");
-            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Difficulty)}</td>");
-            html.AppendLine($"                        <td>{FormatHalsteadDouble(metrics.Halstead?.Effort)}</td>");
-        }
-
-        if (configuration.ShowCyclomaticComplexity)
-        {
-            html.AppendLine($"                        <td>{FormatInvariant(metrics.cyclomaticComplexity, "F1")}</td>");
-        }
-    }
-
-    private static string FormatInvariant(double value, string format)
-        => value.ToString(format, CultureInfo.InvariantCulture);
-
-    private static string FormatHalsteadDouble(double? value)
-        => value.HasValue ? value.Value.ToString("F2", CultureInfo.InvariantCulture) : "n/a";
 
     private static string GetScoreClass(double score)
     {
@@ -302,14 +273,6 @@ public class HtmlReport() : IReport
         };
     }
 
-    /// <summary>
-    /// <![CDATA[
-    /// Gets the CSS class for churn score based on risk thresholds.
-    /// Green < 0.3 (low risk), Yellow 0.3-0.7 (medium risk), Red > 0.7 (high risk)
-    /// ]]>
-    /// </summary>
-    /// <param name="churnScore">The churn score</param>
-    /// <returns>CSS class name for styling</returns>
     private static string GetChurnScoreClass(double churnScore)
     {
         return churnScore switch
@@ -342,9 +305,12 @@ public class HtmlReport() : IReport
             return "n/a";
         }
 
-        return string.Create(
+        return string.Format(
             CultureInfo.InvariantCulture,
-            $"In={coupling.IncomingCoupling}, Out={coupling.OutgoingCoupling}, Stability={coupling.Stability:F3}"
+            "In={0}, Out={1}, Stability={2:F3}",
+            coupling.IncomingCoupling,
+            coupling.OutgoingCoupling,
+            coupling.Stability
         );
     }
 

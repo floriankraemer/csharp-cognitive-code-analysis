@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -49,6 +49,14 @@ public sealed class CsvReport : IReport
             "LinesOfCode",
             "IfCount",
             "IfScore",
+            "ElseCount",
+            "ElseScore",
+            "LoopCount",
+            "LoopScore",
+            "SwitchCount",
+            "SwitchScore",
+            "TryCatchCount",
+            "TryCatchScore",
             "ArgumentCount",
             "ArgumentScore",
             "NestingLevels",
@@ -102,6 +110,14 @@ public sealed class CsvReport : IReport
             m.linesOfCode.ToString(CultureInfo.InvariantCulture),
             m.ifCount.ToString(CultureInfo.InvariantCulture),
             m.ifScore.ToString("F3", CultureInfo.InvariantCulture),
+            m.elseCount.ToString(CultureInfo.InvariantCulture),
+            m.elseScore.ToString("F3", CultureInfo.InvariantCulture),
+            m.loopCount.ToString(CultureInfo.InvariantCulture),
+            m.loopScore.ToString("F3", CultureInfo.InvariantCulture),
+            m.switchCount.ToString(CultureInfo.InvariantCulture),
+            m.switchScore.ToString("F3", CultureInfo.InvariantCulture),
+            m.tryCatchCount.ToString(CultureInfo.InvariantCulture),
+            m.tryCatchScore.ToString("F3", CultureInfo.InvariantCulture),
             m.argumentCount.ToString(CultureInfo.InvariantCulture),
             m.argumentScore.ToString("F3", CultureInfo.InvariantCulture),
             m.nestingLevels.ToString(CultureInfo.InvariantCulture),
@@ -149,7 +165,7 @@ public sealed class CsvReport : IReport
 
     private static string EscapeCsvField(string? value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (value is null or { Length: 0 })
         {
             return "";
         }
