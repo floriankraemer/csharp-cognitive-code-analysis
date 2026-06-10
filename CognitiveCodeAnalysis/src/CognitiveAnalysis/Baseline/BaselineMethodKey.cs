@@ -6,12 +6,12 @@ using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 
-internal static class BaselineMethodKey
+public static class BaselineMethodKey
 {
-    internal static string FromMetrics(CognitiveMetrics metrics) =>
+    public static string FromMetrics(CognitiveMetrics metrics) =>
         Build(metrics.FilePath, metrics.ClassName, metrics.methodSignature);
 
-    internal static string FromSnapshot(CognitiveBaselineMethodSnapshot snapshot) =>
+    public static string FromSnapshot(CognitiveBaselineMethodSnapshot snapshot) =>
         Build(snapshot.FilePath, snapshot.ClassName, snapshot.MethodSignature);
 
     private static string Build(string filePath, string className, string methodSignature) =>

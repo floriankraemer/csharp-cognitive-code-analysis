@@ -254,10 +254,20 @@ public class CognitiveCodeAnalyser
 
     private static string GetFullSignature(MethodDeclarationSyntax methodNode)
     {
-        return methodNode.Modifiers + " " +
-            methodNode.ReturnType + " " +
-            methodNode.Identifier.Text +
-            methodNode.ParameterList;
+        string typeParameters = methodNode.TypeParameterList?.ToString() ?? string.Empty;
+        string constraints = methodNode.ConstraintClauses.Count > 0
+            ? " " + string.Join(" ", methodNode.ConstraintClauses.Select(c => c.ToString()))
+            : string.Empty;
+
+        return string.Concat(
+            methodNode.Modifiers.ToString(),
+            " ",
+            methodNode.ReturnType.ToString(),
+            " ",
+            methodNode.Identifier.Text,
+            typeParameters,
+            methodNode.ParameterList.ToString(),
+            constraints);
     }
 
     private static int GetLinesOfCode(MethodDeclarationSyntax methodNode)
