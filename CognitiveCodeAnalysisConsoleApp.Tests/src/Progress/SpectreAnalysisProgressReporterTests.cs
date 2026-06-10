@@ -89,4 +89,44 @@ public class SpectreAnalysisProgressReporterTests
             Assert.That(reporter.State.AnalysisMaxValue, Is.EqualTo(3));
         }
     }
+
+    [Test]
+    public void ApplyProgress_WritingReport_SetsDescriptionWithReportNameAndCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.WritingReport,
+            TotalFiles: 5,
+            ProcessedFiles: 2,
+            ReportName: "Html"
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.ReportDescription, Is.EqualTo("Writing Html report (2/5)"));
+            Assert.That(reporter.State.ReportValue, Is.EqualTo(2));
+            Assert.That(reporter.State.ReportMaxValue, Is.EqualTo(5));
+        }
+    }
+
+    [Test]
+    public void ApplyProgress_ReportCompleted_SetsCompletedFlag()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.ReportCompleted,
+            TotalFiles: 3,
+            ProcessedFiles: 3,
+            ReportName: "Csv"
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.ReportCompleted, Is.True);
+            Assert.That(reporter.State.ReportValue, Is.EqualTo(3));
+            Assert.That(reporter.State.ReportMaxValue, Is.EqualTo(3));
+        }
+    }
 }

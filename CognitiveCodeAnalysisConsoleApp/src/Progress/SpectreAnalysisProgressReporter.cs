@@ -14,6 +14,7 @@ public sealed class SpectreAnalysisProgressReporter
     private ProgressContext? _context;
     private ProgressTask? _searchTask;
     private ProgressTask? _analysisTask;
+    private ProgressTask? _reportTask;
 
     public SpectreAnalysisProgressState State { get; } = new();
 
@@ -22,8 +23,6 @@ public sealed class SpectreAnalysisProgressReporter
         lock (_lock)
         {
             _context = context;
-            _searchTask = context.AddTask("Searching for C# files...")
-                .IsIndeterminate();
         }
     }
 
@@ -60,8 +59,26 @@ public sealed class SpectreAnalysisProgressReporter
                     State.AnalysisValue = update.ProcessedFiles;
                     State.AnalysisMaxValue = update.TotalFiles;
                     break;
+
+                case AnalysisProgressPhase.WritingReport:
+                    State.ReportDescription = FormatReportDescription(update);
+                    State.ReportValue = update.ProcessedFiles;
+                    State.ReportMaxValue = update.TotalFiles;
+                    break;
+
+                case AnalysisProgressPhase.ReportCompleted:
+                    State.ReportCompleted = true;
+                    State.ReportValue = update.ProcessedFiles;
+                    State.ReportMaxValue = update.TotalFiles;
+                    break;
             }
         }
+    }
+
+    private static string FormatReportDescription(AnalysisProgress update)
+    {
+        string reportName = update.ReportName ?? "report";
+        return $"Writing {reportName} report ({update.ProcessedFiles}/{update.TotalFiles})";
     }
 
     private void UpdateSpectreTasks(AnalysisProgress update)
@@ -111,6 +128,31 @@ public sealed class SpectreAnalysisProgressReporter
                     if (_analysisTask != null)
                     {
                         _analysisTask.Value = _analysisTask.MaxValue;
+                    }
+
+                    break;
+
+                case AnalysisProgressPhase.WritingReport:
+                    if (_reportTask == null && update.TotalFiles > 0)
+                    {
+                        _reportTask = _context.AddTask(
+                            State.ReportDescription ?? "Writing report",
+                            maxValue: update.TotalFiles
+                        );
+                    }
+
+                    if (_reportTask != null)
+                    {
+                        _reportTask.Description = State.ReportDescription ?? "Writing report";
+                        _reportTask.Value = update.ProcessedFiles;
+                    }
+
+                    break;
+
+                case AnalysisProgressPhase.ReportCompleted:
+                    if (_reportTask != null)
+                    {
+                        _reportTask.Value = _reportTask.MaxValue;
                     }
 
                     break;

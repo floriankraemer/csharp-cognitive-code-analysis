@@ -25,35 +25,50 @@ public sealed class JsonReport : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var snapshot = BaselineSnapshotFactory.FromMetricsCollection(metricsCollection);
 
         if (baselineComparison == null)
         {
+            ReportProgress.ReportStart(progress, Name, 1);
             CognitiveReportFileWriter.Write(outputFile, BaselineLoader.Serialize(snapshot));
+            ReportProgress.ReportItem(progress, Name, 1, 1);
+            ReportProgress.ReportComplete(progress, Name, 1);
             return;
+        }
+
+        int totalItems = metricsCollection.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
+        var methods = new List<JsonReportMethodWithDeltas>();
+        foreach (var metrics in metricsCollection)
+        {
+            baselineComparison.TryGetMethodComparison(metrics, out MethodMetricsComparison? comparison);
+            methods.Add(new JsonReportMethodWithDeltas
+            {
+                Method = ToMethodSnapshot(metrics),
+                Deltas = comparison is { HasBaseline: true } ? BuildMethodDeltas(comparison) : null,
+            });
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         var output = new JsonReportWithDeltas
         {
             SchemaVersion = snapshot.SchemaVersion,
             GeneratedAt = snapshot.GeneratedAt,
-            Methods = metricsCollection.Select(metrics =>
-            {
-                baselineComparison.TryGetMethodComparison(metrics, out MethodMetricsComparison? comparison);
-                return new JsonReportMethodWithDeltas
-                {
-                    Method = ToMethodSnapshot(metrics),
-                    Deltas = comparison is { HasBaseline: true } ? BuildMethodDeltas(comparison) : null,
-                };
-            }).ToList(),
+            Methods = methods,
             ClassCoupling = BuildClassCouplingWithDeltas(snapshot, baselineComparison),
         };
 
         var json = JsonSerializer.Serialize(output, JsonOptions);
         CognitiveReportFileWriter.Write(outputFile, json);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static List<JsonReportClassCouplingWithDeltas> BuildClassCouplingWithDeltas(

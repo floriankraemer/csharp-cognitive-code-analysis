@@ -114,12 +114,29 @@ internal sealed class AnalyseCommand(
                 baselineComparison = BaselineComparer.Compare(metricsCollection!, baseline);
             }
 
-            GenerateReport(
-                settings: settings,
-                configuration: configuration,
-                metricsCollection: metricsCollection!,
-                baselineComparison: baselineComparison
-            );
+            AnsiConsole.Progress()
+                .AutoClear(true)
+                .HideCompleted(true)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new SpinnerColumn()
+                )
+                .Start(ctx =>
+                {
+                    var reporter = new SpectreAnalysisProgressReporter();
+                    reporter.Attach(ctx);
+                    var progress = new Progress<AnalysisProgress>(reporter.Report);
+
+                    GenerateReport(
+                        settings: settings,
+                        configuration: configuration,
+                        metricsCollection: metricsCollection!,
+                        baselineComparison: baselineComparison,
+                        progress: progress
+                    );
+                });
 
             return Success;
         } catch (Exception exception) {
@@ -177,7 +194,8 @@ internal sealed class AnalyseCommand(
         Settings settings,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveBaselineComparison? baselineComparison
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress = null
     ) {
         var reportType = settings.ReportType ?? "ConsoleText";
         var outputFile = settings.OutputFile ?? "cognitive-analysis-report";
@@ -188,7 +206,8 @@ internal sealed class AnalyseCommand(
             outputFile,
             configuration,
             metricsCollection,
-            baselineComparison
+            baselineComparison,
+            progress
         );
     }
 
