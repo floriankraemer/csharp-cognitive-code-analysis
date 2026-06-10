@@ -34,7 +34,7 @@ internal sealed class AnalyseCommand(
         public string? ConfigFile { get; init; }
 
         [Description("Report type: ConsoleText, Html, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
-        [CommandOption("-r|--report-type")]
+        [CommandOption("-r|--report-type|--report-format")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }
 
@@ -78,30 +78,17 @@ internal sealed class AnalyseCommand(
             CognitiveMetricsCollection? metricsCollection = null;
             var filesNotFound = false;
 
-            AnsiConsole.Progress()
-                .AutoClear(true)
-                .HideCompleted(true)
-                .Columns(
-                    new TaskDescriptionColumn(),
-                    new ProgressBarColumn(),
-                    new PercentageColumn(),
-                    new SpinnerColumn()
-                )
-                .Start(ctx =>
+            SpectreProgressSession.Run((_, progress) =>
+            {
+                var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
+                if (!FilesWereFound(files, absoluteSourcePath))
                 {
-                    var reporter = new SpectreAnalysisProgressReporter();
-                    reporter.Attach(ctx);
-                    var progress = new Progress<AnalysisProgress>(reporter.Report);
+                    filesNotFound = true;
+                    return;
+                }
 
-                    var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
-                    if (!FilesWereFound(files, absoluteSourcePath))
-                    {
-                        filesNotFound = true;
-                        return;
-                    }
-
-                    metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
-                });
+                metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
+            });
 
             if (filesNotFound) return Error;
 
@@ -114,29 +101,31 @@ internal sealed class AnalyseCommand(
                 baselineComparison = BaselineComparer.Compare(metricsCollection!, baseline);
             }
 
-            AnsiConsole.Progress()
-                .AutoClear(true)
-                .HideCompleted(true)
-                .Columns(
-                    new TaskDescriptionColumn(),
-                    new ProgressBarColumn(),
-                    new PercentageColumn(),
-                    new SpinnerColumn()
-                )
-                .Start(ctx =>
-                {
-                    var reporter = new SpectreAnalysisProgressReporter();
-                    reporter.Attach(ctx);
-                    var progress = new Progress<AnalysisProgress>(reporter.Report);
+            var reportType = settings.ReportType ?? "ConsoleText";
 
+            if (string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase))
+            {
+                GenerateReport(
+                    settings: settings,
+                    configuration: configuration,
+                    metricsCollection: metricsCollection!,
+                    baselineComparison: baselineComparison
+                );
+            }
+            else
+            {
+                SpectreProgressSession.Run((reporter, progress) =>
+                {
                     GenerateReport(
                         settings: settings,
                         configuration: configuration,
                         metricsCollection: metricsCollection!,
                         baselineComparison: baselineComparison,
-                        progress: progress
+                        progress: progress,
+                        progressReporter: reporter
                     );
                 });
+            }
 
             return Success;
         } catch (Exception exception) {
@@ -195,20 +184,43 @@ internal sealed class AnalyseCommand(
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection,
         CognitiveBaselineComparison? baselineComparison,
-        IProgress<AnalysisProgress>? progress = null
+        IProgress<AnalysisProgress>? progress = null,
+        SpectreAnalysisProgressReporter? progressReporter = null
     ) {
         var reportType = settings.ReportType ?? "ConsoleText";
         var outputFile = settings.OutputFile ?? "cognitive-analysis-report";
 
-        reportCoordinator.ReportGenerated += OnReportGenerated;
-        reportCoordinator.GenerateReport(
-            reportType,
-            outputFile,
-            configuration,
-            metricsCollection,
-            baselineComparison,
-            progress
-        );
+        if (progressReporter == null)
+        {
+            reportCoordinator.ReportGenerated += OnReportGenerated;
+        }
+
+        try
+        {
+            reportCoordinator.GenerateReport(
+                reportType,
+                outputFile,
+                configuration,
+                metricsCollection,
+                baselineComparison,
+                progress
+            );
+
+            if (progressReporter != null)
+            {
+                progressReporter.DeferReportGeneratedMessage(
+                    reportType,
+                    Path.GetFullPath(outputFile)
+                );
+            }
+        }
+        finally
+        {
+            if (progressReporter == null)
+            {
+                reportCoordinator.ReportGenerated -= OnReportGenerated;
+            }
+        }
     }
 
     private static void OnReportGenerated(object? sender, ReportGeneratedEventArgs eventArgs)

@@ -111,6 +111,25 @@ public class SpectreAnalysisProgressReporterTests
     }
 
     [Test]
+    public void ApplyProgress_AnalysingFiles_IgnoresOutOfOrderUpdates()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysingFiles,
+            TotalFiles: 10,
+            ProcessedFiles: 5
+        ));
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysingFiles,
+            TotalFiles: 10,
+            ProcessedFiles: 3
+        ));
+
+        Assert.That(reporter.State.AnalysisValue, Is.EqualTo(5));
+    }
+
+    [Test]
     public void ApplyProgress_ReportCompleted_SetsCompletedFlag()
     {
         var reporter = new SpectreAnalysisProgressReporter();

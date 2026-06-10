@@ -18,4 +18,5 @@ public sealed class SpectreAnalysisProgressState
     public double ReportValue { get; internal set; }
     public double ReportMaxValue { get; internal set; }
     public bool ReportCompleted { get; internal set; }
+    public string? ReportGeneratedMessage { get; internal set; }
 }

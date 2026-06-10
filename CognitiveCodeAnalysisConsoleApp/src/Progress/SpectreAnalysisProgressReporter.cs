@@ -15,6 +15,8 @@ public sealed class SpectreAnalysisProgressReporter
     private ProgressTask? _searchTask;
     private ProgressTask? _analysisTask;
     private ProgressTask? _reportTask;
+    private int _lastAnalysisProcessed;
+    private int _lastReportProcessed;
 
     public SpectreAnalysisProgressState State { get; } = new();
 
@@ -29,7 +31,37 @@ public sealed class SpectreAnalysisProgressReporter
     public void Report(AnalysisProgress update)
     {
         ApplyProgress(update);
+
+        if (_context == null)
+        {
+            WriteFallbackLine(update);
+            return;
+        }
+
         UpdateSpectreTasks(update);
+    }
+
+    public void DeferReportGeneratedMessage(string reportType, string fullPath)
+    {
+        lock (_lock)
+        {
+            State.ReportGeneratedMessage = $"{reportType} report generated: {fullPath}";
+        }
+    }
+
+    public void FlushPendingMessages()
+    {
+        if (State.SearchCompleteMessage is { } searchMessage)
+        {
+            AnsiConsole.MarkupLine($"[green]{Markup.Escape(searchMessage)}[/]");
+            State.SearchCompleteMessage = null;
+        }
+
+        if (State.ReportGeneratedMessage is { } reportMessage)
+        {
+            AnsiConsole.MarkupLine($"[green]{Markup.Escape(reportMessage)}[/]");
+            State.ReportGeneratedMessage = null;
+        }
     }
 
     public void ApplyProgress(AnalysisProgress update)
@@ -49,6 +81,12 @@ public sealed class SpectreAnalysisProgressReporter
                     break;
 
                 case AnalysisProgressPhase.AnalysingFiles:
+                    if (update.ProcessedFiles < _lastAnalysisProcessed)
+                    {
+                        break;
+                    }
+
+                    _lastAnalysisProcessed = update.ProcessedFiles;
                     State.AnalysisDescription = $"Analysing files ({update.ProcessedFiles}/{update.TotalFiles})";
                     State.AnalysisValue = update.ProcessedFiles;
                     State.AnalysisMaxValue = update.TotalFiles;
@@ -61,6 +99,12 @@ public sealed class SpectreAnalysisProgressReporter
                     break;
 
                 case AnalysisProgressPhase.WritingReport:
+                    if (update.ProcessedFiles < _lastReportProcessed)
+                    {
+                        break;
+                    }
+
+                    _lastReportProcessed = update.ProcessedFiles;
                     State.ReportDescription = FormatReportDescription(update);
                     State.ReportValue = update.ProcessedFiles;
                     State.ReportMaxValue = update.TotalFiles;
@@ -104,7 +148,6 @@ public sealed class SpectreAnalysisProgressReporter
                         _searchTask.Value = _searchTask.MaxValue;
                     }
 
-                    AnsiConsole.MarkupLine($"[green]{Markup.Escape(State.SearchCompleteMessage ?? string.Empty)}[/]");
                     break;
 
                 case AnalysisProgressPhase.AnalysingFiles:
@@ -125,9 +168,12 @@ public sealed class SpectreAnalysisProgressReporter
                     break;
 
                 case AnalysisProgressPhase.AnalysisCompleted:
+                    _lastAnalysisProcessed = update.TotalFiles;
+
                     if (_analysisTask != null)
                     {
-                        _analysisTask.Value = _analysisTask.MaxValue;
+                        _analysisTask.MaxValue = update.TotalFiles;
+                        _analysisTask.Value = update.TotalFiles;
                     }
 
                     break;
@@ -150,13 +196,40 @@ public sealed class SpectreAnalysisProgressReporter
                     break;
 
                 case AnalysisProgressPhase.ReportCompleted:
+                    _lastReportProcessed = update.TotalFiles;
+
                     if (_reportTask != null)
                     {
-                        _reportTask.Value = _reportTask.MaxValue;
+                        _reportTask.MaxValue = update.TotalFiles;
+                        _reportTask.Value = update.TotalFiles;
                     }
 
                     break;
             }
+
+            _context.Refresh();
+        }
+    }
+
+    private void WriteFallbackLine(AnalysisProgress update)
+    {
+        switch (update.Phase)
+        {
+            case AnalysisProgressPhase.SearchingFiles:
+                AnsiConsole.MarkupLine("[grey]Searching for C# files...[/]");
+                break;
+
+            case AnalysisProgressPhase.AnalysingFiles when update.ProcessedFiles == 0:
+                AnsiConsole.MarkupLine($"[grey]Analysing {update.TotalFiles} file(s)...[/]");
+                break;
+
+            case AnalysisProgressPhase.WritingReport when update.ProcessedFiles == 0:
+                AnsiConsole.MarkupLine($"[grey]Writing {Markup.Escape(update.ReportName ?? "report")} report ({update.TotalFiles} items)...[/]");
+                break;
+
+            case AnalysisProgressPhase.AnalysisCompleted:
+            case AnalysisProgressPhase.ReportCompleted:
+                break;
         }
     }
 }
