@@ -10,6 +10,8 @@
     <Threshold>85</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
+    <!-- Sample complexity fixture compiled into the library for manual analysis demos -->
+    <ExcludeByFile>**/Error.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup>

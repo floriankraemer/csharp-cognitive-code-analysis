@@ -33,4 +33,14 @@ public class CognitiveConfigurationFactoryTests
         Assert.That(configuration.ShowCyclomaticComplexity, Is.False);
         Assert.That(configuration.ShowCouplingMetrics, Is.False);
     }
+
+    [Test]
+    public void Load_WithCyclomaticOverride_EnablesCyclomaticDisplay()
+    {
+        var overrides = new AnalysisDisplayOverrides(ShowHalstead: null, ShowCyclomatic: true, ShowCoupling: null);
+
+        var configuration = CognitiveConfigurationFactory.Load(configFile: null, overrides);
+
+        Assert.That(configuration.ShowCyclomaticComplexity, Is.True);
+    }
 }
