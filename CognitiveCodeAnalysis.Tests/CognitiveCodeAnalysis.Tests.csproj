@@ -43,4 +43,8 @@
     <Compile Remove="fixtures\**\*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="fixtures\reports\golden\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

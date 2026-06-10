@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Globalization;
 using System.Text;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
@@ -34,7 +35,7 @@ public sealed class GithubActionsReport : IReport
         {
             var kind = CognitiveCiSeverity.GithubCommandKind(m, configuration);
             var path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath);
-            var title = $"{CheckName} score {m.totalScore:F3}";
+            var title = string.Format(CultureInfo.InvariantCulture, "{0} score {1:F3}", CheckName, m.totalScore);
             var message = CognitiveCiEncoding.EncodeWorkflowCommandMessage(
                 CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison));
             sb.Append("::").Append(kind)
