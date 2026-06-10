@@ -100,7 +100,11 @@ public class CognitiveCodeAnalyser
         {
             try
             {
+#if NETSTANDARD2_1_OR_GREATER
                 string fileContent = await File.ReadAllTextAsync(file, cancellationToken);
+#else
+                string fileContent = File.ReadAllText(file);
+#endif
 
                 SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
 
@@ -364,6 +368,7 @@ public class CognitiveCodeAnalyser
     // Collect namespace parts (including file-scoped namespaces)
     private static IEnumerable<string> CollectNamespaceParts(ClassDeclarationSyntax classNode)
     {
+#if ROSLYN_4_0_OR_GREATER
         return classNode.Ancestors()
             .OfType<NamespaceDeclarationSyntax>()
             .Select(n => n.Name.ToString())
@@ -372,6 +377,12 @@ public class CognitiveCodeAnalyser
                 .Select(ns => ns.Name.ToString())
             )
             .Reverse();
+#else
+        return classNode.Ancestors()
+            .OfType<NamespaceDeclarationSyntax>()
+            .Select(n => n.Name.ToString())
+            .Reverse();
+#endif
     }
 
     private static int CalculateNestingLevels(MethodDeclarationSyntax methodNode, CognitiveConfiguration configuration)
