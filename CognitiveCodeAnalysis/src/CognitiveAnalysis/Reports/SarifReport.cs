@@ -5,6 +5,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -24,11 +25,49 @@ public sealed class SarifReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
         var toolVersion = typeof(SarifReport).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var results = new List<CognitiveSarifResult>();
+
+        foreach (var m in filtered)
+        {
+            results.Add(new CognitiveSarifResult
+            {
+                RuleId = RuleId,
+                Level = CognitiveCiSeverity.SarifLevel(m, configuration),
+                Message = new CognitiveSarifText { Text = CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison) },
+                Locations =
+                [
+                    new CognitiveSarifLocation
+                    {
+                        PhysicalLocation = new CognitiveSarifPhysicalLocation
+                        {
+                            ArtifactLocation = new CognitiveSarifArtifactLocation
+                            {
+                                Uri = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
+                            },
+                            Region = new CognitiveSarifRegion
+                            {
+                                StartLine = m.methodLineNumber,
+                                EndLine = m.methodLineNumber,
+                            },
+                        },
+                    },
+                ],
+            });
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
+        }
 
         var run = new CognitiveSarifRun
         {
@@ -50,30 +89,7 @@ public sealed class SarifReport : IReport
                     ],
                 },
             },
-            Results = filtered.Select(m => new CognitiveSarifResult
-            {
-                RuleId = RuleId,
-                Level = CognitiveCiSeverity.SarifLevel(m, configuration),
-                Message = new CognitiveSarifText { Text = CognitiveCiSeverity.BuildMessage(m, configuration) },
-                Locations =
-                [
-                    new CognitiveSarifLocation
-                    {
-                        PhysicalLocation = new CognitiveSarifPhysicalLocation
-                        {
-                            ArtifactLocation = new CognitiveSarifArtifactLocation
-                            {
-                                Uri = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
-                            },
-                            Region = new CognitiveSarifRegion
-                            {
-                                StartLine = m.methodLineNumber,
-                                EndLine = m.methodLineNumber,
-                            },
-                        },
-                    },
-                ],
-            }).ToList(),
+            Results = results,
         };
 
         var log = new CognitiveSarifLog
@@ -85,6 +101,7 @@ public sealed class SarifReport : IReport
 
         var json = JsonSerializer.Serialize(log, JsonOptions);
         CognitiveReportFileWriter.Write(outputFile, json);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 }
 

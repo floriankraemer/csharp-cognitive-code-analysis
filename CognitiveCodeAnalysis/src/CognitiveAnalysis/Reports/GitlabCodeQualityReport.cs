@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -26,27 +27,41 @@ public sealed class GitlabCodeQualityReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
-        var issues = filtered.Select(m => new CognitiveGitlabIssue
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
+        var issues = new List<CognitiveGitlabIssue>();
+        foreach (var m in filtered)
         {
-            Type = "issue",
-            CheckName = CheckName,
-            Description = CognitiveCiSeverity.BuildMessage(m, configuration),
-            Categories = ["Complexity"],
-            Severity = CognitiveCiSeverity.GitlabSeverity(m, configuration),
-            Fingerprint = ComputeFingerprint(m.FilePath, m.methodLineNumber, m.MethodName),
-            Location = new CognitiveGitlabLocation
+            issues.Add(new CognitiveGitlabIssue
             {
-                Path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
-                Lines = new CognitiveGitlabLines { Begin = m.methodLineNumber, End = m.methodLineNumber },
-            },
-        }).ToList();
+                Type = "issue",
+                CheckName = CheckName,
+                Description = CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison),
+                Categories = ["Complexity"],
+                Severity = CognitiveCiSeverity.GitlabSeverity(m, configuration),
+                Fingerprint = ComputeFingerprint(m.FilePath, m.methodLineNumber, m.MethodName),
+                Location = new CognitiveGitlabLocation
+                {
+                    Path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
+                    Lines = new CognitiveGitlabLines { Begin = m.methodLineNumber, End = m.methodLineNumber },
+                },
+            });
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
+        }
 
         var json = JsonSerializer.Serialize(issues, JsonOptions);
         CognitiveReportFileWriter.Write(outputFile, json);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static string ComputeFingerprint(string filePath, int line, string methodName)

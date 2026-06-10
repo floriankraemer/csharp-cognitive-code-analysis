@@ -87,18 +87,11 @@ These align with analyzer fields and can contribute to `totalScore` when `enable
 - `fieldAccessCount` → `fieldAccessScore`
 - `propertyAccessCount` → `propertyAccessScore`
 
-### Legacy config aliases
-
-For backward compatibility, these JSON keys map to the fields above:
-
-- `variableCount` → `localVariableCount` / `localVariableScore`
-- `propertyCallCount` → `propertyAccessCount` / `propertyAccessScore`
-
 ### Shipped defaults
 
 The shipped `cognitive-metrics-settings.json` enables core control-flow and size metrics (`linesOfCode`, `ifCount`, `elseCount`, `argumentCount`, `returnCount`, `nestingLevels`).
 
-Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `variableCount`, `propertyCallCount`, `fieldAccessCount`) are present but **disabled by default** so existing `totalScore` behavior is unchanged until you opt in by setting `enabled` to `true`.
+Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`) are present but **disabled by default** so existing `totalScore` behavior is unchanged until you opt in by setting `enabled` to `true`.
 
 All listed metrics are counted during analysis and appear in console/CSV output regardless of the `enabled` flag; `enabled` only controls whether the metric contributes to `totalScore`.
 
@@ -117,11 +110,13 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 ### CLI options
 
 - `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
-- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
+- `-b|--baseline <path>`: path to a JSON baseline snapshot (from a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
 - `--coverage-cobertura <path>`: optional Cobertura coverage file.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
+- `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
 
 CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 
@@ -142,4 +137,10 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.j
 
 # Cobertura coverage (optional)
 dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --coverage-cobertura .\coverage.cobertura.xml
+
+# Save a JSON baseline snapshot
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Json -o .\baseline.json
+
+# Compare against baseline (HTML shows colored deltas)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -b .\baseline.json -r Html -o .\report.html
 ```

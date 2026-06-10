@@ -26,7 +26,7 @@ public static class ConfigurationLoader
     {
         IConfigurationRoot configuration = BuildConfiguration(configFilePath);
 
-        CognitiveConfiguration cognitiveConfig = new();
+        CognitiveConfiguration cognitiveConfig = CognitiveConfigurationDefaults.Create();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
 
         return cognitiveConfig;
@@ -80,7 +80,7 @@ public static class ConfigurationLoader
         ConfigurationBuilder builder = new();
 
         return builder.SetBasePath(AppContext.BaseDirectory)
-                    .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false)
+                    .AddJsonFile("cognitive-metrics-settings.json", optional: true, reloadOnChange: false)
                     .Build();
     }
 
@@ -106,8 +106,8 @@ public static class ConfigurationLoader
             "linesOfCode": { "threshold": 60, "scale": 25.0, "enabled": true },
             "argumentCount": { "threshold": 4, "scale": 1.0, "enabled": true },
             "returnCount": { "threshold": 2, "scale": 5.0, "enabled": true },
-            "variableCount": { "threshold": 4, "scale": 5.0, "enabled": true },
-            "propertyCallCount": { "threshold": 4, "scale": 15.0, "enabled": true },
+            "localVariableCount": { "threshold": 4, "scale": 5.0, "enabled": true },
+            "propertyAccessCount": { "threshold": 4, "scale": 15.0, "enabled": true },
             "ifCount": { "threshold": 3, "scale": 1.0, "enabled": true },
             "nestingLevels": { "threshold": 1, "scale": 1.0, "enabled": true },
             "elseCount": { "threshold": 1, "scale": 1.0, "enabled": true }

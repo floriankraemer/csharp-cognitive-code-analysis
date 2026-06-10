@@ -9,12 +9,6 @@ namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
 public class ScoreCalculator
 {
-    private static readonly Dictionary<string, string> MetricKeyAliases = new(StringComparer.Ordinal)
-    {
-        { "variableCount", "localVariableCount" },
-        { "propertyCallCount", "propertyAccessCount" },
-    };
-
     public CognitiveMetrics CalculateScores(CognitiveMetrics metrics, CognitiveConfiguration configuration)
     {
         foreach (KeyValuePair<string, MetricConfiguration> keyValuePair in configuration.Metrics)
@@ -36,7 +30,7 @@ public class ScoreCalculator
             return metrics;
         }
 
-        string metricField = ResolveMetricFieldName(keyValuePair.Key);
+        string metricField = keyValuePair.Key;
 
         // Convert metric key to PascalCase property name (simple conversion)
         string countPropertyName = ToPascalCase(metricField);
@@ -115,13 +109,6 @@ public class ScoreCalculator
             metrics.propertyAccessScore;
 
         return metrics;
-    }
-
-    private static string ResolveMetricFieldName(string configKey)
-    {
-        return MetricKeyAliases.TryGetValue(configKey, out string? alias)
-            ? alias
-            : configKey;
     }
 
     private static string GetScoreFieldName(string countFieldName)

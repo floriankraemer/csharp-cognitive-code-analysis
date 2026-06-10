@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -16,7 +17,9 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
         string reportType,
         string outputFile,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection metricsCollection
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         foreach (IReport reportGenerator in _reportGenerators)
@@ -26,7 +29,9 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
             reportGenerator.RenderMetrics(
                 outputFile: outputFile,
                 metricsCollection: metricsCollection,
-                configuration: configuration
+                configuration: configuration,
+                baselineComparison: baselineComparison,
+                progress: progress
             );
 
             OnReportGenerated(

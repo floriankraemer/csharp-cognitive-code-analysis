@@ -5,6 +5,7 @@
 using System.Globalization;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 
@@ -16,32 +17,50 @@ public class ConsoleTextReport() : IReport
 {
     public string Name => "ConsoleText";
 
-    public void RenderMetrics(string outputFile, CognitiveMetricsCollection metricsCollection, CognitiveConfiguration configuration)
+    public void RenderMetrics(
+        string outputFile,
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
+    )
     {
         CognitiveMetricsCollection filteredCollection = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filteredCollection.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
 
         bool hasCoverageData = filteredCollection.HasCoverageData();
 
         if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration, metricsCollection);
+            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration, metricsCollection, baselineComparison, progress, totalItems, ref processedItems);
             RenderSummary(metricsCollection, configuration);
+            ReportProgress.ReportComplete(progress, Name, totalItems);
             return;
         }
 
         foreach (CognitiveMetrics metrics in filteredCollection)
         {
-            RenderMetrics(metrics, hasCoverageData, configuration);
+            RenderMetrics(metrics, hasCoverageData, configuration, baselineComparison);
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         RenderSummary(metricsCollection, configuration);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static void RenderMetricsGrouped(
         CognitiveMetricsCollection metricsCollection,
         bool hasCoverageData,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection fullMetricsCollection
+        CognitiveMetricsCollection fullMetricsCollection,
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     ) {
         var groupedByClass = metricsCollection
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
@@ -61,29 +80,36 @@ public class ConsoleTextReport() : IReport
 
             AnsiConsole.MarkupLine($"[blue]Class:[/] {Markup.Escape(firstMetric.ClassName)}");
             AnsiConsole.MarkupLine($"[yellow]File:[/] {Markup.Escape(firstMetric.FilePath)}");
-            RenderCouplingLine(configuration, fullMetricsCollection, firstMetric.ClassName);
+            RenderCouplingLine(configuration, fullMetricsCollection, firstMetric.ClassName, baselineComparison);
 
             Table table = new();
             table = AddTableHeaders(table, hasCoverageData, configuration);
             table.ShowRowSeparators();
 
-            table = classMetrics.Aggregate(
-                table,
-                (current, metrics) => AddTableRow(current, metrics, hasCoverageData, configuration)
-            );
+            foreach (CognitiveMetrics metrics in classMetrics)
+            {
+                table = AddTableRow(table, metrics, hasCoverageData, configuration, baselineComparison);
+                processedItems++;
+                ReportProgress.ReportItem(progress, "ConsoleText", totalItems, processedItems);
+            }
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
         }
     }
 
-    private static void RenderMetrics(CognitiveMetrics metrics, bool hasCoverageData, CognitiveConfiguration configuration)
+    private static void RenderMetrics(
+        CognitiveMetrics metrics,
+        bool hasCoverageData,
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison
+    )
     {
         RenderMetricsSummary(metrics);
 
         Table table = new();
         table = AddTableHeaders(table, hasCoverageData, configuration);
-        table = AddTableRow(table, metrics, hasCoverageData, configuration);
+        table = AddTableRow(table, metrics, hasCoverageData, configuration, baselineComparison);
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -93,38 +119,42 @@ public class ConsoleTextReport() : IReport
         Table table,
         CognitiveMetrics metrics,
         bool hasCoverageData,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison
     ) {
+        MethodMetricsComparison? comparison = null;
+        baselineComparison?.TryGetMethodComparison(metrics, out comparison);
+
         var rowData = new List<string>
         {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
-            ColorizeScore(metrics.totalScore),
-            metrics.linesOfCode + " (" + ColorizeScore(metrics.linesOfCodeScore) + ")",
-            metrics.ifCount + " (" + ColorizeScore(metrics.ifScore) + ")",
-            metrics.argumentCount + " (" + ColorizeScore(metrics.argumentScore) + ")",
-            metrics.nestingLevels + " (" + ColorizeScore(metrics.nestingScore) + ")",
-            metrics.returnCount + " (" + ColorizeScore(metrics.returnScore) + ")",
-            metrics.localVariableCount + " (" + ColorizeScore(metrics.localVariableScore) + ")",
-            metrics.fieldAccessCount + " (" + ColorizeScore(metrics.fieldAccessScore) + ")",
-            metrics.propertyAccessCount + " (" + ColorizeScore(metrics.propertyAccessScore) + ")",
+            CognitiveReportDeltaFormatter.FormatConsoleValue(ColorizeScore(metrics.totalScore), comparison?.TotalScore, "F3"),
+            FormatCountWithScore(metrics.linesOfCode, metrics.linesOfCodeScore, comparison?.LinesOfCode, comparison?.LinesOfCodeScore),
+            FormatCountWithScore(metrics.ifCount, metrics.ifScore, comparison?.IfCount, comparison?.IfScore),
+            FormatCountWithScore(metrics.argumentCount, metrics.argumentScore, comparison?.ArgumentCount, comparison?.ArgumentScore),
+            FormatCountWithScore(metrics.nestingLevels, metrics.nestingScore, comparison?.NestingLevels, comparison?.NestingScore),
+            FormatCountWithScore(metrics.returnCount, metrics.returnScore, comparison?.ReturnCount, comparison?.ReturnScore),
+            FormatCountWithScore(metrics.localVariableCount, metrics.localVariableScore, comparison?.LocalVariableCount, comparison?.LocalVariableScore),
+            FormatCountWithScore(metrics.fieldAccessCount, metrics.fieldAccessScore, comparison?.FieldAccessCount, comparison?.FieldAccessScore),
+            FormatCountWithScore(metrics.propertyAccessCount, metrics.propertyAccessScore, comparison?.PropertyAccessCount, comparison?.PropertyAccessScore),
         };
 
         if (configuration.ShowHalsteadComplexity)
         {
-            rowData.Add(FormatHalsteadVolume(metrics));
-            rowData.Add(FormatHalsteadDifficulty(metrics));
-            rowData.Add(FormatHalsteadEffort(metrics));
+            rowData.Add(FormatHalsteadVolume(metrics, comparison));
+            rowData.Add(FormatHalsteadDifficulty(metrics, comparison));
+            rowData.Add(FormatHalsteadEffort(metrics, comparison));
         }
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            rowData.Add(metrics.cyclomaticComplexity.ToString("F1"));
+            rowData.Add(FormatScoreWithDelta(metrics.cyclomaticComplexity, comparison?.CyclomaticComplexity, "F1"));
         }
 
         if (hasCoverageData)
         {
-            rowData.Add(FormatCoverage(metrics));
-            rowData.Add(FormatChurnScore(metrics));
+            rowData.Add(FormatCoverage(metrics, comparison));
+            rowData.Add(FormatChurnScore(metrics, comparison));
         }
 
         table.AddRow(rowData.ToArray());
@@ -138,7 +168,31 @@ public class ConsoleTextReport() : IReport
     /// </summary>
     /// <param name="metrics">The cognitive metrics with coverage data</param>
     /// <returns>Formatted string with coverage percentages, or "n/a" if no coverage</returns>
-    private static string FormatCoverage(CognitiveMetrics metrics)
+    private static string FormatCountWithScore(
+        int count,
+        double score,
+        MetricDelta? countDelta,
+        MetricDelta? scoreDelta
+    )
+    {
+        string countPart = CognitiveReportDeltaFormatter.FormatConsoleValue(
+            count.ToString(CultureInfo.InvariantCulture),
+            countDelta,
+            "F0");
+        string scorePart = CognitiveReportDeltaFormatter.FormatConsoleValue(
+            ColorizeScore(score),
+            scoreDelta,
+            "F3");
+        return countPart + " (" + scorePart + ")";
+    }
+
+    private static string FormatScoreWithDelta(double score, MetricDelta? delta, string format = "F3") =>
+        CognitiveReportDeltaFormatter.FormatConsoleValue(
+            score.ToString(format, CultureInfo.InvariantCulture),
+            delta,
+            format);
+
+    private static string FormatCoverage(CognitiveMetrics metrics, MethodMetricsComparison? comparison)
     {
         bool hasLineCoverage = metrics.lineCoveragePercentage.HasValue;
         bool hasBranchCoverage = metrics.branchCoveragePercentage.HasValue;
@@ -154,14 +208,16 @@ public class ConsoleTextReport() : IReport
         {
             double lineCoverage = metrics.lineCoveragePercentage!.Value;
             string lineColor = GetCoverageColor(lineCoverage);
-            parts.Add($"[{lineColor}]Line: {lineCoverage:F1}%[/]");
+            string lineText = $"[{lineColor}]Line: {lineCoverage:F1}%[/]";
+            parts.Add(CognitiveReportDeltaFormatter.FormatConsoleValue(lineText, comparison?.LineCoveragePercentage, "F1"));
         }
 
         if (hasBranchCoverage)
         {
             double branchCoverage = metrics.branchCoveragePercentage!.Value;
             string branchColor = GetCoverageColor(branchCoverage);
-            parts.Add($"[{branchColor}]Branch: {branchCoverage:F1}%[/]");
+            string branchText = $"[{branchColor}]Branch: {branchCoverage:F1}%[/]";
+            parts.Add(CognitiveReportDeltaFormatter.FormatConsoleValue(branchText, comparison?.BranchCoveragePercentage, "F1"));
         }
 
         return string.Join(" | ", parts);
@@ -193,7 +249,7 @@ public class ConsoleTextReport() : IReport
     /// </summary>
     /// <param name="metrics">The cognitive metrics with churn score</param>
     /// <returns>Formatted string with churn score, or "n/a" if no churn score</returns>
-    private static string FormatChurnScore(CognitiveMetrics metrics)
+    private static string FormatChurnScore(CognitiveMetrics metrics, MethodMetricsComparison? comparison)
     {
         if (!metrics.churnScore.HasValue)
         {
@@ -202,8 +258,8 @@ public class ConsoleTextReport() : IReport
 
         double churnScore = metrics.churnScore.Value;
         string color = GetChurnColor(churnScore);
-
-        return $"[{color}]{churnScore:F3}[/]";
+        string churnText = $"[{color}]{churnScore:F3}[/]";
+        return CognitiveReportDeltaFormatter.FormatConsoleValue(churnText, comparison?.ChurnScore, "F3");
     }
 
     /// <summary>
@@ -254,28 +310,44 @@ public class ConsoleTextReport() : IReport
     private static void RenderCouplingLine(
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection,
-        string className
+        string className,
+        CognitiveBaselineComparison? baselineComparison
     ) {
         if (!configuration.GroupByClass || !configuration.ShowCouplingMetrics)
         {
             return;
         }
 
-        string couplingText = FormatCouplingMetrics(metricsCollection, className);
-        AnsiConsole.MarkupLine($"[cyan]Coupling:[/] {Markup.Escape(couplingText)}");
+        string couplingText = FormatCouplingMetrics(metricsCollection, className, baselineComparison);
+        AnsiConsole.MarkupLine($"[cyan]Coupling:[/] {couplingText}");
     }
 
-    private static string FormatCouplingMetrics(CognitiveMetricsCollection metricsCollection, string className)
+    private static string FormatCouplingMetrics(
+        CognitiveMetricsCollection metricsCollection,
+        string className,
+        CognitiveBaselineComparison? baselineComparison
+    )
     {
         if (!metricsCollection.TryGetClassCoupling(className, out var coupling) || coupling == null)
         {
-            return "n/a";
+            return Markup.Escape("n/a");
         }
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"In={coupling.IncomingCoupling}, Out={coupling.OutgoingCoupling}, Stability={coupling.Stability:F3}"
-        );
+        ClassCouplingComparison? couplingComparison = null;
+        baselineComparison?.TryGetClassCouplingComparison(className, out couplingComparison);
+
+        string incoming = coupling.IncomingCoupling.ToString(CultureInfo.InvariantCulture);
+        string outgoing = coupling.OutgoingCoupling.ToString(CultureInfo.InvariantCulture);
+        string stability = coupling.Stability.ToString("F3", CultureInfo.InvariantCulture);
+
+        if (couplingComparison is { HasBaseline: true })
+        {
+            incoming = CognitiveReportDeltaFormatter.FormatConsoleValue(incoming, couplingComparison.IncomingCoupling, "F0");
+            outgoing = CognitiveReportDeltaFormatter.FormatConsoleValue(outgoing, couplingComparison.OutgoingCoupling, "F0");
+            stability = CognitiveReportDeltaFormatter.FormatConsoleValue(stability, couplingComparison.Stability, "F3");
+        }
+
+        return $"In={incoming}, Out={outgoing}, Stability={stability}";
     }
 
     private static void RenderMetricsSummary(CognitiveMetrics metrics)
@@ -287,14 +359,27 @@ public class ConsoleTextReport() : IReport
         AnsiConsole.WriteLine();
     }
 
-    private static string FormatHalsteadVolume(CognitiveMetrics metrics)
-        => metrics.Halstead is { } h ? h.Volume.ToString("F2") : "[dim]n/a[/]";
+    private static string FormatHalsteadVolume(CognitiveMetrics metrics, MethodMetricsComparison? comparison)
+        => FormatHalsteadValue(metrics.Halstead?.Volume, comparison?.HalsteadVolume);
 
-    private static string FormatHalsteadDifficulty(CognitiveMetrics metrics)
-        => metrics.Halstead is { } h ? h.Difficulty.ToString("F2") : "[dim]n/a[/]";
+    private static string FormatHalsteadDifficulty(CognitiveMetrics metrics, MethodMetricsComparison? comparison)
+        => FormatHalsteadValue(metrics.Halstead?.Difficulty, comparison?.HalsteadDifficulty);
 
-    private static string FormatHalsteadEffort(CognitiveMetrics metrics)
-        => metrics.Halstead is { } h ? h.Effort.ToString("F2") : "[dim]n/a[/]";
+    private static string FormatHalsteadEffort(CognitiveMetrics metrics, MethodMetricsComparison? comparison)
+        => FormatHalsteadValue(metrics.Halstead?.Effort, comparison?.HalsteadEffort);
+
+    private static string FormatHalsteadValue(double? value, MetricDelta? delta)
+    {
+        if (!value.HasValue)
+        {
+            return "[dim]n/a[/]";
+        }
+
+        return CognitiveReportDeltaFormatter.FormatConsoleValue(
+            value.Value.ToString("F2", CultureInfo.InvariantCulture),
+            delta,
+            "F2");
+    }
 
     private static Table AddTableHeaders(Table table, bool hasCoverageData, CognitiveConfiguration configuration)
     {

@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -17,26 +18,38 @@ public sealed class CsvReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
         bool hasCoverageData = filtered.HasCoverageData();
+        bool includeDeltas = baselineComparison != null;
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
 
         var sb = new StringBuilder();
-        var headers = BuildHeaders(hasCoverageData, configuration);
+        var headers = BuildHeaders(hasCoverageData, configuration, includeDeltas);
         sb.AppendLine(string.Join(",", headers.Select(EscapeCsvField)));
 
         foreach (var m in filtered.OrderByDescending(m => m.totalScore))
         {
-            var row = BuildRow(m, hasCoverageData, configuration);
+            MethodMetricsComparison? comparison = null;
+            baselineComparison?.TryGetMethodComparison(m, out comparison);
+            var row = BuildRow(m, hasCoverageData, configuration, comparison, includeDeltas);
             sb.AppendLine(string.Join(",", row.Select(EscapeCsvField)));
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         CognitiveReportFileWriter.Write(outputFile, sb.ToString());
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
-    private static List<string> BuildHeaders(bool hasCoverageData, CognitiveConfiguration configuration)
+    private static List<string> BuildHeaders(bool hasCoverageData, CognitiveConfiguration configuration, bool includeDeltas)
     {
         var headers = new List<string>
         {
@@ -45,50 +58,70 @@ public sealed class CsvReport : IReport
             "MethodName",
             "MethodSignature",
             "LineNumber",
-            "TotalScore",
-            "LinesOfCode",
-            "IfCount",
-            "IfScore",
-            "ArgumentCount",
-            "ArgumentScore",
-            "NestingLevels",
-            "NestingScore",
-            "ReturnCount",
-            "ReturnScore",
-            "LocalVariableCount",
-            "LocalVariableScore",
-            "FieldAccessCount",
-            "FieldAccessScore",
-            "PropertyAccessCount",
-            "PropertyAccessScore",
         };
+
+        AddMetricHeaders(headers, "TotalScore", includeDeltas);
+        AddMetricHeaders(headers, "LinesOfCode", includeDeltas);
+        AddMetricHeaders(headers, "IfCount", includeDeltas);
+        AddMetricHeaders(headers, "IfScore", includeDeltas);
+        AddMetricHeaders(headers, "ElseCount", includeDeltas);
+        AddMetricHeaders(headers, "ElseScore", includeDeltas);
+        AddMetricHeaders(headers, "LoopCount", includeDeltas);
+        AddMetricHeaders(headers, "LoopScore", includeDeltas);
+        AddMetricHeaders(headers, "SwitchCount", includeDeltas);
+        AddMetricHeaders(headers, "SwitchScore", includeDeltas);
+        AddMetricHeaders(headers, "TryCatchCount", includeDeltas);
+        AddMetricHeaders(headers, "TryCatchScore", includeDeltas);
+        AddMetricHeaders(headers, "ArgumentCount", includeDeltas);
+        AddMetricHeaders(headers, "ArgumentScore", includeDeltas);
+        AddMetricHeaders(headers, "NestingLevels", includeDeltas);
+        AddMetricHeaders(headers, "NestingScore", includeDeltas);
+        AddMetricHeaders(headers, "ReturnCount", includeDeltas);
+        AddMetricHeaders(headers, "ReturnScore", includeDeltas);
+        AddMetricHeaders(headers, "LocalVariableCount", includeDeltas);
+        AddMetricHeaders(headers, "LocalVariableScore", includeDeltas);
+        AddMetricHeaders(headers, "FieldAccessCount", includeDeltas);
+        AddMetricHeaders(headers, "FieldAccessScore", includeDeltas);
+        AddMetricHeaders(headers, "PropertyAccessCount", includeDeltas);
+        AddMetricHeaders(headers, "PropertyAccessScore", includeDeltas);
 
         if (configuration.ShowHalsteadComplexity)
         {
-            headers.Add("HalsteadVolume");
-            headers.Add("HalsteadDifficulty");
-            headers.Add("HalsteadEffort");
+            AddMetricHeaders(headers, "HalsteadVolume", includeDeltas);
+            AddMetricHeaders(headers, "HalsteadDifficulty", includeDeltas);
+            AddMetricHeaders(headers, "HalsteadEffort", includeDeltas);
         }
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            headers.Add("CyclomaticComplexity");
+            AddMetricHeaders(headers, "CyclomaticComplexity", includeDeltas);
         }
 
         if (hasCoverageData)
         {
-            headers.Add("LineCoveragePercent");
-            headers.Add("BranchCoveragePercent");
-            headers.Add("ChurnScore");
+            AddMetricHeaders(headers, "LineCoveragePercent", includeDeltas);
+            AddMetricHeaders(headers, "BranchCoveragePercent", includeDeltas);
+            AddMetricHeaders(headers, "ChurnScore", includeDeltas);
         }
 
         return headers;
     }
 
+    private static void AddMetricHeaders(List<string> headers, string name, bool includeDeltas)
+    {
+        headers.Add(name);
+        if (includeDeltas)
+        {
+            headers.Add(name + "Delta");
+        }
+    }
+
     private static List<string> BuildRow(
         CognitiveMetrics m,
         bool hasCoverageData,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        MethodMetricsComparison? comparison,
+        bool includeDeltas
     )
     {
         var row = new List<string>
@@ -98,44 +131,73 @@ public sealed class CsvReport : IReport
             m.MethodName,
             m.methodSignature,
             m.methodLineNumber.ToString(CultureInfo.InvariantCulture),
-            m.totalScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.linesOfCode.ToString(CultureInfo.InvariantCulture),
-            m.ifCount.ToString(CultureInfo.InvariantCulture),
-            m.ifScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.argumentCount.ToString(CultureInfo.InvariantCulture),
-            m.argumentScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.nestingLevels.ToString(CultureInfo.InvariantCulture),
-            m.nestingScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.returnCount.ToString(CultureInfo.InvariantCulture),
-            m.returnScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.localVariableCount.ToString(CultureInfo.InvariantCulture),
-            m.localVariableScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.fieldAccessCount.ToString(CultureInfo.InvariantCulture),
-            m.fieldAccessScore.ToString("F3", CultureInfo.InvariantCulture),
-            m.propertyAccessCount.ToString(CultureInfo.InvariantCulture),
-            m.propertyAccessScore.ToString("F3", CultureInfo.InvariantCulture),
         };
+
+        AddMetricValue(row, m.totalScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.TotalScore, "F3", includeDeltas);
+        AddMetricValue(row, m.linesOfCode.ToString(CultureInfo.InvariantCulture), comparison?.LinesOfCode, "F0", includeDeltas);
+        AddMetricValue(row, m.ifCount.ToString(CultureInfo.InvariantCulture), comparison?.IfCount, "F0", includeDeltas);
+        AddMetricValue(row, m.ifScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.IfScore, "F3", includeDeltas);
+        AddMetricValue(row, m.elseCount.ToString(CultureInfo.InvariantCulture), comparison?.ElseCount, "F0", includeDeltas);
+        AddMetricValue(row, m.elseScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.ElseScore, "F3", includeDeltas);
+        AddMetricValue(row, m.loopCount.ToString(CultureInfo.InvariantCulture), comparison?.LoopCount, "F0", includeDeltas);
+        AddMetricValue(row, m.loopScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LoopScore, "F3", includeDeltas);
+        AddMetricValue(row, m.switchCount.ToString(CultureInfo.InvariantCulture), comparison?.SwitchCount, "F0", includeDeltas);
+        AddMetricValue(row, m.switchScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.SwitchScore, "F3", includeDeltas);
+        AddMetricValue(row, m.tryCatchCount.ToString(CultureInfo.InvariantCulture), comparison?.TryCatchCount, "F0", includeDeltas);
+        AddMetricValue(row, m.tryCatchScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.TryCatchScore, "F3", includeDeltas);
+        AddMetricValue(row, m.argumentCount.ToString(CultureInfo.InvariantCulture), comparison?.ArgumentCount, "F0", includeDeltas);
+        AddMetricValue(row, m.argumentScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.ArgumentScore, "F3", includeDeltas);
+        AddMetricValue(row, m.nestingLevels.ToString(CultureInfo.InvariantCulture), comparison?.NestingLevels, "F0", includeDeltas);
+        AddMetricValue(row, m.nestingScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.NestingScore, "F3", includeDeltas);
+        AddMetricValue(row, m.returnCount.ToString(CultureInfo.InvariantCulture), comparison?.ReturnCount, "F0", includeDeltas);
+        AddMetricValue(row, m.returnScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.ReturnScore, "F3", includeDeltas);
+        AddMetricValue(row, m.localVariableCount.ToString(CultureInfo.InvariantCulture), comparison?.LocalVariableCount, "F0", includeDeltas);
+        AddMetricValue(row, m.localVariableScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LocalVariableScore, "F3", includeDeltas);
+        AddMetricValue(row, m.fieldAccessCount.ToString(CultureInfo.InvariantCulture), comparison?.FieldAccessCount, "F0", includeDeltas);
+        AddMetricValue(row, m.fieldAccessScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.FieldAccessScore, "F3", includeDeltas);
+        AddMetricValue(row, m.propertyAccessCount.ToString(CultureInfo.InvariantCulture), comparison?.PropertyAccessCount, "F0", includeDeltas);
+        AddMetricValue(row, m.propertyAccessScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.PropertyAccessScore, "F3", includeDeltas);
 
         if (configuration.ShowHalsteadComplexity)
         {
-            row.Add(FormatHalstead(m.Halstead?.Volume));
-            row.Add(FormatHalstead(m.Halstead?.Difficulty));
-            row.Add(FormatHalstead(m.Halstead?.Effort));
+            AddMetricValue(row, FormatHalstead(m.Halstead?.Volume), comparison?.HalsteadVolume, "F2", includeDeltas);
+            AddMetricValue(row, FormatHalstead(m.Halstead?.Difficulty), comparison?.HalsteadDifficulty, "F2", includeDeltas);
+            AddMetricValue(row, FormatHalstead(m.Halstead?.Effort), comparison?.HalsteadEffort, "F2", includeDeltas);
         }
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            row.Add(m.cyclomaticComplexity.ToString("F1", CultureInfo.InvariantCulture));
+            AddMetricValue(
+                row,
+                m.cyclomaticComplexity.ToString("F1", CultureInfo.InvariantCulture),
+                comparison?.CyclomaticComplexity,
+                "F1",
+                includeDeltas);
         }
 
         if (hasCoverageData)
         {
-            row.Add(FormatCoverage(m.lineCoveragePercentage));
-            row.Add(FormatCoverage(m.branchCoveragePercentage));
-            row.Add(FormatChurn(m.churnScore));
+            AddMetricValue(row, FormatCoverage(m.lineCoveragePercentage), comparison?.LineCoveragePercentage, "F1", includeDeltas);
+            AddMetricValue(row, FormatCoverage(m.branchCoveragePercentage), comparison?.BranchCoveragePercentage, "F1", includeDeltas);
+            AddMetricValue(row, FormatChurn(m.churnScore), comparison?.ChurnScore, "F3", includeDeltas);
         }
 
         return row;
+    }
+
+    private static void AddMetricValue(
+        List<string> row,
+        string value,
+        MetricDelta? delta,
+        string deltaFormat,
+        bool includeDeltas
+    )
+    {
+        row.Add(value);
+        if (includeDeltas)
+        {
+            row.Add(CognitiveReportDeltaFormatter.FormatCsvDelta(delta, deltaFormat));
+        }
     }
 
     private static string FormatHalstead(double? value)
@@ -149,7 +211,7 @@ public sealed class CsvReport : IReport
 
     private static string EscapeCsvField(string? value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (value is null or { Length: 0 })
         {
             return "";
         }

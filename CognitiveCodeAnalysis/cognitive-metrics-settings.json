@@ -27,12 +27,12 @@
                 "scale": 5.0,
                 "enabled": true
             },
-            "variableCount": {
+            "localVariableCount": {
                 "threshold": 4,
                 "scale": 5.0,
                 "enabled": false
             },
-            "propertyCallCount": {
+            "propertyAccessCount": {
                 "threshold": 4,
                 "scale": 15.0,
                 "enabled": false

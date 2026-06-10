@@ -5,8 +5,10 @@
 using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysisConsoleApp.Progress;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -31,10 +33,14 @@ internal sealed class AnalyseCommand(
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
 
-        [Description("Report type: ConsoleText, Html, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
-        [CommandOption("-r|--report-type")]
+        [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+        [CommandOption("-r|--report-type|--report-format")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }
+
+        [Description("Path to a JSON baseline snapshot for delta comparison")]
+        [CommandOption("-b|--baseline")]
+        public string? BaselineFile { get; init; }
 
         [Description("Output file")]
         [CommandOption("-o|--output-file")]
@@ -68,25 +74,99 @@ internal sealed class AnalyseCommand(
 
             var sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
             var absoluteSourcePath = Path.GetFullPath(sourcePath);
-            var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath);
+            var reportType = settings.ReportType ?? "ConsoleText";
+            var isConsoleText = string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase);
 
-            if (!FilesWereFound(files , absoluteSourcePath)) return Error;
+            CognitiveMetricsCollection? metricsCollection = null;
+            var filesNotFound = false;
+            var coverageFailed = false;
+            CognitiveBaselineComparison? baselineComparison = null;
 
-            var metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration);
+            SpectreProgressSession.Run((reporter, progress) =>
+            {
+                var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
+                if (!FilesWereFound(files, absoluteSourcePath))
+                {
+                    filesNotFound = true;
+                    return;
+                }
 
-            if (!HandleCoverage(settings , metricsCollection)) return Error;
+                metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
 
-            GenerateReport(
-                settings: settings ,
-                configuration: configuration ,
-                metricsCollection: metricsCollection
-            );
+                if (isConsoleText)
+                {
+                    return;
+                }
+
+                if (!TryApplyCoverage(settings, metricsCollection!, out coverageFailed))
+                {
+                    return;
+                }
+
+                baselineComparison = LoadBaselineComparison(settings, metricsCollection!);
+
+                GenerateReport(
+                    settings: settings,
+                    configuration: configuration,
+                    metricsCollection: metricsCollection!,
+                    baselineComparison: baselineComparison,
+                    progress: progress,
+                    progressReporter: reporter
+                );
+            });
+
+            if (filesNotFound || coverageFailed) return Error;
+
+            if (isConsoleText)
+            {
+                if (!HandleCoverage(settings, metricsCollection!)) return Error;
+
+                baselineComparison = LoadBaselineComparison(settings, metricsCollection!);
+
+                GenerateReport(
+                    settings: settings,
+                    configuration: configuration,
+                    metricsCollection: metricsCollection!,
+                    baselineComparison: baselineComparison
+                );
+            }
 
             return Success;
         } catch (Exception exception) {
             AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(exception.Message)}[/]");
             return Error;
         }
+    }
+
+    private bool TryApplyCoverage(Settings settings, CognitiveMetricsCollection metricsCollection, out bool failed)
+    {
+        failed = false;
+
+        if (string.IsNullOrEmpty(settings.CoverageCobertura))
+        {
+            return true;
+        }
+
+        if (HandleCoverage(settings, metricsCollection))
+        {
+            return true;
+        }
+
+        failed = true;
+        return false;
+    }
+
+    private static CognitiveBaselineComparison? LoadBaselineComparison(
+        Settings settings,
+        CognitiveMetricsCollection metricsCollection
+    ) {
+        if (string.IsNullOrWhiteSpace(settings.BaselineFile))
+        {
+            return null;
+        }
+
+        var baseline = BaselineLoader.Load(settings.BaselineFile);
+        return BaselineComparer.Compare(metricsCollection, baseline);
     }
 
     private bool HandleCoverage(Settings settings, CognitiveMetricsCollection metricsCollection)
@@ -137,18 +217,45 @@ internal sealed class AnalyseCommand(
     private void GenerateReport(
         Settings settings,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection metricsCollection
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress = null,
+        SpectreAnalysisProgressReporter? progressReporter = null
     ) {
         var reportType = settings.ReportType ?? "ConsoleText";
         var outputFile = settings.OutputFile ?? "cognitive-analysis-report";
 
-        reportCoordinator.ReportGenerated += OnReportGenerated;
-        reportCoordinator.GenerateReport(
-            reportType,
-            outputFile,
-            configuration,
-            metricsCollection
-        );
+        if (progressReporter == null)
+        {
+            reportCoordinator.ReportGenerated += OnReportGenerated;
+        }
+
+        try
+        {
+            reportCoordinator.GenerateReport(
+                reportType,
+                outputFile,
+                configuration,
+                metricsCollection,
+                baselineComparison,
+                progress
+            );
+
+            if (progressReporter != null)
+            {
+                progressReporter.DeferReportGeneratedMessage(
+                    reportType,
+                    Path.GetFullPath(outputFile)
+                );
+            }
+        }
+        finally
+        {
+            if (progressReporter == null)
+            {
+                reportCoordinator.ReportGenerated -= OnReportGenerated;
+            }
+        }
     }
 
     private static void OnReportGenerated(object? sender, ReportGeneratedEventArgs eventArgs)
