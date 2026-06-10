@@ -4,6 +4,7 @@
 
 using System.Text;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -17,7 +18,8 @@ public sealed class GithubActionsReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
@@ -27,7 +29,8 @@ public sealed class GithubActionsReport : IReport
             var kind = CognitiveCiSeverity.GithubCommandKind(m, configuration);
             var path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath);
             var title = $"{CheckName} score {m.totalScore:F3}";
-            var message = CognitiveCiEncoding.EncodeWorkflowCommandMessage(CognitiveCiSeverity.BuildMessage(m, configuration));
+            var message = CognitiveCiEncoding.EncodeWorkflowCommandMessage(
+                CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison));
             sb.Append("::").Append(kind)
                 .Append(" file=").Append(path)
                 .Append(",line=").Append(m.methodLineNumber)

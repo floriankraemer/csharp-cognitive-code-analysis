@@ -3,6 +3,7 @@
 /// </copyright>
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 
@@ -52,6 +53,51 @@ public class HtmlReportGoldenTests
             Assert.That(html, Does.Contain("2.500"));
             Assert.That(html, Does.Contain("id=\"report-filter\""));
             Assert.That(html, Does.Contain("report-class-section"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void HtmlReport_WithBaseline_ShowsColoredDeltaSuffixes()
+    {
+        var baselineMetrics = new CognitiveMetrics(
+            methodName: "Alpha",
+            className: "Demo",
+            filePath: "src/Demo.cs",
+            methodSignature: "void Alpha()",
+            methodLineNumber: 10
+        );
+        baselineMetrics.totalScore = 2.0;
+
+        var currentMetrics = new CognitiveMetrics(
+            methodName: "Alpha",
+            className: "Demo",
+            filePath: "src/Demo.cs",
+            methodSignature: "void Alpha()",
+            methodLineNumber: 10
+        );
+        currentMetrics.totalScore = 2.5;
+
+        var baseline = BaselineSnapshotFactory.FromMetricsCollection(new CognitiveMetricsCollection { baselineMetrics });
+        var current = new CognitiveMetricsCollection { currentMetrics };
+        var comparison = BaselineComparer.Compare(current, baseline);
+        var config = new CognitiveConfiguration { GroupByClass = false, ShowOnlyMethodsExceedingThreshold = false };
+
+        var path = Path.Combine(Path.GetTempPath(), "html-baseline-" + Guid.NewGuid() + ".html");
+        try
+        {
+            new HtmlReport().RenderMetrics(path, current, config, comparison);
+            var html = File.ReadAllText(path);
+
+            Assert.That(html, Does.Contain("delta-up"));
+            Assert.That(html, Does.Contain("▲0.500"));
+            Assert.That(html, Does.Contain("2.500"));
         }
         finally
         {
