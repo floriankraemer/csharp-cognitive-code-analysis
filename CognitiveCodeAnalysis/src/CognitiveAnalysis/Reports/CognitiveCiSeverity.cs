@@ -64,31 +64,31 @@ internal static class CognitiveCiSeverity
 
         if (c.ShowHalsteadComplexity && m.Halstead is { } h)
         {
-            AppendRawSegment(sb, $"halstead-vol={h.Volume:F2}");
-            AppendRawSegment(sb, $"halstead-diff={h.Difficulty:F2}");
-            AppendRawSegment(sb, $"halstead-effort={h.Effort:F2}");
+            AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "halstead-vol={0:F2}", h.Volume));
+            AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "halstead-diff={0:F2}", h.Difficulty));
+            AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "halstead-effort={0:F2}", h.Effort));
         }
 
         if (c.ShowCyclomaticComplexity)
         {
-            AppendRawSegment(sb, $"cyclomatic={m.cyclomaticComplexity:F1}");
+            AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "cyclomatic={0:F1}", m.cyclomaticComplexity));
         }
 
         if (m.HasCoverageData)
         {
             if (m.lineCoveragePercentage.HasValue)
             {
-                AppendRawSegment(sb, $"line-coverage={m.lineCoveragePercentage.Value:F1}%");
+                AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "line-coverage={0:F1}%", m.lineCoveragePercentage.Value));
             }
 
             if (m.branchCoveragePercentage.HasValue)
             {
-                AppendRawSegment(sb, $"branch-coverage={m.branchCoveragePercentage.Value:F1}%");
+                AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "branch-coverage={0:F1}%", m.branchCoveragePercentage.Value));
             }
 
             if (m.churnScore.HasValue)
             {
-                AppendRawSegment(sb, $"churn={m.churnScore.Value:F3}");
+                AppendRawSegment(sb, string.Format(CultureInfo.InvariantCulture, "churn={0:F3}", m.churnScore.Value));
             }
         }
 
