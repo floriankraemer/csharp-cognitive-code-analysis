@@ -27,11 +27,13 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 **Options:**
 
 - `-c|--config <path>` — JSON config file (same `cognitive` section as the default settings file). Passed to `ConfigurationLoader.Load`.
-- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
+- `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values).
 - `--coverage-cobertura <path>` — Optional Cobertura coverage file (line/branch coverage and churn when matched).
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
+- `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
 
 **Examples:**
 
@@ -50,6 +52,12 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.j
 
 # Show Halstead and cyclomatic columns for this run (regardless of config)
 dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --show-halstead --show-cyclomatic
+
+# Save a JSON baseline snapshot
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Json -o .\baseline.json
+
+# Compare against baseline (HTML shows colored deltas)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -b .\baseline.json -r Html -o .\report.html
 ```
 
 ## Resources 🔗
