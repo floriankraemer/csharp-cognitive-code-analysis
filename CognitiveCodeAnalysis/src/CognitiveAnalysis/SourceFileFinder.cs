@@ -15,7 +15,12 @@ public class SourceFileFinder
     /// <param name="directories"></param>
     /// <returns><![CDATA[A list of CSharp Files]]></returns>
     public List<string> FindSourceFiles(string[] directories)
+        => FindSourceFiles(directories, progress: null);
+
+    public List<string> FindSourceFiles(string[] directories, IProgress<AnalysisProgress>? progress)
     {
+        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.SearchingFiles));
+
         var files = new List<string>();
 
         foreach (string directory in directories)
@@ -34,6 +39,8 @@ public class SourceFileFinder
 
             files.AddRange(GetFilesFromDirectory(normalizedDirectory, files));
         }
+
+        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.SearchCompleted, TotalFiles: files.Count));
 
         return files;
     }

@@ -7,6 +7,7 @@ using System.ComponentModel;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysisConsoleApp.Progress;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -68,18 +69,43 @@ internal sealed class AnalyseCommand(
 
             var sourcePath = settings.SourcePath ?? Directory.GetCurrentDirectory();
             var absoluteSourcePath = Path.GetFullPath(sourcePath);
-            var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath);
 
-            if (!FilesWereFound(files , absoluteSourcePath)) return Error;
+            CognitiveMetricsCollection? metricsCollection = null;
+            var filesNotFound = false;
 
-            var metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration);
+            AnsiConsole.Progress()
+                .AutoClear(true)
+                .HideCompleted(true)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new SpinnerColumn()
+                )
+                .Start(ctx =>
+                {
+                    var reporter = new SpectreAnalysisProgressReporter();
+                    reporter.Attach(ctx);
+                    var progress = new Progress<AnalysisProgress>(reporter.Report);
 
-            if (!HandleCoverage(settings , metricsCollection)) return Error;
+                    var files = cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
+                    if (!FilesWereFound(files, absoluteSourcePath))
+                    {
+                        filesNotFound = true;
+                        return;
+                    }
+
+                    metricsCollection = cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
+                });
+
+            if (filesNotFound) return Error;
+
+            if (!HandleCoverage(settings, metricsCollection!)) return Error;
 
             GenerateReport(
                 settings: settings ,
                 configuration: configuration ,
-                metricsCollection: metricsCollection
+                metricsCollection: metricsCollection!
             );
 
             return Success;
