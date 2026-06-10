@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -62,7 +62,10 @@ public class ClassCouplingAnalyser
                 }
 
                 string typeKey = GetTypeKey(typeSymbol);
-                sourceTypes.TryAdd(typeKey, typeSymbol);
+                if (!sourceTypes.ContainsKey(typeKey))
+                {
+                    sourceTypes.Add(typeKey, typeSymbol);
+                }
                 typeDeclarations.Add((typeNode, model, typeSymbol));
             }
         }
@@ -77,8 +80,9 @@ public class ClassCouplingAnalyser
 
         var incomingCounts = sourceTypes.Keys.ToDictionary(key => key, _ => 0, StringComparer.Ordinal);
 
-        foreach ((string sourceKey, HashSet<string> targets) in outgoingByKey)
+        foreach (KeyValuePair<string, HashSet<string>> entry in outgoingByKey)
         {
+            HashSet<string> targets = entry.Value;
             foreach (string targetKey in targets)
             {
                 if (incomingCounts.ContainsKey(targetKey))
@@ -117,10 +121,12 @@ public class ClassCouplingAnalyser
             yield return node;
         }
 
+#if ROSLYN_4_0_OR_GREATER
         foreach (RecordDeclarationSyntax node in root.DescendantNodes().OfType<RecordDeclarationSyntax>())
         {
             yield return node;
         }
+#endif
 
         foreach (StructDeclarationSyntax node in root.DescendantNodes().OfType<StructDeclarationSyntax>())
         {

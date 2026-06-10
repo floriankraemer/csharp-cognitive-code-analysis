@@ -30,7 +30,7 @@ internal static class RoslynMetadataReferences
 
         if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedAssemblies)
         {
-            foreach (string path in trustedAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            foreach (string path in trustedAssemblies.Split(new[] { Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries))
             {
                 if (seenPaths.Add(path))
                 {
