@@ -28,7 +28,18 @@ public class CognitiveCodeAnalyser
     public CognitiveMetricsCollection AnalyseFiles(
         List<string> files,
         CognitiveConfiguration configuration
+    ) => AnalyseFiles(files, configuration, progress: null);
+
+    public CognitiveMetricsCollection AnalyseFiles(
+        List<string> files,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress
     ) {
+        int totalFiles = files.Count;
+        int processedFiles = 0;
+
+        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingFiles, TotalFiles: totalFiles));
+
         var metricsCollection = new CognitiveMetricsCollection();
 
         foreach (string file in files)
@@ -39,7 +50,20 @@ public class CognitiveCodeAnalyser
             SemanticModel? semanticModel = CreateSemanticModel(tree);
 
             metricsCollection = AnalyseClasses(configuration, root, metricsCollection, file, semanticModel);
+
+            processedFiles++;
+            progress?.Report(new AnalysisProgress(
+                AnalysisProgressPhase.AnalysingFiles,
+                TotalFiles: totalFiles,
+                ProcessedFiles: processedFiles
+            ));
         }
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysisCompleted,
+            TotalFiles: totalFiles,
+            ProcessedFiles: totalFiles
+        ));
 
         return metricsCollection;
     }
@@ -56,32 +80,62 @@ public class CognitiveCodeAnalyser
         List<string> files,
         CognitiveConfiguration configuration,
         CancellationToken cancellationToken = default
+    ) => await AnalyseFilesAsync(files, configuration, progress: null, cancellationToken);
+
+    public async Task<CognitiveMetricsCollection> AnalyseFilesAsync(
+        List<string> files,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress,
+        CancellationToken cancellationToken = default
     ) {
+        int totalFiles = files.Count;
+        int processedFiles = 0;
+
+        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingFiles, TotalFiles: totalFiles));
+
         // Use a thread-safe bag to collect metrics from all parallel tasks
         var allMetrics = new ConcurrentBag<CognitiveMetrics>();
 
         var fileTasks = files.Select(async file =>
         {
-            string fileContent = await File.ReadAllTextAsync(file, cancellationToken);
-
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
-
-            // GetRootAsync exists and is cancellable – small win
-            SyntaxNode root = await tree.GetRootAsync(cancellationToken);
-            SemanticModel? semanticModel = CreateSemanticModel(tree);
-
-            // Process this file independently
-            var localCollection = new CognitiveMetricsCollection();
-            AnalyseClasses(configuration, root, localCollection, file, semanticModel);
-
-            // Add all metrics from this file to the shared bag
-            foreach (var metric in localCollection)
+            try
             {
-                allMetrics.Add(metric);
+                string fileContent = await File.ReadAllTextAsync(file, cancellationToken);
+
+                SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
+
+                // GetRootAsync exists and is cancellable – small win
+                SyntaxNode root = await tree.GetRootAsync(cancellationToken);
+                SemanticModel? semanticModel = CreateSemanticModel(tree);
+
+                // Process this file independently
+                var localCollection = new CognitiveMetricsCollection();
+                AnalyseClasses(configuration, root, localCollection, file, semanticModel);
+
+                // Add all metrics from this file to the shared bag
+                foreach (var metric in localCollection)
+                {
+                    allMetrics.Add(metric);
+                }
+            }
+            finally
+            {
+                int count = Interlocked.Increment(ref processedFiles);
+                progress?.Report(new AnalysisProgress(
+                    AnalysisProgressPhase.AnalysingFiles,
+                    TotalFiles: totalFiles,
+                    ProcessedFiles: count
+                ));
             }
         });
 
         await Task.WhenAll(fileTasks);
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysisCompleted,
+            TotalFiles: totalFiles,
+            ProcessedFiles: totalFiles
+        ));
 
         // Convert to the expected collection type
         var result = new CognitiveMetricsCollection();
