@@ -18,7 +18,8 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
         string outputFile,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         foreach (IReport reportGenerator in _reportGenerators)
@@ -29,7 +30,8 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
                 outputFile: outputFile,
                 metricsCollection: metricsCollection,
                 configuration: configuration,
-                baselineComparison: baselineComparison
+                baselineComparison: baselineComparison,
+                progress: progress
             );
 
             OnReportGenerated(

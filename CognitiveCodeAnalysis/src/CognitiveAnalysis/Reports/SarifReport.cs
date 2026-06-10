@@ -26,33 +26,22 @@ public sealed class SarifReport : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
-        var toolVersion = typeof(SarifReport).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        int totalItems = filtered.Count;
+        int processedItems = 0;
 
-        var run = new CognitiveSarifRun
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
+        var toolVersion = typeof(SarifReport).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var results = new List<CognitiveSarifResult>();
+
+        foreach (var m in filtered)
         {
-            Tool = new CognitiveSarifTool
-            {
-                Driver = new CognitiveSarifToolDriver
-                {
-                    Name = "CognitiveCodeAnalysis",
-                    Version = toolVersion,
-                    Rules =
-                    [
-                        new CognitiveSarifRule
-                        {
-                            Id = RuleId,
-                            Name = "Method cognitive complexity",
-                            ShortDescription = new CognitiveSarifText { Text = "Cognitive complexity score for a C# method." },
-                            FullDescription = new CognitiveSarifText { Text = "Aggregated structural and churn-based complexity metrics per method." },
-                        },
-                    ],
-                },
-            },
-            Results = filtered.Select(m => new CognitiveSarifResult
+            results.Add(new CognitiveSarifResult
             {
                 RuleId = RuleId,
                 Level = CognitiveCiSeverity.SarifLevel(m, configuration),
@@ -75,7 +64,32 @@ public sealed class SarifReport : IReport
                         },
                     },
                 ],
-            }).ToList(),
+            });
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
+        }
+
+        var run = new CognitiveSarifRun
+        {
+            Tool = new CognitiveSarifTool
+            {
+                Driver = new CognitiveSarifToolDriver
+                {
+                    Name = "CognitiveCodeAnalysis",
+                    Version = toolVersion,
+                    Rules =
+                    [
+                        new CognitiveSarifRule
+                        {
+                            Id = RuleId,
+                            Name = "Method cognitive complexity",
+                            ShortDescription = new CognitiveSarifText { Text = "Cognitive complexity score for a C# method." },
+                            FullDescription = new CognitiveSarifText { Text = "Aggregated structural and churn-based complexity metrics per method." },
+                        },
+                    ],
+                },
+            },
+            Results = results,
         };
 
         var log = new CognitiveSarifLog
@@ -87,6 +101,7 @@ public sealed class SarifReport : IReport
 
         var json = JsonSerializer.Serialize(log, JsonOptions);
         CognitiveReportFileWriter.Write(outputFile, json);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 }
 

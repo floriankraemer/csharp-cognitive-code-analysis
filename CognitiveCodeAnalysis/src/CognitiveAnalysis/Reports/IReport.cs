@@ -13,7 +13,8 @@ public interface IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     );
 
     string Name { get; }

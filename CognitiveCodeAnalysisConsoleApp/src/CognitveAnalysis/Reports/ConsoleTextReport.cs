@@ -21,26 +21,35 @@ public class ConsoleTextReport() : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         CognitiveMetricsCollection filteredCollection = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filteredCollection.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
 
         bool hasCoverageData = filteredCollection.HasCoverageData();
 
         if (configuration.GroupByClass)
         {
-            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration, metricsCollection, baselineComparison);
+            RenderMetricsGrouped(filteredCollection, hasCoverageData, configuration, metricsCollection, baselineComparison, progress, totalItems, ref processedItems);
             RenderSummary(metricsCollection, configuration);
+            ReportProgress.ReportComplete(progress, Name, totalItems);
             return;
         }
 
         foreach (CognitiveMetrics metrics in filteredCollection)
         {
             RenderMetrics(metrics, hasCoverageData, configuration, baselineComparison);
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         RenderSummary(metricsCollection, configuration);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static void RenderMetricsGrouped(
@@ -48,7 +57,10 @@ public class ConsoleTextReport() : IReport
         bool hasCoverageData,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection fullMetricsCollection,
-        CognitiveBaselineComparison? baselineComparison
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     ) {
         var groupedByClass = metricsCollection
             .GroupBy(metrics => new { metrics.ClassName, metrics.FilePath })
@@ -74,10 +86,12 @@ public class ConsoleTextReport() : IReport
             table = AddTableHeaders(table, hasCoverageData, configuration);
             table.ShowRowSeparators();
 
-            table = classMetrics.Aggregate(
-                table,
-                (current, metrics) => AddTableRow(current, metrics, hasCoverageData, configuration, baselineComparison)
-            );
+            foreach (CognitiveMetrics metrics in classMetrics)
+            {
+                table = AddTableRow(table, metrics, hasCoverageData, configuration, baselineComparison);
+                processedItems++;
+                ReportProgress.ReportItem(progress, "ConsoleText", totalItems, processedItems);
+            }
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();

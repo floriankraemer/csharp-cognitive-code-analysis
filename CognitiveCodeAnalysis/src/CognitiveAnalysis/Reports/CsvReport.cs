@@ -19,12 +19,17 @@ public sealed class CsvReport : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
         bool hasCoverageData = filtered.HasCoverageData();
         bool includeDeltas = baselineComparison != null;
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
 
         var sb = new StringBuilder();
         var headers = BuildHeaders(hasCoverageData, configuration, includeDeltas);
@@ -36,9 +41,12 @@ public sealed class CsvReport : IReport
             baselineComparison?.TryGetMethodComparison(m, out comparison);
             var row = BuildRow(m, hasCoverageData, configuration, comparison, includeDeltas);
             sb.AppendLine(string.Join(",", row.Select(EscapeCsvField)));
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         CognitiveReportFileWriter.Write(outputFile, sb.ToString());
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static List<string> BuildHeaders(bool hasCoverageData, CognitiveConfiguration configuration, bool includeDeltas)

@@ -20,10 +20,16 @@ public sealed class GithubActionsReport : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
         var sb = new StringBuilder();
         foreach (var m in filtered)
         {
@@ -37,8 +43,11 @@ public sealed class GithubActionsReport : IReport
                 .Append(",line=").Append(m.methodLineNumber)
                 .Append(",title=").Append(CognitiveCiEncoding.EncodeWorkflowCommandMessage(title))
                 .Append("::").Append(message).AppendLine();
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         CognitiveReportFileWriter.Write(outputFile, sb.ToString());
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 }

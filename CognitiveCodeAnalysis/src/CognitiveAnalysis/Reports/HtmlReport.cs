@@ -19,8 +19,15 @@ public class HtmlReport() : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     ) {
+        CognitiveMetricsCollection filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
         var html = new StringBuilder();
         html.AppendLine("<!DOCTYPE html>");
         html.AppendLine("<html lang=\"en\">");
@@ -47,8 +54,7 @@ public class HtmlReport() : IReport
         html.AppendLine("        <h1 class=\"mb-4\">Cognitive Code Analysis Report</h1>");
         AppendFilterControls(html);
 
-        CognitiveMetricsCollection filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
-        HandleGrouping(filtered, html, configuration, metricsCollection, baselineComparison);
+        HandleGrouping(filtered, html, configuration, metricsCollection, baselineComparison, progress, totalItems, ref processedItems);
 
         html.AppendLine("    </div>");
         html.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script>");
@@ -57,6 +63,7 @@ public class HtmlReport() : IReport
         html.AppendLine("</html>");
 
         WriteReportToFile(outputFile, html);
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private void HandleGrouping(
@@ -64,15 +71,18 @@ public class HtmlReport() : IReport
         StringBuilder html,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection fullMetricsCollection,
-        CognitiveBaselineComparison? baselineComparison
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     ) {
         if (configuration.GroupByClass)
         {
-            html.Append(RenderMetricsGrouped(metricsCollection, configuration, fullMetricsCollection, baselineComparison));
+            html.Append(RenderMetricsGrouped(metricsCollection, configuration, fullMetricsCollection, baselineComparison, progress, totalItems, ref processedItems));
             return;
         }
 
-        html.Append(RenderMetricsUngrouped(metricsCollection, configuration, baselineComparison));
+        html.Append(RenderMetricsUngrouped(metricsCollection, configuration, baselineComparison, progress, totalItems, ref processedItems));
     }
 
     private static void AppendFilterControls(StringBuilder html)
@@ -123,7 +133,10 @@ public class HtmlReport() : IReport
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection fullMetricsCollection,
-        CognitiveBaselineComparison? baselineComparison
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     )
     {
         var html = new StringBuilder();
@@ -149,6 +162,12 @@ public class HtmlReport() : IReport
 
             AppendMetricsTable(html, classMetrics, configuration, hasCoverageData, baselineComparison);
 
+            foreach (var _ in classMetrics)
+            {
+                processedItems++;
+                ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
+            }
+
             html.AppendLine("        </div>");
         }
 
@@ -158,7 +177,10 @@ public class HtmlReport() : IReport
     private string RenderMetricsUngrouped(
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     )
     {
         var html = new StringBuilder();
@@ -178,6 +200,8 @@ public class HtmlReport() : IReport
             AppendMetricsTable(html, [metrics], configuration, hasCoverageData, baselineComparison);
 
             html.AppendLine("        </div>");
+            processedItems++;
+            ReportProgress.ReportItem(progress, Name, totalItems, processedItems);
         }
 
         return html.ToString();

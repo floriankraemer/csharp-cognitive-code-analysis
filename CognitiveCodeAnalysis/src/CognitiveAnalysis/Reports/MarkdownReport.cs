@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Text;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
@@ -18,31 +19,42 @@ public sealed class MarkdownReport : IReport
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
-        CognitiveBaselineComparison? baselineComparison = null
+        CognitiveBaselineComparison? baselineComparison = null,
+        IProgress<AnalysisProgress>? progress = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
+        int totalItems = filtered.Count;
+        int processedItems = 0;
+
+        ReportProgress.ReportStart(progress, Name, totalItems);
+
         var md = new StringBuilder();
         md.AppendLine("# Cognitive Code Analysis Report");
         md.AppendLine();
 
         if (configuration.GroupByClass)
         {
-            AppendGrouped(filtered, md, configuration, metricsCollection);
+            AppendGrouped(filtered, md, configuration, metricsCollection, Name, progress, totalItems, ref processedItems);
         }
         else
         {
-            AppendUngrouped(filtered, md, configuration);
+            AppendUngrouped(filtered, md, configuration, Name, progress, totalItems, ref processedItems);
         }
 
         CognitiveReportFileWriter.Write(outputFile, md.ToString());
+        ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
     private static void AppendGrouped(
         CognitiveMetricsCollection metricsCollection,
         StringBuilder md,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection fullMetricsCollection
+        CognitiveMetricsCollection fullMetricsCollection,
+        string reportName,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     )
     {
         bool hasCoverageData = metricsCollection.HasCoverageData();
@@ -62,13 +74,23 @@ public sealed class MarkdownReport : IReport
             md.AppendLine();
             AppendCouplingLine(md, configuration, fullMetricsCollection, firstMetric.ClassName);
             AppendMetricsTable(md, classMetrics, configuration, hasCoverageData);
+
+            foreach (var _ in classMetrics)
+            {
+                processedItems++;
+                ReportProgress.ReportItem(progress, reportName, totalItems, processedItems);
+            }
         }
     }
 
     private static void AppendUngrouped(
         CognitiveMetricsCollection metricsCollection,
         StringBuilder md,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        string reportName,
+        IProgress<AnalysisProgress>? progress,
+        int totalItems,
+        ref int processedItems
     )
     {
         bool hasCoverageData = metricsCollection.HasCoverageData();
@@ -82,6 +104,8 @@ public sealed class MarkdownReport : IReport
             md.AppendLine($"**File:** `{metrics.FilePath}`");
             md.AppendLine();
             AppendMetricsTable(md, [metrics], configuration, hasCoverageData);
+            processedItems++;
+            ReportProgress.ReportItem(progress, reportName, totalItems, processedItems);
         }
     }
 
