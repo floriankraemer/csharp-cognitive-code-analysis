@@ -19,7 +19,7 @@ public static class ConfigurationLoader
     {
         IConfigurationRoot configuration = BuildConfiguration(configFilePath);
 
-        CognitiveConfiguration cognitiveConfig = new();
+        CognitiveConfiguration cognitiveConfig = CognitiveConfigurationDefaults.Create();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
 
         return cognitiveConfig;
@@ -73,7 +73,7 @@ public static class ConfigurationLoader
         ConfigurationBuilder builder = new();
 
         return builder.SetBasePath(AppContext.BaseDirectory)
-                    .AddJsonFile("cognitive-metrics-settings.json", optional: false, reloadOnChange: false)
+                    .AddJsonFile("cognitive-metrics-settings.json", optional: true, reloadOnChange: false)
                     .Build();
     }
 }

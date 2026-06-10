@@ -28,4 +28,10 @@
     <ProjectReference Include="..\CognitiveCodeAnalysis\CognitiveCodeAnalysis.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\CognitiveCodeAnalysis\cognitive-metrics-settings.json" Link="cognitive-metrics-settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -115,11 +115,13 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 ### CLI options
 
 - `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
-- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
+- `-b|--baseline <path>`: path to a JSON baseline snapshot (from a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
 - `--coverage-cobertura <path>`: optional Cobertura coverage file.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
+- `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
 
 CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 
@@ -140,4 +142,10 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.j
 
 # Cobertura coverage (optional)
 dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --coverage-cobertura .\coverage.cobertura.xml
+
+# Save a JSON baseline snapshot
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Json -o .\baseline.json
+
+# Compare against baseline (HTML shows colored deltas)
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -b .\baseline.json -r Html -o .\report.html
 ```
