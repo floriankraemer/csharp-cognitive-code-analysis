@@ -5,6 +5,7 @@
 using System.ComponentModel;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysisConsoleApp.Progress;
@@ -32,10 +33,14 @@ internal sealed class AnalyseCommand(
         [CommandOption("-c|--config")]
         public string? ConfigFile { get; init; }
 
-        [Description("Report type: ConsoleText, Html, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+        [Description("Report type: ConsoleText, Html, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
         [CommandOption("-r|--report-type")]
         [DefaultValue("ConsoleText")]
         public string? ReportType { get; init; }
+
+        [Description("Path to a JSON baseline snapshot for delta comparison")]
+        [CommandOption("-b|--baseline")]
+        public string? BaselineFile { get; init; }
 
         [Description("Output file")]
         [CommandOption("-o|--output-file")]
@@ -102,10 +107,18 @@ internal sealed class AnalyseCommand(
 
             if (!HandleCoverage(settings, metricsCollection!)) return Error;
 
+            CognitiveBaselineComparison? baselineComparison = null;
+            if (!string.IsNullOrWhiteSpace(settings.BaselineFile))
+            {
+                var baseline = BaselineLoader.Load(settings.BaselineFile);
+                baselineComparison = BaselineComparer.Compare(metricsCollection!, baseline);
+            }
+
             GenerateReport(
-                settings: settings ,
-                configuration: configuration ,
-                metricsCollection: metricsCollection!
+                settings: settings,
+                configuration: configuration,
+                metricsCollection: metricsCollection!,
+                baselineComparison: baselineComparison
             );
 
             return Success;
@@ -163,7 +176,8 @@ internal sealed class AnalyseCommand(
     private void GenerateReport(
         Settings settings,
         CognitiveConfiguration configuration,
-        CognitiveMetricsCollection metricsCollection
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveBaselineComparison? baselineComparison
     ) {
         var reportType = settings.ReportType ?? "ConsoleText";
         var outputFile = settings.OutputFile ?? "cognitive-analysis-report";
@@ -173,7 +187,8 @@ internal sealed class AnalyseCommand(
             reportType,
             outputFile,
             configuration,
-            metricsCollection
+            metricsCollection,
+            baselineComparison
         );
     }
 

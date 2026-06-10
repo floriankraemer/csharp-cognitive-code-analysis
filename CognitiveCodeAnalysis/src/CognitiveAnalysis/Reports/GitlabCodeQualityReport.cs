@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -26,7 +27,8 @@ public sealed class GitlabCodeQualityReport : IReport
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
-        CognitiveConfiguration configuration
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison = null
     )
     {
         var filtered = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
@@ -34,7 +36,7 @@ public sealed class GitlabCodeQualityReport : IReport
         {
             Type = "issue",
             CheckName = CheckName,
-            Description = CognitiveCiSeverity.BuildMessage(m, configuration),
+            Description = CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison),
             Categories = ["Complexity"],
             Severity = CognitiveCiSeverity.GitlabSeverity(m, configuration),
             Fingerprint = ComputeFingerprint(m.FilePath, m.methodLineNumber, m.MethodName),

@@ -9,6 +9,19 @@ namespace CognitiveCodeAnalysis.Tests.Configuration;
 public class ConfigurationLoaderTests
 {
     [Test]
+    public void CreateDefaultConfiguration_MatchesShippedDefaults()
+    {
+        var cfg = CognitiveConfigurationDefaults.Create();
+
+        Assert.That(cfg.ScoreThreshold, Is.EqualTo(0.5));
+        Assert.That(cfg.GroupByClass, Is.True);
+        Assert.That(cfg.ShowOnlyMethodsExceedingThreshold, Is.True);
+        Assert.That(cfg.Metrics, Contains.Key("ifCount"));
+        Assert.That(cfg.Metrics["ifCount"].Enabled, Is.True);
+        Assert.That(cfg.Metrics["loopCount"].Enabled, Is.False);
+    }
+
+    [Test]
     public void Load_CustomJsonFile_AppliesScoreThreshold()
     {
         var json = """
