@@ -30,7 +30,7 @@ public class AnalysisWorkflowTests
 
         Assert.That(prepared.AbsoluteSourcePath, Is.EqualTo(Path.GetFullPath(".")));
         Assert.That(prepared.ReportType, Is.EqualTo("Html"));
-        Assert.That(prepared.OutputFile, Is.EqualTo("cognitive-analysis-report"));
+        Assert.That(prepared.OutputFile, Is.EqualTo(Path.GetFullPath("cognitive-analysis-report")));
         Assert.That(prepared.IsConsoleTextReport, Is.False);
     }
 
@@ -49,7 +49,28 @@ public class AnalysisWorkflowTests
         ));
 
         Assert.That(prepared.IsConsoleTextReport, Is.True);
-        Assert.That(prepared.OutputFile, Is.EqualTo("out.txt"));
+        Assert.That(prepared.OutputFile, Is.EqualTo(Path.GetFullPath("out.txt")));
+    }
+
+    [Test]
+    public void Prepare_ResolvesRelativeBaselineAndOutputPaths()
+    {
+        var workflow = CreateWorkflow();
+        var baseline = Path.Combine(".", "baseline.json");
+        var output = Path.Combine(".", "report.html");
+
+        var prepared = workflow.Prepare(new AnalysisRequest(
+            SourcePath: ".",
+            ConfigFile: null,
+            ReportType: "Html",
+            BaselineFile: baseline,
+            OutputFile: output,
+            CoverageCobertura: Path.Combine(".", "coverage.xml")
+        ));
+
+        Assert.That(prepared.BaselineFile, Is.EqualTo(Path.GetFullPath(baseline)));
+        Assert.That(prepared.OutputFile, Is.EqualTo(Path.GetFullPath(output)));
+        Assert.That(prepared.CoverageCobertura, Is.EqualTo(Path.GetFullPath(Path.Combine(".", "coverage.xml"))));
     }
 
     [Test]
