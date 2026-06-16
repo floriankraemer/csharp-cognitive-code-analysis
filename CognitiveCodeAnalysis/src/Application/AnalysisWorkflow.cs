@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -20,7 +20,7 @@ public sealed class AnalysisWorkflow(
         var sourcePath = request.SourcePath ?? Directory.GetCurrentDirectory();
         var absoluteSourcePath = Path.GetFullPath(sourcePath);
         var reportType = request.ReportType;
-        var outputFile = request.OutputFile ?? "cognitive-analysis-report";
+        var outputFile = Path.GetFullPath(request.OutputFile ?? "cognitive-analysis-report");
         var isConsoleTextReport = string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase);
 
         return new PreparedAnalysis(
@@ -28,11 +28,14 @@ public sealed class AnalysisWorkflow(
             AbsoluteSourcePath: absoluteSourcePath,
             ReportType: reportType,
             OutputFile: outputFile,
-            BaselineFile: request.BaselineFile,
-            CoverageCobertura: request.CoverageCobertura,
+            BaselineFile: ToAbsolutePath(request.BaselineFile),
+            CoverageCobertura: ToAbsolutePath(request.CoverageCobertura),
             IsConsoleTextReport: isConsoleTextReport
         );
     }
+
+    private static string? ToAbsolutePath(string? path) =>
+        string.IsNullOrWhiteSpace(path) ? path : Path.GetFullPath(path);
 
     public List<string> FindSourceFiles(string absoluteSourcePath, IProgress<AnalysisProgress>? progress = null)
         => cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);

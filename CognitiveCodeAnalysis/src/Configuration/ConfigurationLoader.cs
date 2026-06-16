@@ -66,9 +66,9 @@ public static class ConfigurationLoader
 
         if (string.IsNullOrEmpty(configFilePath)) return GetDefaultConfig();
 
-        // If a specific file path is provided, use it directly
-        string directory = Path.GetDirectoryName(configFilePath) ?? AppContext.BaseDirectory;
-        string fileName = Path.GetFileName(configFilePath);
+        string fullConfigPath = Path.GetFullPath(configFilePath);
+        string directory = Path.GetDirectoryName(fullConfigPath) ?? AppContext.BaseDirectory;
+        string fileName = Path.GetFileName(fullConfigPath);
 
         return builder.SetBasePath(directory)
                 .AddJsonFile(fileName, optional: false, reloadOnChange: false)

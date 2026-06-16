@@ -99,6 +99,42 @@ public class ConfigurationLoaderTests
     }
 
     [Test]
+    public void Load_RelativeConfigPath_ResolvesAgainstCurrentDirectory()
+    {
+        var json = """
+            {
+              "cognitive": {
+                "scoreThreshold": 3.21
+              }
+            }
+            """;
+        var dir = Path.Combine(Path.GetTempPath(), "cogcfg-rel-" + Guid.NewGuid());
+        var subDir = Path.Combine(dir, "config");
+        Directory.CreateDirectory(subDir);
+        var file = Path.Combine(subDir, "custom.json");
+        var originalCwd = Directory.GetCurrentDirectory();
+        try
+        {
+            File.WriteAllText(file, json);
+            Directory.SetCurrentDirectory(dir);
+            var cfg = ConfigurationLoader.Load(Path.Combine("config", "custom.json"));
+            Assert.That(cfg.ScoreThreshold, Is.EqualTo(3.21));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalCwd);
+            try
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+    }
+
+    [Test]
     public void Load_WithoutConfigFile_UsesBundledDefaults()
     {
         var cfg = ConfigurationLoader.Load();
