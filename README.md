@@ -39,25 +39,25 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 
 ```powershell
 # Analyse current directory (console report)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp --
+CognitiveCodeAnalysis
 
 # Analyse a specific folder
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src
+CognitiveCodeAnalysis .\src
 
 # HTML report
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Html -o .\report.html
+CognitiveCodeAnalysis .\src -r Html -o .\report.html
 
 # Custom config
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.json
+CognitiveCodeAnalysis .\src -c .\my-config.json
 
 # Show Halstead and cyclomatic columns for this run (regardless of config)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --show-halstead --show-cyclomatic
+CognitiveCodeAnalysis .\src --show-halstead --show-cyclomatic
 
 # Save a JSON baseline snapshot
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Json -o .\baseline.json
+CognitiveCodeAnalysis .\src -r Json -o .\baseline.json
 
 # Compare against baseline (HTML shows colored deltas)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -b .\baseline.json -r Html -o .\report.html
+CognitiveCodeAnalysis .\src -b .\baseline.json -r Html -o .\report.html
 ```
 
 ## Resources 🔗

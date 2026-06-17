@@ -19,7 +19,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     public string? ConfigFile { get; init; }
 
     [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
-    [CommandOption("-r|--report-type|--report-format")]
+    [CommandOption("-f|-r|--report-type|--report-format")]
     [DefaultValue("ConsoleText")]
     public string? ReportType { get; init; }
 
