@@ -50,10 +50,20 @@ public class CognitiveAnalysisFacade(
     ) {
         CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files);
 
-        var cognitiveTask = Task.Run(() => analyser.AnalyseCompiled(sources, configuration, progress));
-        var couplingTask = Task.Run(() => classCouplingAnalyser.AnalyseCompiled(sources));
+        Task<CognitiveMetricsCollection> cognitiveTask = Task.Run(
+            () => analyser.AnalyseCompiled(sources, configuration, progress)
+        );
 
-        await Task.WhenAll(cognitiveTask, couplingTask);
+        Task<IReadOnlyList<ClassCouplingMetrics>>? couplingTask = null;
+        if (configuration.ShowCouplingMetrics)
+        {
+            couplingTask = Task.Run(() => classCouplingAnalyser.AnalyseCompiled(sources));
+            await Task.WhenAll(cognitiveTask, couplingTask);
+        }
+        else
+        {
+            await cognitiveTask;
+        }
 
         CognitiveMetricsCollection metricsCollection = await cognitiveTask;
 
@@ -62,7 +72,10 @@ public class CognitiveAnalysisFacade(
             calculator.CalculateScores(metrics, configuration);
         }
 
-        metricsCollection.SetClassCouplingMetrics(await couplingTask);
+        if (couplingTask != null)
+        {
+            metricsCollection.SetClassCouplingMetrics(await couplingTask);
+        }
 
         return metricsCollection;
     }

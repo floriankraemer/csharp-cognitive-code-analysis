@@ -99,6 +99,56 @@ namespace X {
     }
 
     [Test]
+    public void AnalyseSourceFiles_WhenShowCouplingMetricsDisabled_SkipsCouplingAnalysis()
+    {
+        const string content = """
+            namespace CouplingTest {
+                public class Service {
+                    public void Run(Repository repo) { }
+                }
+                public class Repository { }
+            }
+            """;
+        _tempFiles.CreateFileWithContent("Coupling.cs", content);
+        var files = _facade.FindSourceFiles(_tempFiles.tmpDirectory);
+        var configuration = new CognitiveConfiguration { ShowCouplingMetrics = false };
+
+        var metricsCollection = _facade.AnalyseSourceFiles(files, configuration);
+
+        Assert.That(metricsCollection.Count, Is.EqualTo(1));
+        Assert.That(
+            metricsCollection.TryGetClassCoupling("CouplingTest.Service", out _),
+            Is.False
+        );
+    }
+
+    [Test]
+    public void AnalyseSourceFiles_WhenShowCouplingMetricsEnabled_IncludesCouplingAnalysis()
+    {
+        const string content = """
+            namespace CouplingTest {
+                public class Service {
+                    public void Run(Repository repo) { }
+                }
+                public class Repository { }
+            }
+            """;
+        _tempFiles.CreateFileWithContent("Coupling.cs", content);
+        var files = _facade.FindSourceFiles(_tempFiles.tmpDirectory);
+        var configuration = new CognitiveConfiguration { ShowCouplingMetrics = true };
+
+        var metricsCollection = _facade.AnalyseSourceFiles(files, configuration);
+
+        Assert.That(metricsCollection.Count, Is.EqualTo(1));
+        Assert.That(
+            metricsCollection.TryGetClassCoupling("CouplingTest.Service", out var coupling),
+            Is.True
+        );
+        Assert.That(coupling, Is.Not.Null);
+        Assert.That(coupling!.OutgoingCoupling, Is.GreaterThan(0));
+    }
+
+    [Test]
     public void LoadCoverageData_WithMatchingCoverage_UpdatesMetricsAndReturnsSuccess()
     {
         // Arrange
