@@ -8,6 +8,7 @@ namespace CognitiveCodeAnalysis.Application;
 
 public sealed record PreparedAnalysis(
     CognitiveConfiguration Configuration,
+    ConfigSource ConfigSource,
     string AbsoluteSourcePath,
     string ReportType,
     string OutputFile,

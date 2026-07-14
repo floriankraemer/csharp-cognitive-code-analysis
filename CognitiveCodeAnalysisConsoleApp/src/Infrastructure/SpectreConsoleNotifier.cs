@@ -19,4 +19,7 @@ internal sealed class SpectreConsoleNotifier : IConsoleNotifier
 
     public void WriteReportGenerated(string reportType, string fullPath)
         => AnsiConsole.MarkupLine($"[green]{Markup.Escape(reportType)} report generated:[/] {Markup.Escape(fullPath)}");
+
+    public void WriteConfigUsed(string configSourceDisplay)
+        => AnsiConsole.MarkupLine($"[grey]Config:[/] {Markup.Escape(configSourceDisplay)}");
 }

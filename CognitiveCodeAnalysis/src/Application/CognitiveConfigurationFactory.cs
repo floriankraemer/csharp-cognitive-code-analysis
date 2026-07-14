@@ -10,9 +10,20 @@ public static class CognitiveConfigurationFactory
 {
     public static CognitiveConfiguration Load(string? configFile, AnalysisDisplayOverrides? overrides = null)
     {
-        var configuration = ConfigurationLoader.Load(configFile);
-        ApplyDisplayOverrides(configuration, overrides);
+        var (configuration, _) = LoadWithSource(configFile, overrides);
         return configuration;
+    }
+
+    public static (CognitiveConfiguration Configuration, ConfigSource Source) LoadWithSource(
+        string? configFile,
+        AnalysisDisplayOverrides? overrides = null
+    ) {
+        var source = ConfigurationResolver.Resolve(configFile);
+        var configuration = source.IsDefault
+            ? CognitiveConfigurationDefaults.Create()
+            : ConfigurationLoader.Load(source.Path);
+        ApplyDisplayOverrides(configuration, overrides);
+        return (configuration, source);
     }
 
     private static void ApplyDisplayOverrides(

@@ -18,6 +18,7 @@ internal sealed class AnalyseApplicationService(
     public AnalyseResult Run(AnalysisRequest request)
     {
         var prepared = analysisWorkflow.Prepare(request);
+        consoleNotifier.WriteConfigUsed(prepared.ConfigSource.Display);
 
         CognitiveMetricsCollection? metricsCollection = null;
         var filesNotFound = false;

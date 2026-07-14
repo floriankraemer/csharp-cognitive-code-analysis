@@ -13,4 +13,6 @@ internal interface IConsoleNotifier
     void WriteNoSourceFilesFound(string absoluteSourcePath);
 
     void WriteReportGenerated(string reportType, string fullPath);
+
+    void WriteConfigUsed(string configSourceDisplay);
 }

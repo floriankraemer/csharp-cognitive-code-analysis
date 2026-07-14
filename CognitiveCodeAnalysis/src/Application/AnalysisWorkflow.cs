@@ -16,7 +16,10 @@ public sealed class AnalysisWorkflow(
 ) {
     public PreparedAnalysis Prepare(AnalysisRequest request)
     {
-        var configuration = CognitiveConfigurationFactory.Load(request.ConfigFile, request.DisplayOverrides);
+        var (configuration, configSource) = CognitiveConfigurationFactory.LoadWithSource(
+            request.ConfigFile,
+            request.DisplayOverrides
+        );
         var sourcePath = request.SourcePath ?? Directory.GetCurrentDirectory();
         var absoluteSourcePath = Path.GetFullPath(sourcePath);
         var reportType = request.ReportType;
@@ -25,6 +28,7 @@ public sealed class AnalysisWorkflow(
 
         return new PreparedAnalysis(
             Configuration: configuration,
+            ConfigSource: configSource,
             AbsoluteSourcePath: absoluteSourcePath,
             ReportType: reportType,
             OutputFile: outputFile,

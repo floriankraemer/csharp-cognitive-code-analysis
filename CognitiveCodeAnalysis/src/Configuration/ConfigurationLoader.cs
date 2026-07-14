@@ -88,7 +88,7 @@ public static class ConfigurationLoader
     /// Default cognitive settings (same defaults as bundled cognitive-metrics-settings.json).
     /// Kept embedded so analyzer hosts that do not set AppContext.BaseDirectory to the CLI output still get CLI parity.
     /// </summary>
-    internal const string DefaultCognitiveMetricsSettingsJson =
+    public const string DefaultCognitiveMetricsSettingsJson =
         """
 {
     "cognitive": {

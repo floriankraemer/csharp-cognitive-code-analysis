@@ -114,5 +114,7 @@ public class AnalyseCommandCliIntegrationTests
         public void WriteNoSourceFilesFound(string absoluteSourcePath) { }
 
         public void WriteReportGenerated(string reportType, string fullPath) { }
+
+        public void WriteConfigUsed(string configSourceDisplay) { }
     }
 }

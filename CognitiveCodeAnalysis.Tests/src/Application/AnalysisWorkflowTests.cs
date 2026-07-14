@@ -15,6 +15,43 @@ namespace CognitiveCodeAnalysis.Tests.Application;
 public class AnalysisWorkflowTests
 {
     [Test]
+    public void Prepare_PopulatesConfigSource_OnPreparedAnalysis()
+    {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "cogcfg-workflow-" + Guid.NewGuid());
+        var originalWorkingDirectory = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.CreateDirectory(tempDirectory);
+            Directory.SetCurrentDirectory(tempDirectory);
+
+            var workflow = CreateWorkflow();
+
+            var prepared = workflow.Prepare(new AnalysisRequest(
+                SourcePath: ".",
+                ConfigFile: null,
+                ReportType: "Html",
+                BaselineFile: null,
+                OutputFile: null,
+                CoverageCobertura: null
+            ));
+
+            Assert.That(prepared.ConfigSource, Is.Not.Null);
+            Assert.That(prepared.ConfigSource.IsDefault, Is.True);
+            Assert.That(prepared.ConfigSource.Display, Is.EqualTo("Default"));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalWorkingDirectory);
+
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public void Prepare_ResolvesPathsAndDefaults()
     {
         var workflow = CreateWorkflow();
