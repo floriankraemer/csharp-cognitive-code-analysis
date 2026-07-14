@@ -18,9 +18,9 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("-c|--config")]
     public string? ConfigFile { get; init; }
 
-    [Description("Write a default cognitive-metrics-settings.json to [path] or the current directory, then exit")]
-    [CommandOption("--generate-config [path]")]
-    public FlagValue<string?> GenerateConfig { get; init; }
+    [Description("Write a default cognitive-metrics-settings.json to PATH or the current directory, then exit")]
+    [CommandOption("--generate-config [PATH]")]
+    public required FlagValue<string?> GenerateConfig { get; init; }
 
     [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
     [CommandOption("-f|-r|--report-type|--report-format")]
