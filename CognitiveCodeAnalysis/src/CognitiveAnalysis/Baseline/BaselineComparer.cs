@@ -11,19 +11,51 @@ public static class BaselineComparer
     public static CognitiveBaselineComparison Compare(
         CognitiveMetricsCollection current,
         CognitiveBaselineSnapshot baseline
+    ) => Compare(current, baseline, progress: null);
+
+    public static CognitiveBaselineComparison Compare(
+        CognitiveMetricsCollection current,
+        CognitiveBaselineSnapshot baseline,
+        IProgress<AnalysisProgress>? progress
     )
     {
         var baselineMethods = ToDictionaryLastWins(
             baseline.Methods,
             BaselineMethodKey.FromSnapshot);
 
+        int totalMethods = current.Count;
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.ComparingBaseline,
+            TotalFiles: totalMethods,
+            ProcessedFiles: 0
+        ));
+
         var methodsByKey = new Dictionary<string, MethodMetricsComparison>(StringComparer.Ordinal);
+        const int progressBatchSize = 100;
+        int processedMethods = 0;
+
         foreach (CognitiveMetrics metrics in current)
         {
             var key = BaselineMethodKey.FromMetrics(metrics);
             baselineMethods.TryGetValue(key, out CognitiveBaselineMethodSnapshot? baselineMethod);
             methodsByKey[key] = BuildMethodComparison(metrics, baselineMethod);
+
+            processedMethods++;
+            if (processedMethods % progressBatchSize == 0 || processedMethods == totalMethods)
+            {
+                progress?.Report(new AnalysisProgress(
+                    AnalysisProgressPhase.ComparingBaseline,
+                    TotalFiles: totalMethods,
+                    ProcessedFiles: processedMethods
+                ));
+            }
         }
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.BaselineCompared,
+            TotalFiles: totalMethods,
+            ProcessedFiles: totalMethods
+        ));
 
         var baselineCoupling = ToDictionaryLastWins(
             baseline.ClassCoupling,

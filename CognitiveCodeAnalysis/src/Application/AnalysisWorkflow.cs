@@ -53,6 +53,12 @@ public sealed class AnalysisWorkflow(
     public CoverageApplicationResult ApplyCoverageIfRequested(
         string? coverageFilePath,
         CognitiveMetricsCollection metricsCollection
+    ) => ApplyCoverageIfRequested(coverageFilePath, metricsCollection, progress: null);
+
+    public CoverageApplicationResult ApplyCoverageIfRequested(
+        string? coverageFilePath,
+        CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress
     ) {
         if (string.IsNullOrEmpty(coverageFilePath))
         {
@@ -61,7 +67,8 @@ public sealed class AnalysisWorkflow(
 
         var result = cognitiveAnalysisFacade.LoadCoverageData(
             coverageFilePath: coverageFilePath,
-            metricsCollection: metricsCollection
+            metricsCollection: metricsCollection,
+            progress: progress
         );
 
         return new CoverageApplicationResult(
@@ -73,7 +80,13 @@ public sealed class AnalysisWorkflow(
     public CognitiveBaselineComparison? CompareBaselineIfRequested(
         string? baselineFile,
         CognitiveMetricsCollection metricsCollection
-    ) => baselineComparisonService.CompareIfRequested(baselineFile, metricsCollection);
+    ) => CompareBaselineIfRequested(baselineFile, metricsCollection, progress: null);
+
+    public CognitiveBaselineComparison? CompareBaselineIfRequested(
+        string? baselineFile,
+        CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress
+    ) => baselineComparisonService.CompareIfRequested(baselineFile, metricsCollection, progress);
 
     public void GenerateReport(
         string reportType,

@@ -168,6 +168,82 @@ public class SpectreAnalysisProgressReporterTests
     }
 
     [Test]
+    public void ApplyProgress_CompilingSources_SetsDescriptionWithCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.CompilingSources,
+            TotalFiles: 12,
+            ProcessedFiles: 4
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.CompileDescription, Is.EqualTo("Compiling sources (4/12)"));
+            Assert.That(reporter.State.CompileValue, Is.EqualTo(4));
+            Assert.That(reporter.State.CompileMaxValue, Is.EqualTo(12));
+        }
+    }
+
+    [Test]
+    public void ApplyProgress_CalculatingScores_SetsDescriptionWithCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.CalculatingScores,
+            TotalFiles: 500,
+            ProcessedFiles: 200
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.ScoresDescription, Is.EqualTo("Calculating scores (200/500)"));
+            Assert.That(reporter.State.ScoresValue, Is.EqualTo(200));
+            Assert.That(reporter.State.ScoresMaxValue, Is.EqualTo(500));
+        }
+    }
+
+    [Test]
+    public void ApplyProgress_ApplyingCoverage_SetsDescriptionWithCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.ApplyingCoverage,
+            TotalFiles: 30,
+            ProcessedFiles: 10
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.CoverageDescription, Is.EqualTo("Applying coverage (10/30)"));
+            Assert.That(reporter.State.CoverageValue, Is.EqualTo(10));
+            Assert.That(reporter.State.CoverageMaxValue, Is.EqualTo(30));
+        }
+    }
+
+    [Test]
+    public void ApplyProgress_ComparingBaseline_SetsDescriptionWithCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.ComparingBaseline,
+            TotalFiles: 30,
+            ProcessedFiles: 10
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.BaselineDescription, Is.EqualTo("Comparing baseline (10/30)"));
+            Assert.That(reporter.State.BaselineValue, Is.EqualTo(10));
+            Assert.That(reporter.State.BaselineMaxValue, Is.EqualTo(30));
+        }
+    }
+
+    [Test]
     public void ApplyProgress_ReportCompleted_SetsCompletedFlag()
     {
         var reporter = new SpectreAnalysisProgressReporter();

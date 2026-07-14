@@ -8,10 +8,18 @@ public enum AnalysisProgressPhase
 {
     SearchingFiles,
     SearchCompleted,
+    CompilingSources,
+    CompilationCompleted,
     AnalysingFiles,
     AnalysisCompleted,
     AnalysingCoupling,
     CouplingCompleted,
+    CalculatingScores,
+    ScoresCalculated,
+    ApplyingCoverage,
+    CoverageApplied,
+    ComparingBaseline,
+    BaselineCompared,
     WritingReport,
     ReportCompleted
 }

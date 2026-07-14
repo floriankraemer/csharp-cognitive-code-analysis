@@ -12,6 +12,12 @@ public sealed class BaselineComparisonService
     public CognitiveBaselineComparison? CompareIfRequested(
         string? baselineFile,
         CognitiveMetricsCollection metricsCollection
+    ) => CompareIfRequested(baselineFile, metricsCollection, progress: null);
+
+    public CognitiveBaselineComparison? CompareIfRequested(
+        string? baselineFile,
+        CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress
     ) {
         if (string.IsNullOrWhiteSpace(baselineFile))
         {
@@ -19,6 +25,6 @@ public sealed class BaselineComparisonService
         }
 
         var baseline = BaselineLoader.Load(baselineFile);
-        return BaselineComparer.Compare(metricsCollection, baseline);
+        return BaselineComparer.Compare(metricsCollection, baseline, progress);
     }
 }

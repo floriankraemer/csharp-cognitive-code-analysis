@@ -11,5 +11,6 @@ public sealed record AnalysisRequest(
     string? BaselineFile,
     string? OutputFile,
     string? CoverageCobertura,
-    AnalysisDisplayOverrides? DisplayOverrides = null
+    AnalysisDisplayOverrides? DisplayOverrides = null,
+    bool Verbose = false
 );

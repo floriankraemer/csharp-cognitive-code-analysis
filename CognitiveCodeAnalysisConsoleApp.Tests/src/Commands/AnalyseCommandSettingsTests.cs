@@ -74,6 +74,16 @@ public class AnalyseCommandSettingsTests
     }
 
     [Test]
+    public void ParseVerboseFlag_MapsToAnalysisRequest()
+    {
+        Parse(".\\src -f Html --verbose");
+
+        AnalysisRequest request = AnalyseRequestMapper.FromSettings(CliParseProbeCommand.Parsed!);
+
+        Assert.That(request.Verbose, Is.True);
+    }
+
+    [Test]
     public void ParseGenerateConfigWithPath_BindsDirectory()
     {
         Parse("--generate-config .\\config");

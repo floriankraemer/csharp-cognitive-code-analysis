@@ -48,7 +48,7 @@ public class CognitiveAnalysisFacade(
         CognitiveConfiguration configuration,
         IProgress<AnalysisProgress>? progress
     ) {
-        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files);
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files, progress);
 
         Task<CognitiveMetricsCollection> cognitiveTask = Task.Run(
             () => analyser.AnalyseCompiled(sources, configuration, progress)
@@ -67,10 +67,7 @@ public class CognitiveAnalysisFacade(
 
         CognitiveMetricsCollection metricsCollection = await cognitiveTask;
 
-        foreach (CognitiveMetrics metrics in metricsCollection)
-        {
-            calculator.CalculateScores(metrics, configuration);
-        }
+        CalculateScoresWithProgress(metricsCollection, configuration, progress);
 
         if (couplingTask != null)
         {
@@ -80,13 +77,69 @@ public class CognitiveAnalysisFacade(
         return metricsCollection;
     }
 
-    public class CoverageLoadingResult
-    {
-        public bool Success { get; set; }
-        public string? ErrorMessage { get; set; }
+    private void CalculateScoresWithProgress(
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress
+    ) {
+        int totalMethods = metricsCollection.Count;
+        if (totalMethods == 0)
+        {
+            progress?.Report(new AnalysisProgress(
+                AnalysisProgressPhase.CalculatingScores,
+                TotalFiles: 0,
+                ProcessedFiles: 0
+            ));
+            progress?.Report(new AnalysisProgress(
+                AnalysisProgressPhase.ScoresCalculated,
+                TotalFiles: 0,
+                ProcessedFiles: 0
+            ));
+            return;
+        }
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.CalculatingScores,
+            TotalFiles: totalMethods,
+            ProcessedFiles: 0
+        ));
+
+        const int progressBatchSize = 100;
+        int processedMethods = 0;
+
+        Parallel.ForEach(
+            metricsCollection,
+            metrics =>
+            {
+                calculator.CalculateScores(metrics, configuration);
+                int count = Interlocked.Increment(ref processedMethods);
+                if (count % progressBatchSize == 0 || count == totalMethods)
+                {
+                    progress?.Report(new AnalysisProgress(
+                        AnalysisProgressPhase.CalculatingScores,
+                        TotalFiles: totalMethods,
+                        ProcessedFiles: count
+                    ));
+                }
+            });
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.ScoresCalculated,
+            TotalFiles: totalMethods,
+            ProcessedFiles: totalMethods
+        ));
     }
 
-    public CoverageLoadingResult LoadCoverageData(string coverageFilePath, CognitiveMetricsCollection metricsCollection)
+    public CoverageLoadingResult LoadCoverageData(
+        string coverageFilePath,
+        CognitiveMetricsCollection metricsCollection
+    ) => LoadCoverageData(coverageFilePath, metricsCollection, progress: null);
+
+    public CoverageLoadingResult LoadCoverageData(
+        string coverageFilePath,
+        CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress
+    )
     {
         try
         {
@@ -95,7 +148,8 @@ public class CognitiveAnalysisFacade(
 
             Dictionary<CognitiveMetrics, Coverage> matches = CoverageMatcher.MatchCoverageToMetrics(
                 metricsCollection,
-                coverageList
+                coverageList,
+                progress
             );
 
             foreach ((CognitiveMetrics? metrics, Coverage? coverage) in matches)
@@ -133,5 +187,11 @@ public class CognitiveAnalysisFacade(
             //AnsiConsole.MarkupLine($"[yellow]Warning: Failed to load coverage data:[/] {Markup.Escape(exception.Message)}");
             return new CoverageLoadingResult { Success = false, ErrorMessage = $"Failed to load coverage data: {exception.Message}" };
         }
+    }
+
+    public class CoverageLoadingResult
+    {
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

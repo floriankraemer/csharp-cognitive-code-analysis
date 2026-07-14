@@ -52,20 +52,25 @@ public class ClassCouplingAnalyser
         IProgress<AnalysisProgress>? progress
     ) {
         int totalTrees = syntaxTrees.Count;
-        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingCoupling, TotalFiles: totalTrees));
+        int totalProgressUnits = totalTrees * 2;
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysingCoupling,
+            TotalFiles: totalProgressUnits,
+            ProcessedFiles: 0
+        ));
 
         var sourceFileSet = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
 
         (Dictionary<string, INamedTypeSymbol> sourceTypes, var declarationsByTree) =
-            CollectTypeDeclarations(syntaxTrees, compilation, sourceFileSet);
+            CollectTypeDeclarations(syntaxTrees, compilation, sourceFileSet, totalTrees, progress);
 
         Dictionary<string, HashSet<string>> outgoingByKey =
             CollectOutgoingDependencies(declarationsByTree, sourceTypes, totalTrees, progress);
 
         progress?.Report(new AnalysisProgress(
             AnalysisProgressPhase.CouplingCompleted,
-            TotalFiles: totalTrees,
-            ProcessedFiles: totalTrees
+            TotalFiles: totalTrees * 2,
+            ProcessedFiles: totalTrees * 2
         ));
 
         var incomingCounts = sourceTypes.Keys.ToDictionary(key => key, _ => 0, StringComparer.Ordinal);
@@ -110,16 +115,26 @@ public class ClassCouplingAnalyser
     ) CollectTypeDeclarations(
         IReadOnlyList<SyntaxTree> syntaxTrees,
         CSharpCompilation compilation,
-        HashSet<string> sourceFileSet
+        HashSet<string> sourceFileSet,
+        int totalTrees,
+        IProgress<AnalysisProgress>? progress
     ) {
         var sourceTypes = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
         var declarationsByTree = new List<(SemanticModel, List<(SyntaxNode, string)>)>(syntaxTrees.Count);
+        int processedTrees = 0;
+        int totalProgressUnits = totalTrees * 2;
 
         foreach (SyntaxTree tree in syntaxTrees)
         {
             SemanticModel? model = compilation.GetSemanticModel(tree);
             if (model == null)
             {
+                processedTrees++;
+                progress?.Report(new AnalysisProgress(
+                    AnalysisProgressPhase.AnalysingCoupling,
+                    TotalFiles: totalProgressUnits,
+                    ProcessedFiles: processedTrees
+                ));
                 continue;
             }
 
@@ -147,6 +162,13 @@ public class ClassCouplingAnalyser
             {
                 declarationsByTree.Add((model, treeDeclarations));
             }
+
+            processedTrees++;
+            progress?.Report(new AnalysisProgress(
+                AnalysisProgressPhase.AnalysingCoupling,
+                TotalFiles: totalProgressUnits,
+                ProcessedFiles: processedTrees
+            ));
         }
 
         return (sourceTypes, declarationsByTree);
@@ -170,6 +192,7 @@ public class ClassCouplingAnalyser
         );
 
         int processedTrees = 0;
+        int totalProgressUnits = totalTrees * 2;
 
         Parallel.ForEach(declarationsByTree, treeEntry =>
         {
@@ -195,8 +218,8 @@ public class ClassCouplingAnalyser
             int count = Interlocked.Increment(ref processedTrees);
             progress?.Report(new AnalysisProgress(
                 AnalysisProgressPhase.AnalysingCoupling,
-                TotalFiles: totalTrees,
-                ProcessedFiles: count
+                TotalFiles: totalProgressUnits,
+                ProcessedFiles: totalTrees + count
             ));
         });
 

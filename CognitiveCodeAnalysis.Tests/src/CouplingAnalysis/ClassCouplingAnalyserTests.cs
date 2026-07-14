@@ -185,11 +185,11 @@ public class ClassCouplingAnalyserTests
         {
             Assert.That(analysingReports, Is.Not.Empty);
             Assert.That(analysingReports[0].ProcessedFiles, Is.EqualTo(0));
-            Assert.That(analysingReports[0].TotalFiles, Is.EqualTo(2));
-            Assert.That(analysingReports.Select(r => r.ProcessedFiles), Does.Contain(2));
+            Assert.That(analysingReports[0].TotalFiles, Is.EqualTo(4));
+            Assert.That(analysingReports.Select(r => r.ProcessedFiles), Does.Contain(4));
             Assert.That(reports[^1].Phase, Is.EqualTo(AnalysisProgressPhase.CouplingCompleted));
-            Assert.That(reports[^1].TotalFiles, Is.EqualTo(2));
-            Assert.That(reports[^1].ProcessedFiles, Is.EqualTo(2));
+            Assert.That(reports[^1].TotalFiles, Is.EqualTo(4));
+            Assert.That(reports[^1].ProcessedFiles, Is.EqualTo(4));
         }
     }
 

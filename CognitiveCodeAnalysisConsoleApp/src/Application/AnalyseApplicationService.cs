@@ -17,8 +17,18 @@ internal sealed class AnalyseApplicationService(
 ) {
     public AnalyseResult Run(AnalysisRequest request)
     {
+        IAnalysisTracer tracer = request.Verbose
+            ? new TimestampedConsoleTracer()
+            : NullAnalysisTracer.Instance;
+
         var prepared = analysisWorkflow.Prepare(request);
         consoleNotifier.WriteConfigUsed(prepared.ConfigSource.Display);
+
+        if (request.Verbose)
+        {
+            tracer.Trace(
+                $"Run started (report={prepared.ReportType}, coupling={prepared.Configuration.ShowCouplingMetrics}, source={prepared.AbsoluteSourcePath})");
+        }
 
         CognitiveMetricsCollection? metricsCollection = null;
         var filesNotFound = false;
@@ -27,7 +37,14 @@ internal sealed class AnalyseApplicationService(
 
         SpectreProgressSession.Run((reporter, progress) =>
         {
-            var files = analysisWorkflow.FindSourceFiles(prepared.AbsoluteSourcePath, progress);
+            IProgress<AnalysisProgress> effectiveProgress = request.Verbose
+                ? new TracingProgress(progress, tracer)
+                : progress;
+
+            List<string> files = tracer.TraceStep(
+                "Finding source files",
+                () => analysisWorkflow.FindSourceFiles(prepared.AbsoluteSourcePath, effectiveProgress));
+
             if (files.Count == 0)
             {
                 filesNotFound = true;
@@ -35,34 +52,46 @@ internal sealed class AnalyseApplicationService(
                 return;
             }
 
-            metricsCollection = analysisWorkflow.AnalyseSourceFiles(
-                files,
-                prepared.Configuration,
-                progress
-            );
+            metricsCollection = tracer.TraceStep(
+                $"Analysing {files.Count} source file(s)",
+                () => analysisWorkflow.AnalyseSourceFiles(
+                    files,
+                    prepared.Configuration,
+                    effectiveProgress
+                ));
 
             if (prepared.IsConsoleTextReport)
             {
                 return;
             }
 
-            if (!TryApplyCoverage(prepared, metricsCollection, out coverageFailed))
+            if (!TryApplyCoverage(prepared, metricsCollection, effectiveProgress, out coverageFailed))
             {
                 return;
             }
 
-            baselineComparison = analysisWorkflow.CompareBaselineIfRequested(
-                prepared.BaselineFile,
-                metricsCollection
-            );
+            baselineComparison = string.IsNullOrWhiteSpace(prepared.BaselineFile)
+                ? null
+                : tracer.TraceStep(
+                    "Comparing baseline",
+                    () => analysisWorkflow.CompareBaselineIfRequested(
+                        prepared.BaselineFile,
+                        metricsCollection,
+                        effectiveProgress
+                    ));
 
-            reportGenerationService.GenerateReport(
-                prepared: prepared,
-                metricsCollection: metricsCollection,
-                baselineComparison: baselineComparison,
-                progress: progress,
-                progressReporter: reporter
-            );
+            tracer.TraceStep(
+                $"Writing {prepared.ReportType} report",
+                () =>
+                {
+                    reportGenerationService.GenerateReport(
+                        prepared: prepared,
+                        metricsCollection: metricsCollection,
+                        baselineComparison: baselineComparison,
+                        progress: effectiveProgress,
+                        progressReporter: reporter
+                    );
+                });
         });
 
         if (filesNotFound || coverageFailed)
@@ -72,14 +101,19 @@ internal sealed class AnalyseApplicationService(
 
         if (prepared.IsConsoleTextReport)
         {
-            if (!TryApplyCoverage(prepared, metricsCollection!, out _))
+            IProgress<AnalysisProgress>? consoleProgress = request.Verbose
+                ? new TracingProgress(NullProgress.Instance, tracer)
+                : null;
+
+            if (!TryApplyCoverage(prepared, metricsCollection!, consoleProgress, out _))
             {
                 return new AnalyseResult(AnalyseOutcome.CoverageFailed);
             }
 
             baselineComparison = analysisWorkflow.CompareBaselineIfRequested(
                 prepared.BaselineFile,
-                metricsCollection!
+                metricsCollection!,
+                consoleProgress
             );
 
             reportGenerationService.GenerateReport(
@@ -95,13 +129,20 @@ internal sealed class AnalyseApplicationService(
     private bool TryApplyCoverage(
         PreparedAnalysis prepared,
         CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress,
         out bool failed
     ) {
         failed = false;
 
+        if (string.IsNullOrEmpty(prepared.CoverageCobertura))
+        {
+            return true;
+        }
+
         var result = analysisWorkflow.ApplyCoverageIfRequested(
             prepared.CoverageCobertura,
-            metricsCollection
+            metricsCollection,
+            progress
         );
 
         if (!result.Success && result.WarningMessage is { } warningMessage)
@@ -116,5 +157,14 @@ internal sealed class AnalyseApplicationService(
         }
 
         return true;
+    }
+
+    private sealed class NullProgress : IProgress<AnalysisProgress>
+    {
+        public static readonly NullProgress Instance = new();
+
+        public void Report(AnalysisProgress value)
+        {
+        }
     }
 }

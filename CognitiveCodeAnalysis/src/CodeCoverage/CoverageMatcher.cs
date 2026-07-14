@@ -25,9 +25,25 @@ public static class CoverageMatcher
     public static Dictionary<CognitiveMetrics, Coverage> MatchCoverageToMetrics(
         CognitiveMetricsCollection metricsCollection,
         IEnumerable<Coverage> coverageData
+    ) => MatchCoverageToMetrics(metricsCollection, coverageData, progress: null);
+
+    public static Dictionary<CognitiveMetrics, Coverage> MatchCoverageToMetrics(
+        CognitiveMetricsCollection metricsCollection,
+        IEnumerable<Coverage> coverageData,
+        IProgress<AnalysisProgress>? progress
     ) {
         var matches = new Dictionary<CognitiveMetrics, Coverage>();
         var coverageList = coverageData.ToList();
+        int totalMethods = metricsCollection.Count;
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.ApplyingCoverage,
+            TotalFiles: totalMethods,
+            ProcessedFiles: 0
+        ));
+
+        const int progressBatchSize = 100;
+        int processedMethods = 0;
 
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
@@ -37,7 +53,23 @@ public static class CoverageMatcher
             {
                 matches[metrics] = matchedCoverage;
             }
+
+            processedMethods++;
+            if (processedMethods % progressBatchSize == 0 || processedMethods == totalMethods)
+            {
+                progress?.Report(new AnalysisProgress(
+                    AnalysisProgressPhase.ApplyingCoverage,
+                    TotalFiles: totalMethods,
+                    ProcessedFiles: processedMethods
+                ));
+            }
         }
+
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.CoverageApplied,
+            TotalFiles: totalMethods,
+            ProcessedFiles: totalMethods
+        ));
 
         return matches;
     }
