@@ -1,0 +1,77 @@
+---
+description: Enforce Clean Code, SOLID, KISS, and DRY in all code changes
+alwaysApply: true
+---
+
+# Clean Code, SOLID, KISS, and DRY
+
+Follow Robert C. Martin's *Clean Code* and these design principles on every change.
+Prefer clarity and maintainability over cleverness.
+
+## Clean Code
+
+- Names must reveal intent; avoid abbreviations and noise (`CalculateCognitiveScore`, not `CalcCS`).
+- Functions do one thing, stay short (target ≤ 20 lines), and have few parameters.
+- Prefer early returns over deep nesting.
+- Comments explain *why*, not *what* — the code should read like prose.
+- Fail fast with meaningful exceptions; never swallow errors silently.
+
+```csharp
+// ❌ BAD — unclear name, deep nesting, silent failure
+public int Proc(object x) {
+    if (x != null) {
+        if (x is string s) {
+            try { return int.Parse(s); } catch { return 0; }
+        }
+    }
+    return 0;
+}
+
+// ✅ GOOD — intent-revealing, early return, explicit error
+public int ParseScore(string raw) =>
+    int.TryParse(raw, out var score)
+        ? score
+        : throw new FormatException($"Invalid score: '{raw}'");
+```
+
+## SOLID
+
+- **SRP**: One reason to change per class. Split parsing, reporting, and orchestration.
+- **OCP**: Extend via new types or strategies; avoid editing stable code for every variant.
+- **LSP**: Subtypes must honor base contracts — no surprise exceptions or narrowed behavior.
+- **ISP**: Small, focused interfaces (`ICoverageReader`, not `IAnalysisEverything`).
+- **DIP**: Depend on abstractions; inject via constructors, not `new` inside services.
+
+```csharp
+// ❌ BAD — concrete dependency, mixed responsibilities
+public class ReportService {
+    public void Run(string path) {
+        var data = new CoberturaReader().Read(path);
+        File.WriteAllText("out.json", JsonSerializer.Serialize(data));
+    }
+}
+
+// ✅ GOOD — injected abstraction, single responsibility
+public class ReportService(IReportWriter writer, ICoverageReader reader) {
+    public void Generate(string path) => writer.Write(reader.Read(path));
+}
+```
+
+## KISS
+
+- Choose the simplest design that satisfies the requirement.
+- Do not add abstractions, configuration, or generics without a concrete need.
+- Refactor when duplication or complexity appears — not preemptively.
+
+## DRY
+
+- Extract shared logic when the same rule appears twice; do not copy-paste.
+- DRY applies to behavior, not coincidental similarity — two similar-looking blocks with different reasons to change should stay separate.
+- Prefer existing helpers and project conventions before introducing new utilities.
+
+## Code Smells to Fix
+
+- Long methods or classes → extract focused units.
+- Duplicated logic → shared method or type.
+- Magic numbers/strings → named constants.
+- God classes, feature envy, or shotgun surgery → revisit SRP and DIP.

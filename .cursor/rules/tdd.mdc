@@ -1,0 +1,70 @@
+---
+description: Test-driven development workflow and container-based test execution
+alwaysApply: true
+---
+
+# Test-Driven Development
+
+Follow TDD for new behavior, refactors with behavior changes, and bug fixes.
+See also `container-development.mdc` for build and CI commands.
+
+## Red → Green → Refactor
+
+1. **Red** — Write a failing test that describes the desired behavior.
+2. **Green** — Write the smallest production change that makes the test pass.
+3. **Refactor** — Clean up while keeping tests green.
+
+Do not add production code for untested behavior.
+Do not skip the failing-test step to "save time."
+
+## Bug fixes
+
+Reproduce the bug in a test first (as close to real usage as practical), confirm it fails, then fix.
+
+## Writing tests (NUnit)
+
+- Place tests in `*Tests` projects, mirroring production namespaces.
+- Name tests by behavior: `MethodName_Scenario_ExpectedResult`.
+- Prefer focused tests over large integration suites unless the behavior requires end-to-end coverage.
+- Use fixtures under `fixtures/` for sample inputs; keep golden files in `fixtures/reports/golden/`.
+
+```csharp
+// ❌ BAD — implementation detail, no clear behavior
+[Test]
+public void Test1() { ... }
+
+// ✅ GOOD — behavior-focused
+[Test]
+public void CalculateScores_WhenLinesOfCodeExceedsThreshold_MapsToLowerScore()
+{
+    // arrange → act → assert
+}
+```
+
+## Run tests in the container
+
+Always run tests through `make` from the repo root.
+The Makefile re-executes inside the dev container.
+
+```bash
+make test          # full suite (Release)
+make test-debug    # Debug configuration
+make coverage      # Coverlet report → artifacts/coverage
+```
+
+```bash
+# ❌ BAD — host SDK, may differ from CI/container
+dotnet test CognitiveCodeAnalysis.sln
+
+# ✅ GOOD
+make test
+```
+
+After each TDD cycle, run the relevant tests before moving on.
+Before finishing a feature or fix, run `make test` at minimum; use `make ci` for larger changes.
+
+## When to add tests
+
+- **New behavior** — test first, then implement.
+- **Refactor** — existing tests must stay green; add tests only if coverage is missing.
+- **Trivial changes** — typos, comments, formatting: no new tests required.
