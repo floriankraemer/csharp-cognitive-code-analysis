@@ -24,6 +24,16 @@ internal sealed class AnalyseCommand(
     ) {
         try
         {
+            if (settings.GenerateConfig.IsSet)
+            {
+                string directory = string.IsNullOrWhiteSpace(settings.GenerateConfig.Value)
+                    ? Directory.GetCurrentDirectory()
+                    : settings.GenerateConfig.Value!;
+                string written = ConfigFileGenerator.Generate(directory);
+                consoleNotifier.WriteConfigFileCreated(written);
+                return Success;
+            }
+
             var request = AnalyseRequestMapper.FromSettings(settings);
             var result = applicationService.Run(request);
 

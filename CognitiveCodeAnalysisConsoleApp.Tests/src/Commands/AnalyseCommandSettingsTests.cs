@@ -63,6 +63,26 @@ public class AnalyseCommandSettingsTests
         Assert.That(request.OutputFile, Is.EqualTo(".\\report.html"));
     }
 
+    [Test]
+    public void ParseGenerateConfigWithoutPath_SetsGenerateConfigFlag()
+    {
+        Parse("--generate-config");
+
+        Assert.That(CliParseProbeCommand.Parsed, Is.Not.Null);
+        Assert.That(CliParseProbeCommand.Parsed!.GenerateConfig.IsSet, Is.True);
+        Assert.That(CliParseProbeCommand.Parsed.GenerateConfig.Value, Is.Null);
+    }
+
+    [Test]
+    public void ParseGenerateConfigWithPath_BindsDirectory()
+    {
+        Parse("--generate-config .\\config");
+
+        Assert.That(CliParseProbeCommand.Parsed, Is.Not.Null);
+        Assert.That(CliParseProbeCommand.Parsed!.GenerateConfig.IsSet, Is.True);
+        Assert.That(CliParseProbeCommand.Parsed.GenerateConfig.Value, Is.EqualTo(".\\config"));
+    }
+
     private static void Parse(string commandLine)
     {
         var services = new ServiceCollection();

@@ -218,6 +218,8 @@ public class AnalyseApplicationServiceTests
 
         public void WriteConfigUsed(string configSourceDisplay)
             => ConfigUsedMessages.Add(configSourceDisplay);
+
+        public void WriteConfigFileCreated(string fullPath) { }
     }
 
     private sealed class RecordingReportGenerationService : IReportGenerationService

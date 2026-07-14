@@ -15,7 +15,6 @@ using CognitiveCodeAnalysisConsoleApp.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysisConsoleApp.DependencyInjection;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysisConsoleApp;
@@ -30,12 +29,6 @@ public class Program
 {
     public static int Main(string[] args)
     {
-        int? generateConfigExitCode = TryGenerateConfig(args);
-        if (generateConfigExitCode.HasValue)
-        {
-            return generateConfigExitCode.Value;
-        }
-
         var serviceCollection = new ServiceCollection();
 
         CognitiveConfiguration defaultConfig = ConfigurationLoader.Load();
@@ -68,22 +61,5 @@ public class Program
         var registrar = new TypeRegistrar(serviceCollection);
 
         return new CommandApp<AnalyseCommand>(registrar).Run(args);
-    }
-
-    private static int? TryGenerateConfig(string[] args)
-    {
-        int generateConfigIndex = Array.IndexOf(args, "--generate-config");
-        if (generateConfigIndex < 0)
-        {
-            return null;
-        }
-
-        string? nextArg = generateConfigIndex + 1 < args.Length ? args[generateConfigIndex + 1] : null;
-        string directory = nextArg is not null && !nextArg.StartsWith('-')
-            ? nextArg
-            : Directory.GetCurrentDirectory();
-        string written = ConfigFileGenerator.Generate(directory);
-        AnsiConsole.MarkupLine($"[green]Config file created:[/] {Markup.Escape(written)}");
-        return 0;
     }
 }

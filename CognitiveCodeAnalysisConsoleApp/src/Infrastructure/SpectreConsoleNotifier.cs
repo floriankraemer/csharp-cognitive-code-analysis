@@ -22,4 +22,7 @@ internal sealed class SpectreConsoleNotifier : IConsoleNotifier
 
     public void WriteConfigUsed(string configSourceDisplay)
         => AnsiConsole.MarkupLine($"[grey]Config:[/] {Markup.Escape(configSourceDisplay)}");
+
+    public void WriteConfigFileCreated(string fullPath)
+        => AnsiConsole.MarkupLine($"[green]Config file created:[/] {Markup.Escape(fullPath)}");
 }

@@ -116,5 +116,7 @@ public class AnalyseCommandCliIntegrationTests
         public void WriteReportGenerated(string reportType, string fullPath) { }
 
         public void WriteConfigUsed(string configSourceDisplay) { }
+
+        public void WriteConfigFileCreated(string fullPath) { }
     }
 }
