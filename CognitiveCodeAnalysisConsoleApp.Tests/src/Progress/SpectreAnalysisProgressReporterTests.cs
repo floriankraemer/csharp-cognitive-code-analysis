@@ -130,6 +130,44 @@ public class SpectreAnalysisProgressReporterTests
     }
 
     [Test]
+    public void ApplyProgress_AnalysingCoupling_SetsDescriptionWithCounts()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.AnalysingCoupling,
+            TotalFiles: 8,
+            ProcessedFiles: 3
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.CouplingDescription, Is.EqualTo("Analysing coupling (3/8)"));
+            Assert.That(reporter.State.CouplingValue, Is.EqualTo(3));
+            Assert.That(reporter.State.CouplingMaxValue, Is.EqualTo(8));
+        }
+    }
+
+    [Test]
+    public void ApplyProgress_CouplingCompleted_SetsCompletedFlag()
+    {
+        var reporter = new SpectreAnalysisProgressReporter();
+
+        reporter.ApplyProgress(new AnalysisProgress(
+            AnalysisProgressPhase.CouplingCompleted,
+            TotalFiles: 8,
+            ProcessedFiles: 8
+        ));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reporter.State.CouplingCompleted, Is.True);
+            Assert.That(reporter.State.CouplingValue, Is.EqualTo(8));
+            Assert.That(reporter.State.CouplingMaxValue, Is.EqualTo(8));
+        }
+    }
+
+    [Test]
     public void ApplyProgress_ReportCompleted_SetsCompletedFlag()
     {
         var reporter = new SpectreAnalysisProgressReporter();

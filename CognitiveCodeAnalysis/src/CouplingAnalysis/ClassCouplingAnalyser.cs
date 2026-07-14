@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Common;
 
 using Microsoft.CodeAnalysis;
@@ -32,63 +33,40 @@ public class ClassCouplingAnalyser
     /// Computes coupling metrics from an already parsed and compiled set of sources,
     /// reusing the shared compilation instead of building its own.
     /// </summary>
-    public IReadOnlyList<ClassCouplingMetrics> AnalyseCompiled(CompiledSourceSet sources)
-    {
+    public IReadOnlyList<ClassCouplingMetrics> AnalyseCompiled(
+        CompiledSourceSet sources,
+        IProgress<AnalysisProgress>? progress = null
+    ) {
         if (sources.Files.Count == 0)
         {
             return [];
         }
 
-        return BuildCouplingMetrics(sources.Files, sources.SyntaxTrees, sources.Compilation);
+        return BuildCouplingMetrics(sources.Files, sources.SyntaxTrees, sources.Compilation, progress);
     }
 
     private static IReadOnlyList<ClassCouplingMetrics> BuildCouplingMetrics(
         IReadOnlyList<string> files,
         IReadOnlyList<SyntaxTree> syntaxTrees,
-        CSharpCompilation compilation
+        CSharpCompilation compilation,
+        IProgress<AnalysisProgress>? progress
     ) {
+        int totalTrees = syntaxTrees.Count;
+        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingCoupling, TotalFiles: totalTrees));
+
         var sourceFileSet = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
 
-        var sourceTypes = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
-        var typeDeclarations = new List<(SyntaxNode TypeNode, SemanticModel Model, INamedTypeSymbol TypeSymbol)>();
+        (Dictionary<string, INamedTypeSymbol> sourceTypes, var declarationsByTree) =
+            CollectTypeDeclarations(syntaxTrees, compilation, sourceFileSet);
 
-        foreach (SyntaxTree tree in syntaxTrees)
-        {
-            SemanticModel? model = compilation.GetSemanticModel(tree);
-            if (model == null)
-            {
-                continue;
-            }
+        Dictionary<string, HashSet<string>> outgoingByKey =
+            CollectOutgoingDependencies(declarationsByTree, sourceTypes, totalTrees, progress);
 
-            SyntaxNode root = tree.GetRoot();
-            foreach (SyntaxNode typeNode in GetTypeDeclarations(root))
-            {
-                if (model.GetDeclaredSymbol(typeNode) is not INamedTypeSymbol typeSymbol)
-                {
-                    continue;
-                }
-
-                if (!IsSourceDefinedInFiles(typeSymbol, sourceFileSet))
-                {
-                    continue;
-                }
-
-                string typeKey = GetTypeKey(typeSymbol);
-                if (!sourceTypes.ContainsKey(typeKey))
-                {
-                    sourceTypes.Add(typeKey, typeSymbol);
-                }
-                typeDeclarations.Add((typeNode, model, typeSymbol));
-            }
-        }
-
-        var outgoingByKey = sourceTypes.Keys.ToDictionary(key => key, _ => new HashSet<string>(), StringComparer.Ordinal);
-
-        foreach ((SyntaxNode typeNode, SemanticModel model, INamedTypeSymbol typeSymbol) in typeDeclarations)
-        {
-            string typeKey = GetTypeKey(typeSymbol);
-            CollectDependencies(typeNode, model, typeSymbol, sourceTypes, outgoingByKey[typeKey]);
-        }
+        progress?.Report(new AnalysisProgress(
+            AnalysisProgressPhase.CouplingCompleted,
+            TotalFiles: totalTrees,
+            ProcessedFiles: totalTrees
+        ));
 
         var incomingCounts = sourceTypes.Keys.ToDictionary(key => key, _ => 0, StringComparer.Ordinal);
 
@@ -124,6 +102,105 @@ public class ClassCouplingAnalyser
         }
 
         return results;
+    }
+
+    private static (
+        Dictionary<string, INamedTypeSymbol> SourceTypes,
+        List<(SemanticModel Model, List<(SyntaxNode TypeNode, string TypeKey)> Declarations)> DeclarationsByTree
+    ) CollectTypeDeclarations(
+        IReadOnlyList<SyntaxTree> syntaxTrees,
+        CSharpCompilation compilation,
+        HashSet<string> sourceFileSet
+    ) {
+        var sourceTypes = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
+        var declarationsByTree = new List<(SemanticModel, List<(SyntaxNode, string)>)>(syntaxTrees.Count);
+
+        foreach (SyntaxTree tree in syntaxTrees)
+        {
+            SemanticModel? model = compilation.GetSemanticModel(tree);
+            if (model == null)
+            {
+                continue;
+            }
+
+            var treeDeclarations = new List<(SyntaxNode, string)>();
+            SyntaxNode root = tree.GetRoot();
+
+            foreach (SyntaxNode typeNode in GetTypeDeclarations(root))
+            {
+                if (model.GetDeclaredSymbol(typeNode) is not INamedTypeSymbol typeSymbol)
+                {
+                    continue;
+                }
+
+                if (!IsSourceDefinedInFiles(typeSymbol, sourceFileSet))
+                {
+                    continue;
+                }
+
+                string typeKey = GetTypeKey(typeSymbol);
+                sourceTypes.TryAdd(typeKey, typeSymbol);
+                treeDeclarations.Add((typeNode, typeKey));
+            }
+
+            if (treeDeclarations.Count > 0)
+            {
+                declarationsByTree.Add((model, treeDeclarations));
+            }
+        }
+
+        return (sourceTypes, declarationsByTree);
+    }
+
+    /// <summary>
+    /// Symbol binding via <see cref="SemanticModel.GetSymbolInfo(SyntaxNode, CancellationToken)"/> dominates
+    /// coupling analysis cost, so trees are processed in parallel (Roslyn semantic models are thread-safe
+    /// for concurrent reads) and per-file progress is reported for the UI.
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> CollectOutgoingDependencies(
+        List<(SemanticModel Model, List<(SyntaxNode TypeNode, string TypeKey)> Declarations)> declarationsByTree,
+        Dictionary<string, INamedTypeSymbol> sourceTypes,
+        int totalTrees,
+        IProgress<AnalysisProgress>? progress
+    ) {
+        var outgoingByKey = sourceTypes.Keys.ToDictionary(
+            key => key,
+            _ => new HashSet<string>(StringComparer.Ordinal),
+            StringComparer.Ordinal
+        );
+
+        int processedTrees = 0;
+
+        Parallel.ForEach(declarationsByTree, treeEntry =>
+        {
+            (SemanticModel model, var declarations) = treeEntry;
+
+            foreach ((SyntaxNode typeNode, string typeKey) in declarations)
+            {
+                var dependencies = new HashSet<string>(StringComparer.Ordinal);
+                CollectDependencies(typeNode, model, typeKey, sourceTypes, dependencies);
+
+                if (dependencies.Count == 0)
+                {
+                    continue;
+                }
+
+                HashSet<string> target = outgoingByKey[typeKey];
+                lock (target)
+                {
+                    target.UnionWith(dependencies);
+                }
+            }
+
+            int count = Interlocked.Increment(ref processedTrees);
+            progress?.Report(new AnalysisProgress(
+                AnalysisProgressPhase.AnalysingCoupling,
+                TotalFiles: totalTrees,
+                ProcessedFiles: count
+            ));
+        });
+
+        return outgoingByKey;
     }
 
     private static IEnumerable<SyntaxNode> GetTypeDeclarations(SyntaxNode root)
@@ -179,11 +256,11 @@ public class ClassCouplingAnalyser
     private static void CollectDependencies(
         SyntaxNode typeRoot,
         SemanticModel model,
-        INamedTypeSymbol declaringType,
+        string declaringKey,
         Dictionary<string, INamedTypeSymbol> sourceTypes,
         HashSet<string> dependencies
     ) {
-        string declaringKey = GetTypeKey(declaringType);
+        INamedTypeSymbol declaringType = sourceTypes[declaringKey];
 
         if (declaringType.BaseType is { SpecialType: not SpecialType.System_Object } baseType)
         {

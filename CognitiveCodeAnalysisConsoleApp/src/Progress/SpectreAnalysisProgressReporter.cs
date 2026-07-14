@@ -16,8 +16,10 @@ public sealed class SpectreAnalysisProgressReporter
     private ProgressContext? _context;
     private ProgressTask? _searchTask;
     private ProgressTask? _analysisTask;
+    private ProgressTask? _couplingTask;
     private ProgressTask? _reportTask;
     private int _lastAnalysisProcessed = -1;
+    private int _lastCouplingProcessed = -1;
     private int _lastReportProcessed = -1;
     private long _lastRefreshTick = long.MinValue;
 
@@ -88,6 +90,13 @@ public sealed class SpectreAnalysisProgressReporter
                 _analysisTask.Value = State.AnalysisMaxValue;
             }
 
+            if (_couplingTask != null && State.CouplingMaxValue > 0)
+            {
+                _couplingTask.MaxValue = State.CouplingMaxValue;
+                _couplingTask.Description = State.CouplingDescription ?? "Analysing coupling";
+                _couplingTask.Value = State.CouplingMaxValue;
+            }
+
             if (_reportTask != null && State.ReportMaxValue > 0)
             {
                 _reportTask.MaxValue = State.ReportMaxValue;
@@ -133,6 +142,26 @@ public sealed class SpectreAnalysisProgressReporter
                     State.AnalysisDescription = $"Analysing files ({update.ProcessedFiles}/{update.TotalFiles})";
                     State.AnalysisValue = update.TotalFiles;
                     State.AnalysisMaxValue = update.TotalFiles;
+                    return true;
+
+                case AnalysisProgressPhase.AnalysingCoupling:
+                    if (update.ProcessedFiles < _lastCouplingProcessed)
+                    {
+                        return false;
+                    }
+
+                    _lastCouplingProcessed = update.ProcessedFiles;
+                    State.CouplingDescription = $"Analysing coupling ({update.ProcessedFiles}/{update.TotalFiles})";
+                    State.CouplingValue = update.ProcessedFiles;
+                    State.CouplingMaxValue = update.TotalFiles;
+                    return true;
+
+                case AnalysisProgressPhase.CouplingCompleted:
+                    _lastCouplingProcessed = update.TotalFiles;
+                    State.CouplingCompleted = true;
+                    State.CouplingDescription = $"Analysing coupling ({update.TotalFiles}/{update.TotalFiles})";
+                    State.CouplingValue = update.TotalFiles;
+                    State.CouplingMaxValue = update.TotalFiles;
                     return true;
 
                 case AnalysisProgressPhase.WritingReport:
@@ -222,6 +251,36 @@ public sealed class SpectreAnalysisProgressReporter
 
                     break;
 
+                case AnalysisProgressPhase.AnalysingCoupling:
+                    if (_couplingTask == null && State.CouplingMaxValue > 0)
+                    {
+                        _couplingTask = _context.AddTask(
+                            State.CouplingDescription ?? "Analysing coupling",
+                            maxValue: State.CouplingMaxValue
+                        );
+                        // Expire the throttle so the new bar is painted immediately.
+                        _lastRefreshTick = 0;
+                    }
+
+                    if (_couplingTask != null)
+                    {
+                        _couplingTask.MaxValue = State.CouplingMaxValue;
+                        _couplingTask.Description = State.CouplingDescription ?? "Analysing coupling";
+                        _couplingTask.Value = State.CouplingValue;
+                    }
+
+                    break;
+
+                case AnalysisProgressPhase.CouplingCompleted:
+                    if (_couplingTask != null)
+                    {
+                        _couplingTask.MaxValue = State.CouplingMaxValue;
+                        _couplingTask.Description = State.CouplingDescription ?? "Analysing coupling";
+                        _couplingTask.Value = State.CouplingMaxValue;
+                    }
+
+                    break;
+
                 case AnalysisProgressPhase.WritingReport:
                     if (_reportTask == null && State.ReportMaxValue > 0)
                     {
@@ -270,7 +329,10 @@ public sealed class SpectreAnalysisProgressReporter
     /// </summary>
     private bool ShouldRefresh(AnalysisProgressPhase phase)
     {
-        bool isIncremental = phase is AnalysisProgressPhase.AnalysingFiles or AnalysisProgressPhase.WritingReport;
+        bool isIncremental = phase
+            is AnalysisProgressPhase.AnalysingFiles
+            or AnalysisProgressPhase.AnalysingCoupling
+            or AnalysisProgressPhase.WritingReport;
         if (!isIncremental)
         {
             _lastRefreshTick = Environment.TickCount64;
@@ -297,6 +359,10 @@ public sealed class SpectreAnalysisProgressReporter
 
             case AnalysisProgressPhase.AnalysingFiles when update.ProcessedFiles == 0:
                 AnsiConsole.MarkupLine($"[grey]Analysing {update.TotalFiles} file(s)...[/]");
+                break;
+
+            case AnalysisProgressPhase.AnalysingCoupling when update.ProcessedFiles == 0:
+                AnsiConsole.MarkupLine($"[grey]Analysing coupling of {update.TotalFiles} file(s)...[/]");
                 break;
 
             case AnalysisProgressPhase.WritingReport when update.ProcessedFiles == 0:

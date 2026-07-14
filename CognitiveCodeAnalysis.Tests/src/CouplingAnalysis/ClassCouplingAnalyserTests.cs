@@ -2,7 +2,10 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.CouplingAnalysis;
+using CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
 namespace CognitiveCodeAnalysis.Tests.CouplingAnalysis;
 
@@ -143,5 +146,82 @@ public class ClassCouplingAnalyserTests
     public void Analyse_EmptyFileList_ReturnsEmpty()
     {
         Assert.That(_analyser.Analyse([]), Is.Empty);
+    }
+
+    [Test]
+    public async Task AnalyseCompiled_WithProgress_ReportsCouplingPhases()
+    {
+        _tempFiles.CreateFileWithContent(
+            "A.cs",
+            """
+            namespace Chain;
+            public class A
+            {
+                private readonly B _b = new B();
+            }
+            """
+        );
+        _tempFiles.CreateFileWithContent(
+            "B.cs",
+            """
+            namespace Chain;
+            public class B
+            {
+                public int Value;
+            }
+            """
+        );
+
+        var files = Directory.GetFiles(_tempFiles.tmpDirectory, "*.cs").OrderBy(f => f).ToList();
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files);
+        var collector = new AnalysisProgressCollector();
+
+        _analyser.AnalyseCompiled(sources, collector);
+
+        var reports = collector.Reports;
+        var analysingReports = reports.Where(r => r.Phase == AnalysisProgressPhase.AnalysingCoupling).ToList();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(analysingReports, Is.Not.Empty);
+            Assert.That(analysingReports[0].ProcessedFiles, Is.EqualTo(0));
+            Assert.That(analysingReports[0].TotalFiles, Is.EqualTo(2));
+            Assert.That(analysingReports.Select(r => r.ProcessedFiles), Does.Contain(2));
+            Assert.That(reports[^1].Phase, Is.EqualTo(AnalysisProgressPhase.CouplingCompleted));
+            Assert.That(reports[^1].TotalFiles, Is.EqualTo(2));
+            Assert.That(reports[^1].ProcessedFiles, Is.EqualTo(2));
+        }
+    }
+
+    [Test]
+    public async Task AnalyseCompiled_ManyTypes_ProducesSameResultsAsSequentialBaseline()
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            int dependency = (i + 1) % 20;
+            _tempFiles.CreateFileWithContent(
+                $"Class{i}.cs",
+                $$"""
+                namespace Many;
+                public class Class{{i}}
+                {
+                    private Class{{dependency}}? _next;
+                    public void Link(Class{{dependency}} next) => _next = next;
+                }
+                """
+            );
+        }
+
+        var files = Directory.GetFiles(_tempFiles.tmpDirectory, "*.cs").OrderBy(f => f).ToList();
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files);
+
+        var metrics = _analyser.AnalyseCompiled(sources).ToDictionary(m => m.ClassName);
+
+        Assert.That(metrics, Has.Count.EqualTo(20));
+        foreach (var metric in metrics.Values)
+        {
+            Assert.That(metric.OutgoingCoupling, Is.EqualTo(1), $"{metric.ClassName} outgoing");
+            Assert.That(metric.IncomingCoupling, Is.EqualTo(1), $"{metric.ClassName} incoming");
+        }
     }
 }

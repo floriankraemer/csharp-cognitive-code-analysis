@@ -10,6 +10,8 @@ public enum AnalysisProgressPhase
     SearchCompleted,
     AnalysingFiles,
     AnalysisCompleted,
+    AnalysingCoupling,
+    CouplingCompleted,
     WritingReport,
     ReportCompleted
 }

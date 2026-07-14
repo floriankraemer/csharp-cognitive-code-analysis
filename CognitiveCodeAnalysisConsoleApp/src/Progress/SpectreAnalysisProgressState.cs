@@ -14,6 +14,10 @@ public sealed class SpectreAnalysisProgressState
     public double AnalysisValue { get; internal set; }
     public double AnalysisMaxValue { get; internal set; }
     public bool AnalysisCompleted { get; internal set; }
+    public string? CouplingDescription { get; internal set; }
+    public double CouplingValue { get; internal set; }
+    public double CouplingMaxValue { get; internal set; }
+    public bool CouplingCompleted { get; internal set; }
     public string? ReportDescription { get; internal set; }
     public double ReportValue { get; internal set; }
     public double ReportMaxValue { get; internal set; }

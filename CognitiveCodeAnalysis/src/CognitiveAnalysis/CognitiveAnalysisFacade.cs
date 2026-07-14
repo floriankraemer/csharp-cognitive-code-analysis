@@ -57,7 +57,7 @@ public class CognitiveAnalysisFacade(
         Task<IReadOnlyList<ClassCouplingMetrics>>? couplingTask = null;
         if (configuration.ShowCouplingMetrics)
         {
-            couplingTask = Task.Run(() => classCouplingAnalyser.AnalyseCompiled(sources));
+            couplingTask = Task.Run(() => classCouplingAnalyser.AnalyseCompiled(sources, progress));
             await Task.WhenAll(cognitiveTask, couplingTask);
         }
         else

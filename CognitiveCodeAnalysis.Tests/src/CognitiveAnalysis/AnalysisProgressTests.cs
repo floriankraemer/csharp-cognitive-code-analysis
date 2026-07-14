@@ -134,6 +134,40 @@ namespace X {
     }
 
     [Test]
+    public void AnalyseSourceFiles_WithCouplingEnabled_ReportsCouplingPhases()
+    {
+        const string content = @"
+namespace X {
+    public class Y {
+        public void Run() { }
+    }
+}";
+        _tempFiles.CreateFileWithContent("File1.cs", content);
+        _tempFiles.CreateFileWithContent("File2.cs", content);
+
+        var configuration = new CognitiveConfiguration { ShowCouplingMetrics = true };
+        var collector = new AnalysisProgressCollector();
+        var facade = new CognitiveAnalysisFacade(
+            new SourceFileFinder(),
+            new CognitiveCodeAnalyser(),
+            configuration,
+            new ScoreCalculator(),
+            new CoberturaReader(),
+            new ClassCouplingAnalyser()
+        );
+
+        var files = facade.FindSourceFiles(_tempFiles.tmpDirectory, collector);
+        facade.AnalyseSourceFiles(files, configuration, collector);
+
+        var reports = collector.Reports;
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(reports.Any(r => r.Phase == AnalysisProgressPhase.AnalysingCoupling), Is.True);
+            Assert.That(reports.Any(r => r.Phase == AnalysisProgressPhase.CouplingCompleted), Is.True);
+        }
+    }
+
+    [Test]
     public void AnalyseSourceFiles_PassesProgressToAnalyser()
     {
         const string content = @"
