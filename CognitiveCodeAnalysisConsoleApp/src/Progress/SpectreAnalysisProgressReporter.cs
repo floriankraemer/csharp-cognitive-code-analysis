@@ -229,6 +229,9 @@ public sealed class SpectreAnalysisProgressReporter
                             State.ReportDescription ?? "Writing report",
                             maxValue: State.ReportMaxValue
                         );
+                        // Expire the throttle so ShouldRefresh returns true immediately,
+                        // ensuring the progress bar appears at 0% before items process.
+                        _lastRefreshTick = 0;
                     }
 
                     if (_reportTask != null)

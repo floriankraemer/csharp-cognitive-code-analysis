@@ -146,6 +146,46 @@ public class Tests
         }
     }
 
+    [Test]
+    public void CalculateScores_MapsAllRemainingKnownCountMetrics()
+    {
+        var metrics = new CognitiveMetrics(
+            methodName: "TestMethod",
+            className: "TestClass",
+            filePath: "TestFile.cs",
+            methodSignature: "TestMethod()",
+            methodLineNumber: 1,
+            loopCount: 5,
+            switchCount: 3,
+            tryCatchCount: 2,
+            nestingLevels: 4,
+            fieldAccessCount: 6
+        );
+
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new Dictionary<string, MetricConfiguration>
+            {
+                { "loopCount", new MetricConfiguration { Scale = 1.0, Threshold = 2, Enabled = true } },
+                { "switchCount", new MetricConfiguration { Scale = 1.0, Threshold = 1, Enabled = true } },
+                { "tryCatchCount", new MetricConfiguration { Scale = 1.0, Threshold = 1, Enabled = true } },
+                { "nestingLevels", new MetricConfiguration { Scale = 1.0, Threshold = 2, Enabled = true } },
+                { "fieldAccessCount", new MetricConfiguration { Scale = 5.0, Threshold = 2, Enabled = true } },
+            }
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(metrics.loopScore, Is.EqualTo(Math.Log(1 + (5.0 - 2.0) / 1.0)));
+            Assert.That(metrics.switchScore, Is.EqualTo(Math.Log(1 + (3.0 - 1.0) / 1.0)));
+            Assert.That(metrics.tryCatchScore, Is.EqualTo(Math.Log(1 + (2.0 - 1.0) / 1.0)));
+            Assert.That(metrics.nestingScore, Is.EqualTo(Math.Log(1 + (4.0 - 2.0) / 1.0)));
+            Assert.That(metrics.fieldAccessScore, Is.EqualTo(Math.Log(1 + (6.0 - 2.0) / 5.0)));
+        }
+    }
+
     private static CognitiveConfiguration GetConfiguration()
     {
         CognitiveConfiguration configuration = new()

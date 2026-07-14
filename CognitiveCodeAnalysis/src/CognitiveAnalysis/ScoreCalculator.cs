@@ -23,48 +23,87 @@ public class ScoreCalculator
     private static CognitiveMetrics CalculateMetric(
         CognitiveMetrics metrics,
         KeyValuePair<string, MetricConfiguration> keyValuePair
-    )
-    {
+    ) {
         if (!keyValuePair.Value.Enabled)
         {
             return metrics;
         }
 
         string metricField = keyValuePair.Key;
+        double count = GetCountValue(metrics, metricField);
+        double score = CalculateLogWeight(
+            value: count,
+            threshold: keyValuePair.Value.Threshold,
+            scale: keyValuePair.Value.Scale
+        );
+        SetScoreValue(metrics, metricField, score);
 
-        // Convert metric key to PascalCase property name (simple conversion)
+        return metrics;
+    }
+
+    private static double GetCountValue(CognitiveMetrics metrics, string metricField) => metricField switch
+    {
+        "ifCount" => metrics.ifCount,
+        "elseCount" => metrics.elseCount,
+        "loopCount" => metrics.loopCount,
+        "switchCount" => metrics.switchCount,
+        "tryCatchCount" => metrics.tryCatchCount,
+        "returnCount" => metrics.returnCount,
+        "argumentCount" => metrics.argumentCount,
+        "nestingLevels" => metrics.nestingLevels,
+        "linesOfCode" => metrics.linesOfCode,
+        "localVariableCount" => metrics.localVariableCount,
+        "fieldAccessCount" => metrics.fieldAccessCount,
+        "propertyAccessCount" => metrics.propertyAccessCount,
+        "cyclomaticComplexity" => metrics.cyclomaticComplexity,
+        _ => GetCountViaReflection(metrics, metricField)
+    };
+
+    private static void SetScoreValue(CognitiveMetrics metrics, string metricField, double score)
+    {
+        switch (metricField)
+        {
+            case "ifCount": metrics.ifScore = score; break;
+            case "elseCount": metrics.elseScore = score; break;
+            case "loopCount": metrics.loopScore = score; break;
+            case "switchCount": metrics.switchScore = score; break;
+            case "tryCatchCount": metrics.tryCatchScore = score; break;
+            case "returnCount": metrics.returnScore = score; break;
+            case "argumentCount": metrics.argumentScore = score; break;
+            case "nestingLevels": metrics.nestingScore = score; break;
+            case "linesOfCode": metrics.linesOfCodeScore = score; break;
+            case "localVariableCount": metrics.localVariableScore = score; break;
+            case "fieldAccessCount": metrics.fieldAccessScore = score; break;
+            case "propertyAccessCount": metrics.propertyAccessScore = score; break;
+            default: SetScoreViaReflection(metrics, metricField, score); break;
+        }
+    }
+
+    private static double GetCountViaReflection(CognitiveMetrics metrics, string metricField)
+    {
         string countPropertyName = ToPascalCase(metricField);
-
         Type metricsType = metrics.GetType();
 
-        // Try property first (PascalCase), otherwise try field (original key, camelCase)
         PropertyInfo? countProperty = metricsType.GetProperty(countPropertyName, BindingFlags.Public | BindingFlags.Instance);
         FieldInfo? countField = metricsType.GetField(metricField, BindingFlags.Public | BindingFlags.Instance);
 
         if (countProperty == null && countField == null)
         {
-            return metrics;
+            return 0.0;
         }
 
         object? countValue = countProperty != null
             ? countProperty.GetValue(metrics)
             : countField?.GetValue(metrics);
 
-        if (countValue == null)
-        {
-            return metrics;
-        }
+        return countValue == null ? 0.0 : Convert.ToDouble(countValue);
+    }
 
-        double count = Convert.ToDouble(countValue);
-        double score = CalculateLogWeight(
-            value: count,
-            threshold: keyValuePair.Value.Threshold,
-            scale: keyValuePair.Value.Scale
-        );
-
-        // Set score to property/field with same name but "Score" suffix (e.g., "ifCount" -> "ifScore" or "IfScore")
+    private static void SetScoreViaReflection(CognitiveMetrics metrics, string metricField, double score)
+    {
         string scoreFieldName = GetScoreFieldName(metricField);
         string scorePropertyName = ToPascalCase(scoreFieldName);
+        Type metricsType = metrics.GetType();
 
         PropertyInfo? scoreProperty = metricsType.GetProperty(scorePropertyName, BindingFlags.Public | BindingFlags.Instance);
         FieldInfo? scoreField = metricsType.GetField(scoreFieldName, BindingFlags.Public | BindingFlags.Instance);
@@ -77,15 +116,9 @@ public class ScoreCalculator
         {
             scoreField.SetValue(metrics, score);
         }
-
-        return metrics;
     }
 
-    private static double CalculateLogWeight(
-        double value,
-        double threshold,
-        double scale = 1.0
-    )
+    private static double CalculateLogWeight(double value, double threshold, double scale = 1.0)
     {
         if (value <= threshold) return 0.0;
 
