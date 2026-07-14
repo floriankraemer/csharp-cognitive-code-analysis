@@ -1,0 +1,65 @@
+---
+description: Run builds, tests, and CI tasks inside the dev container (Docker or Podman)
+alwaysApply: true
+---
+
+# Container-Based Development
+
+This repo is built and tested inside a dev container.
+Do **not** install or rely on a host .NET SDK unless the user explicitly asks for host-native runs.
+
+## Container runtime
+
+Detect what is available on PATH and use it consistently:
+
+1. **`docker`** → `docker compose` with `compose.yaml`
+2. **`podman`** (no Docker) → `podman compose` with `compose.yaml`, or `podman-compose -f podman-compose.yaml` if only the standalone tool exists
+3. Override when needed: `CONTAINER_RUNNER="podman compose" make test`
+
+Build the image once (or after `Dockerfile` changes):
+
+```bash
+docker compose build    # or: podman compose build
+```
+
+## Default workflow: use `make`
+
+From the repository root, run targets via the Makefile.
+It re-executes inside the `dev` service automatically:
+
+```bash
+make test          # dotnet test (Release)
+make build         # dotnet build (Debug)
+make ci            # restore, build-release, test-release, pack
+make coverage      # Coverlet + HTML report → artifacts/coverage
+make help          # list all targets
+```
+
+After code changes, **run the relevant `make` target** (at minimum `make test`; use `make ci` before finishing larger changes).
+
+## Do not bypass the container
+
+```bash
+# ❌ BAD — host SDK, may differ from CI/container
+dotnet test CognitiveCodeAnalysis.sln
+
+# ✅ GOOD
+make test
+```
+
+Escape hatch only when already inside the container or the user requests host-native runs:
+
+```bash
+IN_CONTAINER=1 make test
+```
+
+## Windows
+
+- Prefer WSL/Linux-style `make` + Docker/Podman as above.
+- On native Windows without `make`, use `docker compose run --rm dev make <target>` or `.\make.ps1 <target>` only when a host .NET SDK is intentionally used.
+
+## When things fail
+
+1. Rebuild: `docker compose build` (or podman equivalent)
+2. Clean artifacts: `make clean`
+3. Full pipeline: `make ci`
