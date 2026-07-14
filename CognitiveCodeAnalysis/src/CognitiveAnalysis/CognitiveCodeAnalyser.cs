@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 
 using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
-using CognitiveCodeAnalysis.CyclomaticAnalysis;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
 
 using Microsoft.CodeAnalysis;
@@ -180,6 +179,77 @@ public class CognitiveCodeAnalyser
         return metricsCollection;
     }
 
+    private readonly record struct MethodNodeCounts(
+        int IfCount,
+        int ElseCount,
+        int TryCount,
+        int LoopCount,
+        int SwitchCount,
+        int SwitchSectionCount,
+        int ReturnCount,
+        int LocalVariableCount,
+        int CatchCount,
+        int ConditionalExpressionCount,
+        int LogicalAndOrCount
+    )
+    {
+        public int CyclomaticComplexity =>
+            IfCount + LoopCount + SwitchSectionCount + CatchCount +
+            ConditionalExpressionCount + LogicalAndOrCount + 1;
+    }
+
+    private static MethodNodeCounts CountMethodNodes(MethodDeclarationSyntax methodNode)
+    {
+        int ifCount = 0, elseCount = 0, tryCount = 0, loopCount = 0,
+            switchCount = 0, switchSectionCount = 0, returnCount = 0,
+            localVarCount = 0, catchCount = 0, conditionalCount = 0, logicalAndOrCount = 0;
+
+        foreach (SyntaxNode node in methodNode.DescendantNodes())
+        {
+            switch (node)
+            {
+                case IfStatementSyntax:
+                    ifCount++;
+                    break;
+                case ElseClauseSyntax:
+                    elseCount++;
+                    break;
+                case TryStatementSyntax:
+                    tryCount++;
+                    break;
+                case ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax or DoStatementSyntax:
+                    loopCount++;
+                    break;
+                case SwitchStatementSyntax sw:
+                    switchCount++;
+                    switchSectionCount += sw.Sections.Count;
+                    break;
+                case ReturnStatementSyntax:
+                    returnCount++;
+                    break;
+                case VariableDeclaratorSyntax declarator when !IsMethodParameter(declarator, methodNode):
+                    localVarCount++;
+                    break;
+                case CatchClauseSyntax:
+                    catchCount++;
+                    break;
+                case ConditionalExpressionSyntax:
+                    conditionalCount++;
+                    break;
+                case BinaryExpressionSyntax binary
+                    when binary.OperatorToken.IsKind(SyntaxKind.AmpersandAmpersandToken)
+                      || binary.OperatorToken.IsKind(SyntaxKind.BarBarToken):
+                    logicalAndOrCount++;
+                    break;
+            }
+        }
+
+        return new MethodNodeCounts(
+            ifCount, elseCount, tryCount, loopCount, switchCount, switchSectionCount,
+            returnCount, localVarCount, catchCount, conditionalCount, logicalAndOrCount
+        );
+    }
+
     private static CognitiveMetricsCollection ExtractMetricsFromClasses(
         CognitiveConfiguration configuration,
         ClassDeclarationSyntax classNode,
@@ -192,24 +262,9 @@ public class CognitiveCodeAnalyser
         IEnumerable<MethodDeclarationSyntax> methodNodes = classNode.Members.OfType<MethodDeclarationSyntax>();
         foreach (MethodDeclarationSyntax methodNode in methodNodes)
         {
-            int ifCount = methodNode.DescendantNodes()
-                .OfType<IfStatementSyntax>()
-                .Count();
-
-            int elseCount = methodNode.DescendantNodes()
-                .OfType<ElseClauseSyntax>()
-                .Count();
-
-            int tryCount = methodNode.DescendantNodes()
-                .OfType<TryStatementSyntax>()
-                .Count();
-
-            int loopCount = CountLoopStatements(methodNode);
-            int switchCount = methodNode.DescendantNodes().OfType<SwitchStatementSyntax>().Count();
-            int localVariableCount = CountLocalVariables(methodNode);
+            MethodNodeCounts counts = CountMethodNodes(methodNode);
             (int fieldAccessCount, int propertyAccessCount) = CountFieldAndPropertyAccesses(methodNode, semanticModel);
 
-            int cyclomatic = CyclomaticComplexityCalculator.calculate(methodNode);
             string halsteadId = fullClassName + "::" + methodNode.Identifier.Text;
             HalsteadMetrics halstead = HalsteadSyntaxCollector.CollectForMethod(methodNode, halsteadId);
 
@@ -219,17 +274,17 @@ public class CognitiveCodeAnalyser
                 filePath: file,
                 methodSignature: GetFullSignature(methodNode),
                 methodLineNumber: methodNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
-                ifCount: ifCount,
+                ifCount: counts.IfCount,
                 argumentCount: methodNode.ParameterList.Parameters.Count,
                 linesOfCode: GetLinesOfCode(methodNode),
-                elseCount: elseCount,
-                loopCount: loopCount,
-                switchCount: switchCount,
-                tryCatchCount: tryCount,
-                returnCount: methodNode.DescendantNodes().OfType<ReturnStatementSyntax>().Count(),
+                elseCount: counts.ElseCount,
+                loopCount: counts.LoopCount,
+                switchCount: counts.SwitchCount,
+                tryCatchCount: counts.TryCount,
+                returnCount: counts.ReturnCount,
                 nestingLevels: CalculateNestingLevels(methodNode, configuration),
-                cyclomaticComplexity: cyclomatic,
-                localVariableCount: localVariableCount,
+                cyclomaticComplexity: counts.CyclomaticComplexity,
+                localVariableCount: counts.LocalVariableCount,
                 fieldAccessCount: fieldAccessCount,
                 propertyAccessCount: propertyAccessCount,
                 halstead: halstead
@@ -237,22 +292,6 @@ public class CognitiveCodeAnalyser
         }
 
         return metricsCollection;
-    }
-
-    private static int CountLoopStatements(MethodDeclarationSyntax methodNode)
-    {
-        return methodNode.DescendantNodes().Count(node =>
-            node is ForStatementSyntax
-                or ForEachStatementSyntax
-                or WhileStatementSyntax
-                or DoStatementSyntax);
-    }
-
-    private static int CountLocalVariables(MethodDeclarationSyntax methodNode)
-    {
-        return methodNode.DescendantNodes()
-            .OfType<VariableDeclaratorSyntax>()
-            .Count(declarator => !IsMethodParameter(declarator, methodNode));
     }
 
     private static bool IsMethodParameter(VariableDeclaratorSyntax declarator, MethodDeclarationSyntax methodNode)

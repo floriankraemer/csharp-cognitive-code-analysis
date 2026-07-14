@@ -2,8 +2,6 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
-using System.Collections.Immutable;
-
 using CognitiveCodeAnalysis.Common;
 
 using Microsoft.CodeAnalysis;
@@ -14,21 +12,33 @@ namespace CognitiveCodeAnalysis.CouplingAnalysis;
 
 public class ClassCouplingAnalyser
 {
-    public IReadOnlyList<ClassCouplingMetrics> Analyse(IReadOnlyList<string> files)
-    {
+    public async Task<IReadOnlyList<ClassCouplingMetrics>> AnalyseAsync(
+        IReadOnlyList<string> files,
+        CancellationToken cancellationToken = default
+    ) {
         if (files.Count == 0)
         {
             return [];
         }
 
-        var sourceFileSet = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
-        var syntaxTrees = new List<SyntaxTree>(files.Count);
+        var readTasks = files.Select(f => File.ReadAllTextAsync(f, cancellationToken));
+        string[] contents = await Task.WhenAll(readTasks);
 
-        foreach (string file in files)
-        {
-            string fileContent = File.ReadAllText(file);
-            syntaxTrees.Add(CSharpSyntaxTree.ParseText(fileContent, path: file));
-        }
+        var syntaxTrees = files
+            .Zip(contents, (file, content) => CSharpSyntaxTree.ParseText(content, path: file))
+            .ToList();
+
+        return BuildCouplingMetrics(files, syntaxTrees);
+    }
+
+    public IReadOnlyList<ClassCouplingMetrics> Analyse(IReadOnlyList<string> files)
+        => AnalyseAsync(files).GetAwaiter().GetResult();
+
+    private static IReadOnlyList<ClassCouplingMetrics> BuildCouplingMetrics(
+        IReadOnlyList<string> files,
+        List<SyntaxTree> syntaxTrees
+    ) {
+        var sourceFileSet = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: "CouplingAnalysis",

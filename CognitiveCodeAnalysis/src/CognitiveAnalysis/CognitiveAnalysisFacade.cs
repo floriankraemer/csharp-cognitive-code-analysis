@@ -40,18 +40,26 @@ public class CognitiveAnalysisFacade(
         List<string> files,
         CognitiveConfiguration configuration,
         IProgress<AnalysisProgress>? progress
+    ) => AnalyseSourceFilesAsync(files, configuration, progress).GetAwaiter().GetResult();
+
+    private async Task<CognitiveMetricsCollection> AnalyseSourceFilesAsync(
+        List<string> files,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress
     ) {
-        CognitiveMetricsCollection metricsCollection = analyser
-            .AnalyseFilesAsync(files, configuration, progress)
-            .GetAwaiter()
-            .GetResult();
+        var cognitiveTask = analyser.AnalyseFilesAsync(files, configuration, progress);
+        var couplingTask = classCouplingAnalyser.AnalyseAsync(files);
+
+        await Task.WhenAll(cognitiveTask, couplingTask);
+
+        CognitiveMetricsCollection metricsCollection = await cognitiveTask;
 
         foreach (CognitiveMetrics metrics in metricsCollection)
         {
             calculator.CalculateScores(metrics, configuration);
         }
 
-        metricsCollection.SetClassCouplingMetrics(classCouplingAnalyser.Analyse(files));
+        metricsCollection.SetClassCouplingMetrics(await couplingTask);
 
         return metricsCollection;
     }
