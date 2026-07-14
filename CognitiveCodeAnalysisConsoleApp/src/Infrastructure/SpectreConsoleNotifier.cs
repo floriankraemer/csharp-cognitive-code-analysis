@@ -9,20 +9,49 @@ namespace CognitiveCodeAnalysisConsoleApp.Infrastructure;
 internal sealed class SpectreConsoleNotifier : IConsoleNotifier
 {
     public void WriteError(string message)
-        => AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(message)}[/]");
+        => WriteLine(
+            $"[red]Error: {Markup.Escape(message)}[/]",
+            $"Error: {message}"
+        );
 
     public void WriteWarning(string message)
-        => AnsiConsole.MarkupLine($"[yellow]Warning: {Markup.Escape(message)}[/]");
+        => WriteLine(
+            $"[yellow]Warning: {Markup.Escape(message)}[/]",
+            $"Warning: {message}"
+        );
 
     public void WriteNoSourceFilesFound(string absoluteSourcePath)
-        => AnsiConsole.MarkupLine($"[yellow]No C# files found in {Markup.Escape(absoluteSourcePath)}.[/]");
+        => WriteLine(
+            $"[yellow]No C# files found in {Markup.Escape(absoluteSourcePath)}.[/]",
+            $"No C# files found in {absoluteSourcePath}."
+        );
 
     public void WriteReportGenerated(string reportType, string fullPath)
-        => AnsiConsole.MarkupLine($"[green]{Markup.Escape(reportType)} report generated:[/] {Markup.Escape(fullPath)}");
+        => WriteLine(
+            $"[green]{Markup.Escape(reportType)} report generated:[/] {Markup.Escape(fullPath)}",
+            $"{reportType} report generated: {fullPath}"
+        );
 
     public void WriteConfigUsed(string configSourceDisplay)
-        => AnsiConsole.MarkupLine($"[grey]Config:[/] {Markup.Escape(configSourceDisplay)}");
+        => WriteLine(
+            $"[grey]Config: {Markup.Escape(configSourceDisplay)}[/]",
+            $"Config: {configSourceDisplay}"
+        );
 
     public void WriteConfigFileCreated(string fullPath)
-        => AnsiConsole.MarkupLine($"[green]Config file created:[/] {Markup.Escape(fullPath)}");
+        => WriteLine(
+            $"[green]Config file created:[/] {Markup.Escape(fullPath)}",
+            $"Config file created: {fullPath}"
+        );
+
+    private static void WriteLine(string markup, string plain)
+    {
+        if (AnsiConsole.Profile.Capabilities.Interactive)
+        {
+            AnsiConsole.MarkupLine(markup);
+            return;
+        }
+
+        Console.WriteLine(plain);
+    }
 }
