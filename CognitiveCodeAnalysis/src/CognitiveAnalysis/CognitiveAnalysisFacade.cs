@@ -3,6 +3,7 @@
 /// </copyright>
 
 using CognitiveCodeAnalysis.CodeCoverage;
+using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.CouplingAnalysis;
 
@@ -47,8 +48,10 @@ public class CognitiveAnalysisFacade(
         CognitiveConfiguration configuration,
         IProgress<AnalysisProgress>? progress
     ) {
-        var cognitiveTask = analyser.AnalyseFilesAsync(files, configuration, progress);
-        var couplingTask = classCouplingAnalyser.AnalyseAsync(files);
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files);
+
+        var cognitiveTask = Task.Run(() => analyser.AnalyseCompiled(sources, configuration, progress));
+        var couplingTask = Task.Run(() => classCouplingAnalyser.AnalyseCompiled(sources));
 
         await Task.WhenAll(cognitiveTask, couplingTask);
 

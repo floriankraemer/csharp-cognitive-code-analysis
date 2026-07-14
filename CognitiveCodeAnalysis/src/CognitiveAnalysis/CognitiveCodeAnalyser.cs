@@ -33,39 +33,7 @@ public class CognitiveCodeAnalyser
         List<string> files,
         CognitiveConfiguration configuration,
         IProgress<AnalysisProgress>? progress
-    ) {
-        int totalFiles = files.Count;
-        int processedFiles = 0;
-
-        progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingFiles, TotalFiles: totalFiles));
-
-        var metricsCollection = new CognitiveMetricsCollection();
-
-        foreach (string file in files)
-        {
-            string fileContent = File.ReadAllText(file);
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
-            SyntaxNode root = tree.GetRoot();
-            SemanticModel? semanticModel = CreateSemanticModel(tree);
-
-            metricsCollection = AnalyseClasses(configuration, root, metricsCollection, file, semanticModel);
-
-            processedFiles++;
-            progress?.Report(new AnalysisProgress(
-                AnalysisProgressPhase.AnalysingFiles,
-                TotalFiles: totalFiles,
-                ProcessedFiles: processedFiles
-            ));
-        }
-
-        progress?.Report(new AnalysisProgress(
-            AnalysisProgressPhase.AnalysisCompleted,
-            TotalFiles: totalFiles,
-            ProcessedFiles: totalFiles
-        ));
-
-        return metricsCollection;
-    }
+    ) => AnalyseFilesAsync(files, configuration, progress).GetAwaiter().GetResult();
 
     /// <summary>
     /// <![CDATA[
@@ -87,52 +55,56 @@ public class CognitiveCodeAnalyser
         IProgress<AnalysisProgress>? progress,
         CancellationToken cancellationToken = default
     ) {
-        int totalFiles = files.Count;
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files, cancellationToken);
+        return AnalyseCompiled(sources, configuration, progress, cancellationToken);
+    }
+
+    /// <summary>
+    /// Analyses an already parsed and compiled set of sources. The shared
+    /// <see cref="CompiledSourceSet"/> lets the semantic model reuse a single
+    /// compilation instead of building one per file.
+    /// </summary>
+    public CognitiveMetricsCollection AnalyseCompiled(
+        CompiledSourceSet sources,
+        CognitiveConfiguration configuration,
+        IProgress<AnalysisProgress>? progress,
+        CancellationToken cancellationToken = default
+    ) {
+        int totalFiles = sources.SyntaxTrees.Count;
         int processedFiles = 0;
 
         progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingFiles, TotalFiles: totalFiles));
 
-        // Use a thread-safe bag to collect metrics from all parallel tasks
         var allMetrics = new ConcurrentBag<CognitiveMetrics>();
 
-        var fileTasks = files.Select(async file =>
-        {
-            try
+        Parallel.ForEach(
+            sources.SyntaxTrees,
+            new ParallelOptions { CancellationToken = cancellationToken },
+            tree =>
             {
-#if NETSTANDARD2_1_OR_GREATER
-                string fileContent = await File.ReadAllTextAsync(file, cancellationToken);
-#else
-                string fileContent = File.ReadAllText(file);
-#endif
-
-                SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
-
-                // GetRootAsync exists and is cancellable – small win
-                SyntaxNode root = await tree.GetRootAsync(cancellationToken);
-                SemanticModel? semanticModel = CreateSemanticModel(tree);
-
-                // Process this file independently
-                var localCollection = new CognitiveMetricsCollection();
-                AnalyseClasses(configuration, root, localCollection, file, semanticModel);
-
-                // Add all metrics from this file to the shared bag
-                foreach (var metric in localCollection)
+                try
                 {
-                    allMetrics.Add(metric);
-                }
-            }
-            finally
-            {
-                int count = Interlocked.Increment(ref processedFiles);
-                progress?.Report(new AnalysisProgress(
-                    AnalysisProgressPhase.AnalysingFiles,
-                    TotalFiles: totalFiles,
-                    ProcessedFiles: count
-                ));
-            }
-        });
+                    SyntaxNode root = tree.GetRoot(cancellationToken);
+                    SemanticModel semanticModel = sources.Compilation.GetSemanticModel(tree);
 
-        await Task.WhenAll(fileTasks);
+                    var localCollection = new CognitiveMetricsCollection();
+                    AnalyseClasses(configuration, root, localCollection, tree.FilePath, semanticModel);
+
+                    foreach (CognitiveMetrics metric in localCollection)
+                    {
+                        allMetrics.Add(metric);
+                    }
+                }
+                finally
+                {
+                    int count = Interlocked.Increment(ref processedFiles);
+                    progress?.Report(new AnalysisProgress(
+                        AnalysisProgressPhase.AnalysingFiles,
+                        TotalFiles: totalFiles,
+                        ProcessedFiles: count
+                    ));
+                }
+            });
 
         progress?.Report(new AnalysisProgress(
             AnalysisProgressPhase.AnalysisCompleted,
@@ -140,26 +112,13 @@ public class CognitiveCodeAnalyser
             ProcessedFiles: totalFiles
         ));
 
-        // Convert to the expected collection type
         var result = new CognitiveMetricsCollection();
-        foreach (var metric in allMetrics)
+        foreach (CognitiveMetrics metric in allMetrics)
         {
             result.Add(metric);
         }
 
         return result;
-    }
-
-    private static SemanticModel? CreateSemanticModel(SyntaxTree tree)
-    {
-        CSharpCompilation compilation = CSharpCompilation.Create(
-            assemblyName: "CognitiveAnalysis_" + Guid.NewGuid().ToString("N"),
-            syntaxTrees: [tree],
-            references: RoslynMetadataReferences.Get(),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-        );
-
-        return compilation.GetSemanticModel(tree);
     }
 
     private static CognitiveMetricsCollection AnalyseClasses(

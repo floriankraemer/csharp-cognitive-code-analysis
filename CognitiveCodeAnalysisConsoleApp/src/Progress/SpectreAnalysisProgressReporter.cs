@@ -10,6 +10,8 @@ namespace CognitiveCodeAnalysisConsoleApp.Progress;
 
 public sealed class SpectreAnalysisProgressReporter
 {
+    private const long RefreshThrottleMilliseconds = 75;
+
     private readonly object _lock = new();
     private ProgressContext? _context;
     private ProgressTask? _searchTask;
@@ -17,6 +19,7 @@ public sealed class SpectreAnalysisProgressReporter
     private ProgressTask? _reportTask;
     private int _lastAnalysisProcessed = -1;
     private int _lastReportProcessed = -1;
+    private long _lastRefreshTick = long.MinValue;
 
     public SpectreAnalysisProgressState State { get; } = new();
 
@@ -248,8 +251,37 @@ public sealed class SpectreAnalysisProgressReporter
                     break;
             }
 
-            _context.Refresh();
+            if (ShouldRefresh(update.Phase))
+            {
+                _context.Refresh();
+            }
         }
+    }
+
+    /// <summary>
+    /// High-frequency incremental phases (per-file analysis and per-item report
+    /// writing) can emit thousands of updates. Spectre already auto-refreshes the
+    /// live display, so manual refreshes are throttled to avoid flooding the
+    /// console and blocking on render work. Terminal phases always refresh so the
+    /// final state is rendered immediately.
+    /// </summary>
+    private bool ShouldRefresh(AnalysisProgressPhase phase)
+    {
+        bool isIncremental = phase is AnalysisProgressPhase.AnalysingFiles or AnalysisProgressPhase.WritingReport;
+        if (!isIncremental)
+        {
+            _lastRefreshTick = Environment.TickCount64;
+            return true;
+        }
+
+        long now = Environment.TickCount64;
+        if (now - _lastRefreshTick < RefreshThrottleMilliseconds)
+        {
+            return false;
+        }
+
+        _lastRefreshTick = now;
+        return true;
     }
 
     private void WriteFallbackLine(AnalysisProgress update)

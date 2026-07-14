@@ -32,6 +32,7 @@ $ErrorActionPreference = "Stop"
 
 $Sln = Join-Path $PSScriptRoot "CognitiveCodeAnalysis.sln"
 $ConsoleProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysisConsoleApp\CognitiveCodeAnalysisConsoleApp.csproj"
+$BenchProj = Join-Path $PSScriptRoot "CognitiveCodeAnalysis.Benchmarks\CognitiveCodeAnalysis.Benchmarks.csproj"
 
 function Invoke-DotNet {
     param([Parameter(Mandatory = $true)] [string[]] $Arguments)
@@ -88,6 +89,7 @@ Targets:
   publish-single   self-contained single-file publish -> artifacts\publish-<RID>
   pack-tool        dotnet tool package -> artifacts\nupkg
   coverage         run tests with Coverlet + HTML report -> artifacts/coverage
+  benchmark        run BenchmarkDotNet analysis benchmarks -> artifacts/benchmark
   help             show this message
 "@
 }
@@ -204,6 +206,21 @@ switch ($Target.ToLowerInvariant()) {
         Write-Host "Coverage complete." -ForegroundColor Green
         Write-Host "  Cobertura: $coberturaPath"
         Write-Host "  HTML:      $indexHtml"
+    }
+    "benchmark" {
+        $benchmarkDir = Join-Path $PSScriptRoot (Join-Path "artifacts" "benchmark")
+        New-Item -ItemType Directory -Force -Path $benchmarkDir | Out-Null
+        $env:CCA_BENCHMARK_ARTIFACTS = $benchmarkDir
+
+        Write-Host "Running analysis benchmarks -> $benchmarkDir"
+        Invoke-DotNet @(
+            "run", "-c", "Release", "--project", $BenchProj, "--",
+            "--filter", "*"
+        )
+
+        Write-Host ""
+        Write-Host "Benchmark complete." -ForegroundColor Green
+        Write-Host "  Results: $benchmarkDir"
     }
     default {
         Write-Host "Unknown target: $Target" -ForegroundColor Red

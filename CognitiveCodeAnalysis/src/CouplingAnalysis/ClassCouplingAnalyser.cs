@@ -21,31 +21,33 @@ public class ClassCouplingAnalyser
             return [];
         }
 
-        var readTasks = files.Select(f => File.ReadAllTextAsync(f, cancellationToken));
-        string[] contents = await Task.WhenAll(readTasks);
-
-        var syntaxTrees = files
-            .Zip(contents, (file, content) => CSharpSyntaxTree.ParseText(content, path: file))
-            .ToList();
-
-        return BuildCouplingMetrics(files, syntaxTrees);
+        CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files, cancellationToken);
+        return AnalyseCompiled(sources);
     }
 
     public IReadOnlyList<ClassCouplingMetrics> Analyse(IReadOnlyList<string> files)
         => AnalyseAsync(files).GetAwaiter().GetResult();
 
+    /// <summary>
+    /// Computes coupling metrics from an already parsed and compiled set of sources,
+    /// reusing the shared compilation instead of building its own.
+    /// </summary>
+    public IReadOnlyList<ClassCouplingMetrics> AnalyseCompiled(CompiledSourceSet sources)
+    {
+        if (sources.Files.Count == 0)
+        {
+            return [];
+        }
+
+        return BuildCouplingMetrics(sources.Files, sources.SyntaxTrees, sources.Compilation);
+    }
+
     private static IReadOnlyList<ClassCouplingMetrics> BuildCouplingMetrics(
         IReadOnlyList<string> files,
-        List<SyntaxTree> syntaxTrees
+        IReadOnlyList<SyntaxTree> syntaxTrees,
+        CSharpCompilation compilation
     ) {
         var sourceFileSet = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
-
-        CSharpCompilation compilation = CSharpCompilation.Create(
-            assemblyName: "CouplingAnalysis",
-            syntaxTrees: syntaxTrees,
-            references: RoslynMetadataReferences.Get(),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-        );
 
         var sourceTypes = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
         var typeDeclarations = new List<(SyntaxNode TypeNode, SemanticModel Model, INamedTypeSymbol TypeSymbol)>();

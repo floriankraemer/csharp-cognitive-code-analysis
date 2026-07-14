@@ -19,7 +19,9 @@
 
 SLN := CognitiveCodeAnalysis.sln
 CONSOLE := CognitiveCodeAnalysisConsoleApp/CognitiveCodeAnalysisConsoleApp.csproj
+BENCH := CognitiveCodeAnalysis.Benchmarks/CognitiveCodeAnalysis.Benchmarks.csproj
 COV_DIR := $(CURDIR)/artifacts/coverage
+BENCH_DIR := $(CURDIR)/artifacts/benchmark
 
 _DOTNET_RID := $(shell dotnet --info 2>/dev/null | sed -n 's/^[[:space:]]*RID:[[:space:]]*//p' | head -1)
 PUBLISH_RID := $(if $(strip $(RID)),$(strip $(RID)),$(if $(strip $(_DOTNET_RID)),$(_DOTNET_RID),linux-x64))
@@ -54,7 +56,7 @@ _CONTAINER_RUN = $(CONTAINER_RUNNER) run --rm dev make $@ RID="$(RID)" IN_CONTAI
 
 .DEFAULT_GOAL := help
 
-.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage
+.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage benchmark
 
 help:
 	@echo "Cognitive Code Analysis (C#) — Makefile (same targets as make.ps1)"
@@ -80,6 +82,7 @@ help:
 	@echo "  publish-single   self-contained single-file publish -> artifacts/publish-<RID>"
 	@echo "  pack-tool        dotnet tool package -> artifacts/nupkg"
 	@echo "  coverage         run tests with Coverlet + HTML report -> artifacts/coverage"
+	@echo "  benchmark        run BenchmarkDotNet analysis benchmarks -> artifacts/benchmark"
 	@echo "  help             show this message"
 
 ifeq ($(_NATIVE),1)
@@ -147,9 +150,16 @@ coverage:
 	@echo "  Cobertura: artifacts/coverage/coverage.cobertura.xml"
 	@echo "  HTML:      artifacts/coverage/html/index.html"
 
+benchmark:
+	mkdir -p $(BENCH_DIR)
+	dotnet run -c Release --project $(BENCH) -- --filter '*'
+	@echo ""
+	@echo "Benchmark complete."
+	@echo "  Results: $(BENCH_DIR)/"
+
 else
 
-restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage:
+restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage benchmark:
 	$(_CONTAINER_RUN)
 
 endif

@@ -11,7 +11,11 @@ namespace CognitiveCodeAnalysis.Common;
 
 internal static class RoslynMetadataReferences
 {
-    internal static ImmutableArray<MetadataReference> Get()
+    private static readonly Lazy<ImmutableArray<MetadataReference>> CachedReferences = new(Build);
+
+    internal static ImmutableArray<MetadataReference> Get() => CachedReferences.Value;
+
+    private static ImmutableArray<MetadataReference> Build()
     {
         var references = new List<MetadataReference>();
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

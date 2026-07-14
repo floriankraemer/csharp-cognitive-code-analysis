@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisConsol
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysisConsoleApp.Tests", "CognitiveCodeAnalysisConsoleApp.Tests\CognitiveCodeAnalysisConsoleApp.Tests.csproj", "{8EB9755A-AE7D-4120-9473-B8FD8A1F9D30}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CognitiveCodeAnalysis.Benchmarks", "CognitiveCodeAnalysis.Benchmarks\CognitiveCodeAnalysis.Benchmarks.csproj", "{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,6 +74,18 @@ Global
 		{8EB9755A-AE7D-4120-9473-B8FD8A1F9D30}.Release|x64.Build.0 = Release|Any CPU
 		{8EB9755A-AE7D-4120-9473-B8FD8A1F9D30}.Release|x86.ActiveCfg = Release|Any CPU
 		{8EB9755A-AE7D-4120-9473-B8FD8A1F9D30}.Release|x86.Build.0 = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|x64.Build.0 = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Debug|x86.Build.0 = Debug|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|x64.ActiveCfg = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|x64.Build.0 = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|x86.ActiveCfg = Release|Any CPU
+		{E482EABC-C006-4A19-9AFD-5E86FDDDDE0E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
