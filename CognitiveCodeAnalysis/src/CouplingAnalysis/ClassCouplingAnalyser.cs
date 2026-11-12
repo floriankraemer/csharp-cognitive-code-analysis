@@ -233,13 +233,6 @@ public class ClassCouplingAnalyser
             yield return node;
         }
 
-#if ROSLYN_4_0_OR_GREATER
-        foreach (RecordDeclarationSyntax node in root.DescendantNodes().OfType<RecordDeclarationSyntax>())
-        {
-            yield return node;
-        }
-#endif
-
         foreach (StructDeclarationSyntax node in root.DescendantNodes().OfType<StructDeclarationSyntax>())
         {
             yield return node;
