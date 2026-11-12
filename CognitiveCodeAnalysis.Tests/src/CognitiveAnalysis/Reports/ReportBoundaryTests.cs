@@ -1,6 +1,8 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
+
+using System.Globalization;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
@@ -35,7 +37,7 @@ public class ReportBoundaryTests
     {
         var html = Html([Metric("C", "M", score)]);
 
-        Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{score:F3}</span>"));
+        Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{score.ToString("F3", CultureInfo.InvariantCulture)}</span>"));
     }
 
     [TestCase(0.29, "score-green")]
@@ -50,7 +52,7 @@ public class ReportBoundaryTests
 
         var html = Html([m]);
 
-        Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{churn:F3}</span>"));
+        Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{churn.ToString("F3", CultureInfo.InvariantCulture)}</span>"));
     }
 
     [Test]

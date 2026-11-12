@@ -94,6 +94,10 @@ jobs:
       - name: Restore dotnet tools
         run: dotnet tool restore
 
+      # Hosted runners default to the .NET 10 SDK, which Stryker.NET 4.8 cannot analyse with; pin SDK 8 for this job only.
+      - name: Pin SDK 8.0 for Stryker
+        run: echo '{"sdk":{"version":"8.0.100","rollForward":"latestFeature"}}' > global.json
+
       # Thresholds (high 90 / low 80 / break 80) live in stryker-config.json; a lower score fails the job.
       - name: Run Stryker.NET
         working-directory: CognitiveCodeAnalysis.Tests

@@ -94,6 +94,7 @@ Quality gates enforced in CI:
 - Each test project must reach at least **90% line and 90% branch coverage** of the assembly it tests (Coverlet thresholds in the test projects).
 - The library must keep a **mutation score of at least 80%** (Stryker.NET, configured in `stryker-config.json`; high 90, low 80, break 80).
   The mutation job runs on pull requests.
+- `make mutation` must run with the .NET 8 SDK (the dev container does); Stryker.NET 4.8 fails with the .NET 10 SDK, so the CI job pins SDK 8 for that step only.
 - New behavior needs positive and negative tests.
 
 ## License ⚖️
