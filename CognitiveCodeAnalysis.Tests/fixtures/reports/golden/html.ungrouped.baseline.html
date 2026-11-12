@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Code Analysis Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-size: 0.9rem; }
+        .table { font-size: 0.9rem; }
+        .score-green { color: #28a745; font-weight: bold; }
+        .score-yellow { color: #ffc107; font-weight: bold; }
+        .score-red { color: #dc3545; font-weight: bold; }
+        .class-header { margin-top: 2rem; margin-bottom: 1rem; }
+        .report-class-section:first-of-type .class-header { margin-top: 1rem; }
+        .report-filter-bar { max-width: 32rem; }
+        .delta-up { color: #dc3545; font-weight: bold; }
+        .delta-down { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Cognitive Code Analysis Report</h1>
+        <div class="mb-4 report-filter-bar">
+            <label for="report-filter" class="form-label">Filter by class or file path</label>
+            <input type="search" id="report-filter" class="form-control" placeholder="e.g. controller" autocomplete="off">
+            <div class="form-text">Case-insensitive match on class name or full file path. Empty shows all sections.</div>
+        </div>
+        <div class="report-class-section" data-class-name="Svc" data-file-path="src/Svc.cs">
+        <div class="class-header">
+            <h3 class="text-primary">Class: Svc</h3>
+            <p class="text-success">Method: void Alpha(int a, string b)</p>
+            <p class="text-muted">File: src/Svc.cs</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Method</th>
+                        <th>Score</th>
+                        <th>Lines</th>
+                        <th>Ifs</th>
+                        <th>Else</th>
+                        <th>Loops</th>
+                        <th>Switch</th>
+                        <th>Try/Catch</th>
+                        <th>Arguments</th>
+                        <th>Nesting</th>
+                        <th>Returns</th>
+                        <th>Locals</th>
+                        <th>Fields</th>
+                        <th>Props</th>
+                        <th>Halstead Volume</th>
+                        <th>Halstead Difficulty</th>
+                        <th>Halstead Effort</th>
+                        <th>Cyclomatic Complexity</th>
+                        <th>Churn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>L10 Alpha</td>
+                        <td><span class="score-red">8.500 <span class="delta-up">▲1.500</span></span></td>
+                        <td>90 (0.250)</td>
+                        <td>4 <span class="delta-up">▲3</span> (1.500)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>120.46 <span class="delta-up">▲20.46</span></td>
+                        <td>14.50 <span class="delta-down">▼2.00</span></td>
+                        <td>1746.60</td>
+                        <td>7.0</td>
+                        <td><span class="score-red">0.900 <span class="delta-up">▲0.500</span></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="report-class-section" data-class-name="Svc" data-file-path="src/Svc.cs">
+        <div class="class-header">
+            <h3 class="text-primary">Class: Svc</h3>
+            <p class="text-success">Method: List&lt;string&gt; Beta&lt;T&gt;()</p>
+            <p class="text-muted">File: src/Svc.cs</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Method</th>
+                        <th>Score</th>
+                        <th>Lines</th>
+                        <th>Ifs</th>
+                        <th>Else</th>
+                        <th>Loops</th>
+                        <th>Switch</th>
+                        <th>Try/Catch</th>
+                        <th>Arguments</th>
+                        <th>Nesting</th>
+                        <th>Returns</th>
+                        <th>Locals</th>
+                        <th>Fields</th>
+                        <th>Props</th>
+                        <th>Halstead Volume</th>
+                        <th>Halstead Difficulty</th>
+                        <th>Halstead Effort</th>
+                        <th>Cyclomatic Complexity</th>
+                        <th>Churn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>L42 Beta</td>
+                        <td><span class="score-yellow">0.600 <span class="delta-down">▼0.500</span></span></td>
+                        <td>1 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>2 (0.300)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>2.0</td>
+                        <td><span class="score-yellow">0.500</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="report-class-section" data-class-name="Repo" data-file-path="src/Repo.cs">
+        <div class="class-header">
+            <h3 class="text-primary">Class: Repo</h3>
+            <p class="text-success">Method: void Delta()</p>
+            <p class="text-muted">File: src/Repo.cs</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Method</th>
+                        <th>Score</th>
+                        <th>Lines</th>
+                        <th>Ifs</th>
+                        <th>Else</th>
+                        <th>Loops</th>
+                        <th>Switch</th>
+                        <th>Try/Catch</th>
+                        <th>Arguments</th>
+                        <th>Nesting</th>
+                        <th>Returns</th>
+                        <th>Locals</th>
+                        <th>Fields</th>
+                        <th>Props</th>
+                        <th>Halstead Volume</th>
+                        <th>Halstead Difficulty</th>
+                        <th>Halstead Effort</th>
+                        <th>Cyclomatic Complexity</th>
+                        <th>Churn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>L30 Delta</td>
+                        <td><span class="score-green">0.450</span></td>
+                        <td>1 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>1.0</td>
+                        <td><span class="score-green">n/a</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="report-class-section" data-class-name="Repo" data-file-path="src/Repo.cs">
+        <div class="class-header">
+            <h3 class="text-primary">Class: Repo</h3>
+            <p class="text-success">Method: void Gamma()</p>
+            <p class="text-muted">File: src/Repo.cs</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Method</th>
+                        <th>Score</th>
+                        <th>Lines</th>
+                        <th>Ifs</th>
+                        <th>Else</th>
+                        <th>Loops</th>
+                        <th>Switch</th>
+                        <th>Try/Catch</th>
+                        <th>Arguments</th>
+                        <th>Nesting</th>
+                        <th>Returns</th>
+                        <th>Locals</th>
+                        <th>Fields</th>
+                        <th>Props</th>
+                        <th>Halstead Volume</th>
+                        <th>Halstead Difficulty</th>
+                        <th>Halstead Effort</th>
+                        <th>Cyclomatic Complexity</th>
+                        <th>Churn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>L5 Gamma</td>
+                        <td><span class="score-green">0.200</span></td>
+                        <td>1 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>0 (0.000)</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>n/a</td>
+                        <td>1.0</td>
+                        <td><span class="score-green">0.100</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+(function(){
+  var input=document.getElementById('report-filter');
+  if(!input)return;
+  var sections=document.querySelectorAll('.report-class-section');
+  function apply(){
+    var q=input.value.trim().toLowerCase();
+    sections.forEach(function(sec){
+      if(!q){ sec.classList.remove('d-none'); return; }
+      var cn=(sec.getAttribute('data-class-name')||'').toLowerCase();
+      var fp=(sec.getAttribute('data-file-path')||'').toLowerCase();
+      var show=cn.indexOf(q)!==-1||fp.indexOf(q)!==-1;
+      sec.classList.toggle('d-none',!show);
+    });
+  }
+  input.addEventListener('input',apply);
+})();
+    </script>
+</body>
+</html>

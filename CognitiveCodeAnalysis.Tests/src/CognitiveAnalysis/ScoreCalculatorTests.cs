@@ -205,4 +205,143 @@ public class Tests
 
         return configuration;
     }
+
+    private static CognitiveConfiguration SingleMetric(string key, int threshold, double scale, bool enabled = true) => new()
+    {
+        Metrics = new Dictionary<string, MetricConfiguration>
+        {
+            { key, new MetricConfiguration { Scale = scale, Threshold = threshold, Enabled = enabled } },
+        }
+    };
+
+    private static CognitiveMetrics Metrics(
+        int ifCount = 0, int elseCount = 0, int loopCount = 0, int switchCount = 0, int tryCatchCount = 0,
+        int returnCount = 0, int argumentCount = 0, int linesOfCode = 0, int nestingLevels = 0,
+        int localVariableCount = 0, int fieldAccessCount = 0, int propertyAccessCount = 0) =>
+        new("M", "C", "f.cs", "M()", 1, ifCount, elseCount, loopCount, switchCount, tryCatchCount, returnCount,
+            argumentCount, linesOfCode, nestingLevels, 0, localVariableCount, fieldAccessCount, propertyAccessCount);
+
+    [Test]
+    public void CalculateScores_DisabledMetric_IsNotScored()
+    {
+        var metrics = Metrics(ifCount: 10);
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("ifCount", 1, 1, enabled: false));
+
+        Assert.That(metrics.ifScore, Is.EqualTo(0.0));
+        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+    }
+
+    [TestCase(2)]
+    [TestCase(3)]
+    public void CalculateScores_CountAtOrBelowThreshold_ScoresZero(int count)
+    {
+        var metrics = Metrics(ifCount: count);
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("ifCount", 3, 1));
+
+        Assert.That(metrics.ifScore, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public void CalculateScores_CountJustAboveThreshold_ScoresLogOfOnePlusExcessOverScale()
+    {
+        var metrics = Metrics(ifCount: 4);
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("ifCount", 3, 2));
+
+        Assert.That(metrics.ifScore, Is.EqualTo(Math.Log(1.5)).Within(1e-12));
+    }
+
+    [Test]
+    public void CalculateScores_EachKnownMetric_WritesOnlyItsOwnScore()
+    {
+        (string Key, Func<CognitiveMetrics> Make, Func<CognitiveMetrics, double> Score)[] cases =
+        [
+            ("ifCount", () => Metrics(ifCount: 5), m => m.ifScore),
+            ("elseCount", () => Metrics(elseCount: 5), m => m.elseScore),
+            ("loopCount", () => Metrics(loopCount: 5), m => m.loopScore),
+            ("switchCount", () => Metrics(switchCount: 5), m => m.switchScore),
+            ("tryCatchCount", () => Metrics(tryCatchCount: 5), m => m.tryCatchScore),
+            ("returnCount", () => Metrics(returnCount: 5), m => m.returnScore),
+            ("argumentCount", () => Metrics(argumentCount: 5), m => m.argumentScore),
+            ("nestingLevels", () => Metrics(nestingLevels: 5), m => m.nestingScore),
+            ("linesOfCode", () => Metrics(linesOfCode: 5), m => m.linesOfCodeScore),
+            ("localVariableCount", () => Metrics(localVariableCount: 5), m => m.localVariableScore),
+            ("fieldAccessCount", () => Metrics(fieldAccessCount: 5), m => m.fieldAccessScore),
+            ("propertyAccessCount", () => Metrics(propertyAccessCount: 5), m => m.propertyAccessScore),
+        ];
+
+        foreach (var (key, make, score) in cases)
+        {
+            var metrics = make();
+            new ScoreCalculator().CalculateScores(metrics, SingleMetric(key, 1, 1));
+
+            double expected = Math.Log(1 + 4.0);
+            Assert.That(score(metrics), Is.EqualTo(expected).Within(1e-12), key);
+            Assert.That(metrics.totalScore, Is.EqualTo(expected).Within(1e-12), key + " total");
+        }
+    }
+
+    [Test]
+    public void CalculateScores_TotalScore_SumsAllTwelveScores()
+    {
+        var metrics = Metrics(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new[]
+            {
+                "ifCount", "elseCount", "loopCount", "switchCount", "tryCatchCount", "returnCount", "argumentCount",
+                "linesOfCode", "nestingLevels", "localVariableCount", "fieldAccessCount", "propertyAccessCount",
+            }.ToDictionary(k => k, _ => new MetricConfiguration { Threshold = 0, Scale = 1, Enabled = true })
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        Assert.That(metrics.totalScore, Is.EqualTo(12 * Math.Log(2)).Within(1e-12));
+    }
+
+    [Test]
+    public void CalculateScores_UnknownMetricName_IsIgnored()
+    {
+        var metrics = Metrics(ifCount: 9);
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("doesNotExist", 0, 1));
+
+        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public void CalculateScores_PublicFieldWithoutScoreField_IsReadViaReflectionButNotStored()
+    {
+        // methodLineNumber is a public int field: readable by name, but has no matching score slot.
+        var metrics = Metrics();
+        metrics.methodLineNumber = 50;
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("methodLineNumber", 10, 1));
+
+        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public void CalculateScores_CyclomaticComplexity_IsReadButContributesNoScore()
+    {
+        var metrics = Metrics();
+        metrics.cyclomaticComplexity = 20;
+
+        new ScoreCalculator().CalculateScores(metrics, SingleMetric("cyclomaticComplexity", 5, 1));
+
+        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public void CalculateScores_EmptyMetricConfiguration_LeavesMetricsUntouched()
+    {
+        var metrics = Metrics(ifCount: 9);
+
+        var result = new ScoreCalculator().CalculateScores(metrics, new CognitiveConfiguration { Metrics = new() });
+
+        Assert.That(result, Is.SameAs(metrics));
+        Assert.That(result.totalScore, Is.EqualTo(0.0));
+    }
 }

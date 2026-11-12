@@ -1,8 +1,9 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.CouplingAnalysis;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
@@ -118,6 +119,87 @@ internal static class ReportGoldenFixtures
             },
         ]);
         return coll;
+    }
+
+
+    /// <summary>All optional columns on: Halstead, cyclomatic, coupling, coverage and churn.</summary>
+    internal static CognitiveConfiguration FullConfig(bool groupByClass) =>
+        new()
+        {
+            ScoreThreshold = ScoreThreshold,
+            ShowOnlyMethodsExceedingThreshold = false,
+            GroupByClass = groupByClass,
+            ShowCouplingMetrics = true,
+            ShowHalsteadComplexity = true,
+            ShowCyclomaticComplexity = true,
+        };
+
+    /// <summary>
+    /// Four methods in two classes covering every colour band, missing optional values and special characters.
+    /// </summary>
+    internal static CognitiveMetricsCollection FullCollection(
+        double alphaScore = 8.5,
+        double betaScore = 0.6,
+        double gammaScore = 0.2
+    )
+    {
+        var alpha = CreateMetric("Alpha", "Svc", "src/Svc.cs", "void Alpha(int a, string b)", 10, alphaScore);
+        alpha.ifCount = 4;
+        alpha.ifScore = 1.5;
+        alpha.linesOfCode = 90;
+        alpha.linesOfCodeScore = 0.25;
+        alpha.cyclomaticComplexity = 7;
+        alpha.Halstead = new HalsteadMetrics { Volume = 120.456, Difficulty = 14.5, Effort = 1746.6 };
+        alpha.lineCoveragePercentage = 80.5;
+        alpha.branchCoveragePercentage = 60;
+        alpha.churnScore = 0.9;
+
+        var beta = CreateMetric("Beta", "Svc", "src/Svc.cs", "List<string> Beta<T>()", 42, betaScore);
+        beta.loopCount = 2;
+        beta.loopScore = 0.3;
+        beta.cyclomaticComplexity = 2;
+        beta.lineCoveragePercentage = 100;
+        beta.churnScore = 0.5;
+
+        var gamma = CreateMetric("Gamma", "Repo", "src/Repo.cs", "void Gamma()", 5, gammaScore);
+        gamma.churnScore = 0.1;
+        gamma.branchCoveragePercentage = 12.25;
+
+        var delta = CreateMetric("Delta", "Repo", "src/Repo.cs", "void Delta()", 30, 0.45);
+
+        var collection = new CognitiveMetricsCollection { alpha, beta, gamma, delta };
+        collection.SetClassCouplingMetrics(
+        [
+            new ClassCouplingMetrics { ClassName = "Svc", IncomingCoupling = 3, OutgoingCoupling = 5, Stability = 0.625 },
+            new ClassCouplingMetrics { ClassName = "Repo", IncomingCoupling = 1, OutgoingCoupling = 0, Stability = 0.0 },
+        ]);
+        return collection;
+    }
+
+    /// <summary>
+    /// Baseline in which Alpha was cheaper (delta up), Beta was dearer (delta down), Gamma is unchanged and Delta is new.
+    /// </summary>
+    internal static CognitiveBaselineComparison FullBaselineComparison()
+    {
+        var baseline = FullCollection(alphaScore: 7.0, betaScore: 1.1, gammaScore: 0.2);
+        var baselineMetrics = baseline.Where(m => m.MethodName != "Delta").ToList();
+        var baselineCollection = new CognitiveMetricsCollection();
+        foreach (var m in baselineMetrics)
+        {
+            baselineCollection.Add(m);
+        }
+
+        baselineCollection[0].ifCount = 1;
+        baselineCollection[0].churnScore = 0.4;
+        baselineCollection[0].Halstead = new HalsteadMetrics { Volume = 100.0, Difficulty = 16.5, Effort = 1746.6 };
+        baselineCollection[1].lineCoveragePercentage = 90;
+        baselineCollection.SetClassCouplingMetrics(
+        [
+            new ClassCouplingMetrics { ClassName = "Svc", IncomingCoupling = 1, OutgoingCoupling = 5, Stability = 0.8 },
+        ]);
+
+        var snapshot = BaselineSnapshotFactory.FromMetricsCollection(baselineCollection);
+        return BaselineComparer.Compare(FullCollection(), snapshot);
     }
 
     private static CognitiveMetrics CreateMetric(
