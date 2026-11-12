@@ -30,6 +30,9 @@ internal sealed class ConsoleOutputCapture : IDisposable
             Out = new AnsiConsoleOutput(_writer),
         });
         AnsiConsole.Console.Profile.Width = width;
+        // Spectre downgrades "interactive" on known CI providers (e.g. GITHUB_ACTIONS) even when requested; pin it
+        // so the tests behave the same locally and in CI.
+        AnsiConsole.Console.Profile.Capabilities.Interactive = interactive;
     }
 
     /// <summary>Everything written through <see cref="Console.Out"/> (plain-text fallbacks).</summary>
