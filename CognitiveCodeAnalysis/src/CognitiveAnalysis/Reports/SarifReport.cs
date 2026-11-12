@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -22,6 +23,16 @@ public sealed class SarifReport : IReport
 
     public string Name => "Sarif";
 
+    private static string ToolVersion()
+    {
+        var assembly = typeof(SarifReport).Assembly;
+        var informational = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        // The SDK appends "+<commit>" build metadata; the stamped release version is the part before it.
+        var version = informational?.Split('+')[0];
+        return string.IsNullOrWhiteSpace(version) ? assembly.GetName().Version?.ToString() ?? "0.0.0" : version;
+    }
+
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
@@ -36,7 +47,7 @@ public sealed class SarifReport : IReport
 
         ReportProgress.ReportStart(progress, Name, totalItems);
 
-        var toolVersion = typeof(SarifReport).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var toolVersion = ToolVersion();
         var results = new List<CognitiveSarifResult>();
 
         foreach (var m in filtered)

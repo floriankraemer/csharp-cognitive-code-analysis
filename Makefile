@@ -11,6 +11,7 @@
 #   make ci
 #   make test
 #   make coverage
+#   make mutation
 #   make publish-single RID=linux-x64
 #
 # Escape hatch: set IN_CONTAINER=1 to run recipes directly on the host
@@ -19,6 +20,9 @@
 
 SLN := CognitiveCodeAnalysis.sln
 CONSOLE := CognitiveCodeAnalysisConsoleApp/CognitiveCodeAnalysisConsoleApp.csproj
+LIB_TESTS := CognitiveCodeAnalysis.Tests/CognitiveCodeAnalysis.Tests.csproj
+APP_TESTS := CognitiveCodeAnalysisConsoleApp.Tests/CognitiveCodeAnalysisConsoleApp.Tests.csproj
+MUTATION_DIR := $(CURDIR)/artifacts/mutation
 BENCH := CognitiveCodeAnalysis.Benchmarks/CognitiveCodeAnalysis.Benchmarks.csproj
 COV_DIR := $(CURDIR)/artifacts/coverage
 BENCH_DIR := $(CURDIR)/artifacts/benchmark
@@ -56,7 +60,7 @@ _CONTAINER_RUN = $(CONTAINER_RUNNER) run --rm dev make $@ RID="$(RID)" IN_CONTAI
 
 .DEFAULT_GOAL := help
 
-.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage benchmark
+.PHONY: help restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage mutation benchmark
 
 help:
 	@echo "Cognitive Code Analysis (C#) — Makefile (same targets as make.ps1)"
@@ -78,10 +82,11 @@ help:
 	@echo "  test-debug       dotnet test (Debug)"
 	@echo "  test-release     dotnet test (Release)"
 	@echo "  clean            remove bin/obj folders under the solution"
-	@echo "  ci               restore, build-release, test-release, pack (dotnet tool nupkg)"
+	@echo "  ci               restore, build-release, tests with coverage gate, pack (dotnet tool nupkg)"
 	@echo "  publish-single   self-contained single-file publish -> artifacts/publish-<RID>"
 	@echo "  pack-tool        dotnet tool package -> artifacts/nupkg"
-	@echo "  coverage         run tests with Coverlet + HTML report -> artifacts/coverage"
+	@echo "  coverage         run both test projects with Coverlet, enforce >= 90% line+branch each, HTML report -> artifacts/coverage"
+	@echo "  mutation         Stryker.NET mutation testing of the library, fails below 80% -> artifacts/mutation"
 	@echo "  benchmark        run BenchmarkDotNet analysis benchmarks -> artifacts/benchmark"
 	@echo "  help             show this message"
 
@@ -115,7 +120,7 @@ clean:
 ci:
 	dotnet restore $(SLN)
 	dotnet build $(SLN) -c Release --no-restore
-	dotnet test $(SLN) -c Release --verbosity normal --no-build
+	$(MAKE) coverage IN_CONTAINER=1
 	dotnet pack $(CONSOLE) -c Release --no-restore
 
 publish-single:
@@ -133,22 +138,31 @@ coverage:
 	mkdir -p $(COV_DIR)
 	@echo "Restoring dotnet tools (ReportGenerator)..."
 	dotnet tool restore
-	@echo "Running tests with code coverage (Coverlet)..."
-	dotnet test $(SLN) -c Release --verbosity minimal \
+	@echo "Running tests with code coverage (Coverlet); thresholds are defined in each test project..."
+	dotnet test $(LIB_TESTS) -c Release --verbosity minimal \
 		/p:CollectCoverage=true \
-		/p:CoverletOutput=$(COV_DIR)/coverage \
+		/p:CoverletOutput=$(COV_DIR)/library.cobertura.xml \
 		/p:CoverletOutputFormat=cobertura
-	test -f $(COV_DIR)/coverage.cobertura.xml
+	dotnet test $(APP_TESTS) -c Release --verbosity minimal \
+		/p:CollectCoverage=true \
+		/p:CoverletOutput=$(COV_DIR)/console.cobertura.xml \
+		/p:CoverletOutputFormat=cobertura
 	rm -rf $(COV_DIR)/html
-	@echo "Generating HTML report (ReportGenerator)..."
+	@echo "Generating HTML and summary report (ReportGenerator)..."
 	dotnet tool run reportgenerator -- \
-		-reports:artifacts/coverage/coverage.cobertura.xml \
+		-reports:"artifacts/coverage/*.cobertura.xml" \
 		-targetdir:artifacts/coverage/html \
-		-reporttypes:Html
+		-reporttypes:"Html;MarkdownSummaryGithub"
 	@echo ""
 	@echo "Coverage complete."
-	@echo "  Cobertura: artifacts/coverage/coverage.cobertura.xml"
+	@echo "  Cobertura: artifacts/coverage/*.cobertura.xml"
 	@echo "  HTML:      artifacts/coverage/html/index.html"
+
+mutation:
+	dotnet tool restore
+	cd CognitiveCodeAnalysis.Tests && dotnet tool run dotnet-stryker -- \
+		--config-file ../stryker-config.json --output $(MUTATION_DIR)
+	@echo "Mutation report: artifacts/mutation/reports/mutation-report.html"
 
 benchmark:
 	mkdir -p $(BENCH_DIR)
@@ -159,7 +173,7 @@ benchmark:
 
 else
 
-restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage benchmark:
+restore build-debug build build-release test test-debug test-release clean ci publish-single pack-tool coverage mutation benchmark:
 	$(_CONTAINER_RUN)
 
 endif

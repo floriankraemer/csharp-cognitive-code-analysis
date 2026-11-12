@@ -1,0 +1,13 @@
+{
+  "stryker-config": {
+    "project": "CognitiveCodeAnalysis.csproj",
+    "mutate": [
+      "src/CognitiveAnalysis/**/*.cs",
+      "src/CodeCoverage/**/*.cs",
+      "src/HalsteadAnalysis/**/*.cs",
+      "src/CouplingAnalysis/**/*.cs"
+    ],
+    "reporters": ["html", "progress", "json"],
+    "thresholds": { "high": 90, "low": 80, "break": 80 }
+  }
+}

@@ -12,6 +12,7 @@
     .\make.ps1 publish-single
     .\make.ps1 publish-single linux-x64
     .\make.ps1 coverage
+    .\make.ps1 mutation
 
 .PARAMETER Target
   The target to run. Use 'help' or omit to list targets.
@@ -85,10 +86,11 @@ Targets:
   test-debug       dotnet test (Debug)
   test-release     dotnet test (Release)
   clean            remove bin/obj folders under the solution
-  ci               restore, build-release, test-release, pack (dotnet tool nupkg)
+  ci               restore, build-release, tests with coverage gate, pack (dotnet tool nupkg)
   publish-single   self-contained single-file publish -> artifacts\publish-<RID>
   pack-tool        dotnet tool package -> artifacts\nupkg
-  coverage         run tests with Coverlet + HTML report -> artifacts/coverage
+  coverage         run both test projects with Coverlet, enforce >= 90% line+branch each, HTML report -> artifacts/coverage
+  mutation         Stryker.NET mutation testing of the library, fails below 80% -> artifacts/mutation
   benchmark        run BenchmarkDotNet analysis benchmarks -> artifacts/benchmark
   help             show this message
 "@
@@ -127,7 +129,8 @@ switch ($Target.ToLowerInvariant()) {
     "ci" {
         Invoke-DotNet @("restore", $Sln)
         Invoke-DotNet @("build", $Sln, "-c", "Release", "--no-restore")
-        Invoke-DotNet @("test", $Sln, "-c", "Release", "--verbosity", "normal", "--no-build")
+        & $PSCommandPath coverage
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         Invoke-DotNet @("pack", $ConsoleProj, "-c", "Release", "--no-restore")
     }
     "pack-tool" {
@@ -156,8 +159,6 @@ switch ($Target.ToLowerInvariant()) {
     "coverage" {
         $coverageDir = Join-Path $PSScriptRoot (Join-Path "artifacts" "coverage")
         New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
-        $coverageBase = Join-Path $coverageDir "coverage"
-        $coberturaPath = "$coverageBase.cobertura.xml"
         $htmlDir = Join-Path $coverageDir "html"
 
         Write-Host "Restoring dotnet tools (ReportGenerator)..."
@@ -165,19 +166,21 @@ switch ($Target.ToLowerInvariant()) {
         try {
             Invoke-DotNet @("tool", "restore")
 
+            # Thresholds (>= 90% line and branch) are defined in each test project and enforced by Coverlet.
             Write-Host "Running tests with code coverage (Coverlet)..."
-            Invoke-DotNet @(
-                "test", $Sln,
-                "-c", "Release",
-                "--verbosity", "minimal",
-                "/p:CollectCoverage=true",
-                "/p:CoverletOutput=$coverageBase",
-                "/p:CoverletOutputFormat=cobertura"
+            $projects = @(
+                @{ Path = "CognitiveCodeAnalysis.Tests\CognitiveCodeAnalysis.Tests.csproj"; Output = "library" },
+                @{ Path = "CognitiveCodeAnalysisConsoleApp.Tests\CognitiveCodeAnalysisConsoleApp.Tests.csproj"; Output = "console" }
             )
-
-            if (-not (Test-Path $coberturaPath)) {
-                Write-Host "Expected Cobertura file not found: $coberturaPath" -ForegroundColor Red
-                exit 1
+            foreach ($project in $projects) {
+                Invoke-DotNet @(
+                    "test", (Join-Path $PSScriptRoot $project.Path),
+                    "-c", "Release",
+                    "--verbosity", "minimal",
+                    "/p:CollectCoverage=true",
+                    "/p:CoverletOutput=$(Join-Path $coverageDir "$($project.Output).cobertura.xml")",
+                    "/p:CoverletOutputFormat=cobertura"
+                )
             }
 
             if (Test-Path $htmlDir) {
@@ -185,27 +188,43 @@ switch ($Target.ToLowerInvariant()) {
             }
 
             # Use repo-relative paths for ReportGenerator so Windows drive letters are not parsed as -reports flags.
-            $coberturaRel = "artifacts/coverage/coverage.cobertura.xml"
-            $htmlRel = "artifacts/coverage/html"
-
-            Write-Host "Generating HTML report (ReportGenerator)..."
+            Write-Host "Generating HTML and summary report (ReportGenerator)..."
             Invoke-DotNet @(
                 "tool", "run", "reportgenerator",
                 "--",
-                "-reports:$coberturaRel",
-                "-targetdir:$htmlRel",
-                "-reporttypes:Html"
+                "-reports:artifacts/coverage/*.cobertura.xml",
+                "-targetdir:artifacts/coverage/html",
+                "-reporttypes:Html;MarkdownSummaryGithub"
             )
         }
         finally {
             Pop-Location
         }
 
-        $indexHtml = Join-Path $htmlDir "index.html"
         Write-Host ""
         Write-Host "Coverage complete." -ForegroundColor Green
-        Write-Host "  Cobertura: $coberturaPath"
-        Write-Host "  HTML:      $indexHtml"
+        Write-Host "  HTML: $(Join-Path $htmlDir "index.html")"
+    }
+    "mutation" {
+        Push-Location $PSScriptRoot
+        try {
+            Invoke-DotNet @("tool", "restore")
+            Push-Location (Join-Path $PSScriptRoot "CognitiveCodeAnalysis.Tests")
+            try {
+                Invoke-DotNet @(
+                    "tool", "run", "dotnet-stryker", "--",
+                    "--config-file", "../stryker-config.json",
+                    "--output", (Join-Path $PSScriptRoot "artifacts\mutation")
+                )
+            }
+            finally {
+                Pop-Location
+            }
+        }
+        finally {
+            Pop-Location
+        }
+        Write-Host "Mutation report: artifacts\mutation\reports\mutation-report.html"
     }
     "benchmark" {
         $benchmarkDir = Join-Path $PSScriptRoot (Join-Path "artifacts" "benchmark")
