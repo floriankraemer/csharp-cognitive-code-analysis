@@ -39,7 +39,8 @@ jobs:
               -p:IncludeAllContentForSelfExtract=true \
               -p:EnableCompressionInSingleFile=true \
               -p:DebugType=None \
-              -p:DebugSymbols=false
+              -p:DebugSymbols=false \
+              -p:Version="${{ github.ref_name }}"
 
             # Keep assembly names unique (avoid CognitiveCodeAnalysis.dll clash),
             # but ship stable executable name across platforms.

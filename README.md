@@ -77,6 +77,26 @@ These pages and papers provide more information on cognitive limitations and rea
 - **Cyclomatic Complexity**
   - [Cyclomatic Complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity)
 
+## Contributing 🤝
+
+All tools run in the dev container, so only a container runtime and `make` are needed (see the header of the `Makefile`).
+
+```bash
+make test       # build and run all tests
+make coverage   # tests with coverage, HTML report in artifacts/coverage
+make mutation   # mutation testing of the library, report in artifacts/mutation
+make ci         # what the CI pipeline runs (restore, build, coverage gate, pack)
+```
+
+Quality gates enforced in CI:
+
+- Compiler warnings are errors (`TreatWarningsAsErrors` in `Directory.Build.props`).
+- Each test project must reach at least **90% line and 90% branch coverage** of the assembly it tests (Coverlet thresholds in the test projects).
+- The library must keep a **mutation score of at least 80%** (Stryker.NET, configured in `stryker-config.json`; high 90, low 80, break 80).
+  The mutation job runs on pull requests.
+- `make mutation` must run with the .NET 8 SDK (the dev container does); Stryker.NET 4.8 fails with the .NET 10 SDK, so the CI job pins SDK 8 for that step only.
+- New behavior needs positive and negative tests.
+
 ## License ⚖️
 
 Copyright Florian Krämer

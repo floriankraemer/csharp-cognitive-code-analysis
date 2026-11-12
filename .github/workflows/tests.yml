@@ -12,9 +12,12 @@ on:
       - main
       - develop
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    name: Run test suite
+    name: Build, test and enforce coverage
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -27,5 +30,102 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Run tests
-        run: dotnet test "CognitiveCodeAnalysis.sln" --configuration Release --verbosity normal
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore "CognitiveCodeAnalysis.sln"
+
+      # Warnings are errors (TreatWarningsAsErrors in Directory.Build.props), so this fails on any warning.
+      - name: Build
+        run: dotnet build "CognitiveCodeAnalysis.sln" --configuration Release --no-restore
+
+      # Each test project enforces >= 90% line and branch coverage of its own target (see the test csproj files).
+      - name: Test library with coverage gate
+        run: >
+          dotnet test "CognitiveCodeAnalysis.Tests/CognitiveCodeAnalysis.Tests.csproj"
+          --configuration Release --no-build --verbosity normal
+          /p:CollectCoverage=true
+          /p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage/library.cobertura.xml"
+          /p:CoverletOutputFormat=cobertura
+
+      - name: Test console app with coverage gate
+        run: >
+          dotnet test "CognitiveCodeAnalysisConsoleApp.Tests/CognitiveCodeAnalysisConsoleApp.Tests.csproj"
+          --configuration Release --no-build --verbosity normal
+          /p:CollectCoverage=true
+          /p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage/console.cobertura.xml"
+          /p:CoverletOutputFormat=cobertura
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          dotnet tool run reportgenerator -- \
+            "-reports:artifacts/coverage/*.cobertura.xml" \
+            "-targetdir:artifacts/coverage/report" \
+            "-reporttypes:Html;MarkdownSummaryGithub"
+          if [ -f artifacts/coverage/report/SummaryGithub.md ]; then
+            cat artifacts/coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+          if-no-files-found: ignore
+
+  mutation:
+    name: Mutation testing (library)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      # Hosted runners default to the .NET 10 SDK, which Stryker.NET 4.8 cannot analyse with; pin SDK 8 for this job only.
+      - name: Pin SDK 8.0 for Stryker
+        run: echo '{"sdk":{"version":"8.0.100","rollForward":"latestFeature"}}' > global.json
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      # Thresholds (high 90 / low 80 / break 80) live in stryker-config.json; a lower score fails the job.
+      - name: Run Stryker.NET
+        working-directory: CognitiveCodeAnalysis.Tests
+        run: dotnet tool run dotnet-stryker -- --config-file ../stryker-config.json --output "$GITHUB_WORKSPACE/artifacts/mutation"
+
+      - name: Mutation summary
+        if: always()
+        run: |
+          report=$(ls artifacts/mutation/reports/mutation-report.json 2>/dev/null || true)
+          if [ -n "$report" ]; then
+            python3 - "$report" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, sys
+          files = json.load(open(sys.argv[1]))["files"]
+          counts = {}
+          for f in files.values():
+              for m in f["mutants"]:
+                  counts[m["status"]] = counts.get(m["status"], 0) + 1
+          detected = counts.get("Killed", 0) + counts.get("Timeout", 0)
+          total = detected + counts.get("Survived", 0) + counts.get("NoCoverage", 0)
+          print("### Mutation score")
+          print(f"{100 * detected / total:.2f}% ({detected} of {total} mutants detected; threshold 80%)")
+          PY
+          fi
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: artifacts/mutation
+          if-no-files-found: ignore

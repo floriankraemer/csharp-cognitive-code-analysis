@@ -20,6 +20,9 @@ internal static class RoslynMetadataReferences
         var references = new List<MetadataReference>();
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        // Assembly.Location is empty in single-file apps; the guard below skips such assemblies and the
+        // trusted platform assemblies list covers the framework references.
+#pragma warning disable IL3000
         void AddAssembly(Assembly assembly)
         {
             if (!string.IsNullOrEmpty(assembly.Location) && seenPaths.Add(assembly.Location))
@@ -27,6 +30,7 @@ internal static class RoslynMetadataReferences
                 references.Add(MetadataReference.CreateFromFile(assembly.Location));
             }
         }
+#pragma warning restore IL3000
 
         AddAssembly(typeof(object).Assembly);
         AddAssembly(typeof(System.Runtime.CompilerServices.RuntimeHelpers).Assembly);

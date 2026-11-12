@@ -3,15 +3,8 @@
 /// </copyright>
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
-using Microsoft.CodeAnalysis;
-
-using System.Collections.Immutable;
 using System.IO;
-using System.Text;
-using System.Threading;
 
 namespace CognitiveCodeAnalysis.Configuration;
 
@@ -30,34 +23,6 @@ public static class ConfigurationLoader
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
 
         return cognitiveConfig;
-    }
-
-    /// <summary>
-    /// <![CDATA[
-    /// Builds and configures services with IOptions&lt;CognitiveConfiguration&gt; pattern.
-    /// Returns a service provider that can be used to resolve IOptions&lt;CognitiveConfiguration&gt;.
-    /// ]]>
-    /// </summary>
-    public static IServiceProvider ConfigureServices(string? configFilePath = null)
-    {
-        IConfigurationRoot configuration = BuildConfiguration(configFilePath);
-
-        IServiceCollection services = new ServiceCollection();
-        services.Configure<CognitiveConfiguration>(configuration.GetSection("cognitive"));
-
-        return services.BuildServiceProvider();
-    }
-
-    /// <summary>
-    /// <![CDATA[
-    /// Gets the CognitiveConfiguration using IOptions<T> pattern.
-    /// ]]>
-    /// </summary>
-    public static CognitiveConfiguration GetConfiguration(IServiceProvider serviceProvider)
-    {
-        IOptions<CognitiveConfiguration> options = serviceProvider.GetRequiredService<IOptions<CognitiveConfiguration>>();
-
-        return options.Value;
     }
 
     private static IConfigurationRoot BuildConfiguration(string? configFilePath = null)
@@ -115,94 +80,4 @@ public static class ConfigurationLoader
     }
 }
 """;
-
-    /// <summary>
-    /// Layers optional JSON overlays (CLI schema) onto <see cref="DefaultCognitiveMetricsSettingsJson"/> (same merging as chained JSON providers).
-    /// </summary>
-    public static CognitiveConfiguration LoadFromJsonLayers(params string?[] overlays)
-    {
-        ConfigurationBuilder builder = new();
-        builder.AddJsonStream(CreateJsonStream(DefaultCognitiveMetricsSettingsJson));
-
-        foreach (string? overlay in overlays)
-        {
-            if (string.IsNullOrWhiteSpace(overlay))
-            {
-                continue;
-            }
-
-            try
-            {
-                builder.AddJsonStream(CreateJsonStream(overlay!));
-            }
-            catch
-            {
-                continue;
-            }
-        }
-
-        return BindFromCognitiveSection(builder.Build());
-    }
-
-    /// <summary>
-    /// Resolves analyzer settings like the CLI does: bundled defaults layered with optional
-    /// <c>cognitive-metrics-settings.json</c> supplied as compilation <see cref="AdditionalText"/> inputs.
-    /// </summary>
-    public static CognitiveConfiguration LoadCognitiveConfigurationForAnalyzer(
-        ImmutableArray<AdditionalText> additionalFiles,
-        CancellationToken cancellationToken = default)
-    {
-        ConfigurationBuilder builder = new();
-        builder.AddJsonStream(CreateJsonStream(DefaultCognitiveMetricsSettingsJson));
-
-        foreach (AdditionalText text in additionalFiles)
-        {
-            if (!string.Equals(Path.GetFileName(text.Path), "cognitive-metrics-settings.json", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            try
-            {
-                Microsoft.CodeAnalysis.Text.SourceText? sourceText = text.GetText(cancellationToken);
-                if (sourceText == null)
-                {
-                    continue;
-                }
-
-                builder.AddJsonStream(CreateJsonStream(sourceText.ToString()));
-            }
-            catch
-            {
-                continue;
-            }
-        }
-
-        return BindFromCognitiveSection(builder.Build());
-    }
-
-    private static CognitiveConfiguration BindFromCognitiveSection(IConfiguration configuration)
-    {
-        CognitiveConfiguration config = new();
-        try
-        {
-            configuration.GetSection("cognitive").Bind(config);
-        }
-        catch
-        {
-            // Fall back to defaults if binding fails (invalid JSON shape).
-            new ConfigurationBuilder()
-                .AddJsonStream(CreateJsonStream(DefaultCognitiveMetricsSettingsJson))
-                .Build()
-                .GetSection("cognitive")
-                .Bind(config);
-        }
-
-        return config;
-    }
-
-    private static MemoryStream CreateJsonStream(string json)
-    {
-        return new MemoryStream(Encoding.UTF8.GetBytes(json)) { Position = 0 };
-    }
 }

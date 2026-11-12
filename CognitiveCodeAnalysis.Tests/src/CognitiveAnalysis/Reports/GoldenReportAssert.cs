@@ -1,10 +1,11 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
 using System.Text.RegularExpressions;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysis.Configuration;
 
@@ -27,10 +28,17 @@ internal static class GoldenReportAssert
         CognitiveMetricsCollection collection,
         CognitiveConfiguration configuration,
         string goldenFileName,
-        GoldenNormalization normalization = GoldenNormalization.None
+        GoldenNormalization normalization = GoldenNormalization.None,
+        CognitiveBaselineComparison? baselineComparison = null
     )
     {
-        string actual = RenderReport(report, collection, configuration, normalization);
+        string actual = RenderReport(report, collection, configuration, normalization, baselineComparison);
+        if (Environment.GetEnvironmentVariable("UPDATE_GOLDEN") == "1")
+        {
+            WriteGoldenFile(goldenFileName, actual, GoldenNormalization.None);
+            return;
+        }
+
         string expectedPath = Path.Combine(GoldenRoot, goldenFileName);
         Assert.That(File.Exists(expectedPath), Is.True, $"Golden file not found: {expectedPath}");
 
@@ -40,6 +48,11 @@ internal static class GoldenReportAssert
             expected = NormalizeSarifVersion(expected);
         }
 
+        if (normalization == GoldenNormalization.JsonGeneratedAt)
+        {
+            expected = NormalizeGeneratedAt(expected);
+        }
+
         Assert.That(actual, Is.EqualTo(expected));
     }
 
@@ -47,17 +60,23 @@ internal static class GoldenReportAssert
         IReport report,
         CognitiveMetricsCollection collection,
         CognitiveConfiguration configuration,
-        GoldenNormalization normalization = GoldenNormalization.None
+        GoldenNormalization normalization = GoldenNormalization.None,
+        CognitiveBaselineComparison? baselineComparison = null
     )
     {
         string path = Path.Combine(Path.GetTempPath(), "golden-" + Guid.NewGuid() + ".out");
         try
         {
-            report.RenderMetrics(path, collection, configuration);
+            report.RenderMetrics(path, collection, configuration, baselineComparison);
             string content = NormalizeLineEndings(File.ReadAllText(path));
             if (normalization == GoldenNormalization.SarifAssemblyVersion)
             {
                 content = NormalizeSarifVersion(content);
+            }
+
+            if (normalization == GoldenNormalization.JsonGeneratedAt)
+            {
+                content = NormalizeGeneratedAt(content);
             }
 
             return content;
@@ -80,7 +99,6 @@ internal static class GoldenReportAssert
         string repoRoot = FindRepoRoot();
         string targetDir = Path.Combine(
             repoRoot,
-            "Cognitive Code Analysis",
             "CognitiveCodeAnalysis.Tests",
             "fixtures",
             "reports",
@@ -91,6 +109,11 @@ internal static class GoldenReportAssert
         if (normalization == GoldenNormalization.SarifAssemblyVersion)
         {
             normalized = NormalizeSarifVersion(normalized);
+        }
+
+        if (normalization == GoldenNormalization.JsonGeneratedAt)
+        {
+            normalized = NormalizeGeneratedAt(normalized);
         }
 
         File.WriteAllText(Path.Combine(targetDir, goldenFileName), normalized);
@@ -106,12 +129,19 @@ internal static class GoldenReportAssert
             "\"version\": \"GOLDEN_VERSION\"",
             RegexOptions.CultureInvariant);
 
+    internal static string NormalizeGeneratedAt(string content)
+        => Regex.Replace(
+            content,
+            "\"generatedAt\"\\s*:\\s*\"[^\"]*\"",
+            "\"generatedAt\": \"GOLDEN_TIMESTAMP\"",
+            RegexOptions.CultureInvariant);
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null)
         {
-            if (Directory.Exists(Path.Combine(dir.FullName, "Cognitive Code Analysis", "CognitiveCodeAnalysis.Tests")))
+            if (Directory.Exists(Path.Combine(dir.FullName, "CognitiveCodeAnalysis.Tests", "fixtures")))
             {
                 return dir.FullName;
             }
@@ -127,4 +157,5 @@ public enum GoldenNormalization
 {
     None,
     SarifAssemblyVersion,
+    JsonGeneratedAt,
 }

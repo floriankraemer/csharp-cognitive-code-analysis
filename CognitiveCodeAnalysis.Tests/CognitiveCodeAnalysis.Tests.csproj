@@ -7,11 +7,11 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Threshold>85</Threshold>
-    <ThresholdType>line</ThresholdType>
+    <!-- Coverage gate (enforced when running with /p:CollectCoverage=true): library only, line and branch >= 90%. -->
+    <Include>[CognitiveCodeAnalysis]*</Include>
+    <Threshold>90</Threshold>
+    <ThresholdType>line,branch</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
-    <!-- Sample complexity fixture compiled into the library for manual analysis demos -->
-    <ExcludeByFile>**/Error.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup>
