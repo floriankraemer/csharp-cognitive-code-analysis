@@ -43,6 +43,8 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
+- `--show-understandability` — Turn on the understandability column (SonarSource cognitive complexity) for this run (overrides config).
+  See [docs/Understandability.md](docs/Understandability.md).
 
 Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
 All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.

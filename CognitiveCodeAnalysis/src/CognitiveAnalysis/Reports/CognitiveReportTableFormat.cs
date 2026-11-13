@@ -54,6 +54,11 @@ internal static class CognitiveReportTableFormat
             headers.Add("Churn");
         }
 
+        if (configuration.ShowUnderstandability)
+        {
+            headers.Add("Understandability");
+        }
+
         return headers;
     }
 
@@ -108,6 +113,11 @@ internal static class CognitiveReportTableFormat
                     ? DeltaValue(metrics.churnScore.Value, comparison?.ChurnScore, "F3")
                     : "n/a"
             );
+        }
+
+        if (configuration.ShowUnderstandability)
+        {
+            row.Add(metrics.Understandability.ToString());
         }
 
         return row;

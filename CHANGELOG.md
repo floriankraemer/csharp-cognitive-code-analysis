@@ -66,6 +66,12 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Understandability: the cognitive complexity as specified by SonarSource (G. Ann Campbell's white paper), measured for every method and constructor.**
+  It counts structural increments with a nesting penalty (`if`, `?:`, `switch`, loops, `catch`), `else` and `else if`, sequences of `&&` and `||`, `goto` and recursion, with the C# choices of SonarC#.
+  It does not enter the score.
+  `showUnderstandability` (default `false`) or `--show-understandability` appends an `Understandability` column such as `7 (medium)` to the console, HTML and Markdown reports and the columns `Understandability` and `UnderstandabilityRiskLevel` to the end of the CSV report.
+  The JSON report and baseline files always carry the fields `understandability` and `understandabilityRiskLevel`; older baseline files without them still load.
+  See [Understandability](docs/Understandability.md).
 - `@cca-ignore` in the XML doc comment or in any other comment of a type or member leaves it out of the analysis; a type leaves out its nested types too.
 - The search path accepts a single `.cs` file and a comma-separated list of files and directories (`src,tools/Build.cs`).
   A path that exists as written stays one path even when it contains a comma, so existing invocations keep their meaning.

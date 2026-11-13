@@ -86,5 +86,7 @@ public static class BaselineSnapshotFactory
             LineCoveragePercentage = metrics.lineCoveragePercentage,
             BranchCoveragePercentage = metrics.branchCoveragePercentage,
             ChurnScore = metrics.churnScore,
+            Understandability = metrics.Understandability.Total,
+            UnderstandabilityRiskLevel = metrics.Understandability.RiskLevel,
         };
 }

@@ -18,6 +18,12 @@ public class CognitiveConfiguration
     public bool ShowCouplingMetrics { get; set; }
 
     /// <summary>
+    /// Shows the understandability (SonarSource cognitive complexity) column in the console, HTML and Markdown reports
+    /// and its fields in the CSV report.
+    /// </summary>
+    public bool ShowUnderstandability { get; set; }
+
+    /// <summary>
     /// Shows the detail columns (lines, arguments, returns, nesting, ...) in the console, HTML and Markdown reports.
     /// </summary>
     public bool ShowDetailedCognitiveMetrics { get; set; } = true;

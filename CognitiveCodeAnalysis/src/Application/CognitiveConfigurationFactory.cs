@@ -49,5 +49,10 @@ public static class CognitiveConfigurationFactory
         {
             configuration.ShowCouplingMetrics = overrides.ShowCoupling.Value;
         }
+
+        if (overrides.ShowUnderstandability.HasValue)
+        {
+            configuration.ShowUnderstandability = overrides.ShowUnderstandability.Value;
+        }
     }
 }

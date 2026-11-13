@@ -266,6 +266,11 @@ public class HtmlReport() : IReport
             double churnScoreForColor = metrics.churnScore ?? 0;
             html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
         }
+
+        if (configuration.ShowUnderstandability)
+        {
+            html.AppendLine($"                        <td>{HtmlEncode(metrics.Understandability.ToString())}</td>");
+        }
         html.AppendLine("                    </tr>");
     }
 

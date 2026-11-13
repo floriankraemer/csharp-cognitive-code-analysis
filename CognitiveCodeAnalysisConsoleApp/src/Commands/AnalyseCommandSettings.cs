@@ -51,6 +51,10 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("--show-coupling")]
     public bool? ShowCoupling { get; init; }
 
+    [Description("Show the understandability (SonarSource cognitive complexity) in reports (overrides config when set)")]
+    [CommandOption("--show-understandability")]
+    public bool? ShowUnderstandability { get; init; }
+
     [Description("Emit timestamped diagnostic logs to stderr for each analysis phase")]
     [CommandOption("-v|--verbose")]
     public bool Verbose { get; init; }
