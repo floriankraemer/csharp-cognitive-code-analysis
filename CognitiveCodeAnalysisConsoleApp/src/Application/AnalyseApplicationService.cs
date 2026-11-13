@@ -19,9 +19,11 @@ internal sealed class AnalyseApplicationService(
     public AnalyseResult Run(AnalysisRequest request)
     {
         ExecutionSummary? summary = request.Debug ? new ExecutionSummary(timeProvider ?? TimeProvider.System) : null;
+        // Invalid input fails here, before anything ran, so there is nothing to summarise.
+        var prepared = analysisWorkflow.Prepare(request);
         try
         {
-            return Run(request, summary);
+            return Run(request, prepared, summary);
         }
         finally
         {
@@ -29,13 +31,12 @@ internal sealed class AnalyseApplicationService(
         }
     }
 
-    private AnalyseResult Run(AnalysisRequest request, ExecutionSummary? summary)
+    private AnalyseResult Run(AnalysisRequest request, PreparedAnalysis prepared, ExecutionSummary? summary)
     {
         IAnalysisTracer tracer = request.Verbose
             ? new TimestampedConsoleTracer()
             : NullAnalysisTracer.Instance;
 
-        var prepared = analysisWorkflow.Prepare(request);
         consoleNotifier.WriteConfigUsed(prepared.ConfigSource.Display);
         foreach (string warning in prepared.Configuration.Warnings)
         {

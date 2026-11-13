@@ -221,6 +221,28 @@ public class SortAndVersionEndToEndTests
     }
 
     [Test]
+    public void Debug_WithInvalidSortOrder_PrintsNoSummary()
+    {
+        var (exitCode, output) = Run(_dir, "--debug", "--sort-order", "sideways");
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.EqualTo(0));
+            Assert.That(output.StdErr, Does.Not.Contain("Execution Summary"));
+        }
+    }
+
+    [Test]
+    public void GenerateConfig_WithJsonFilePath_WritesThatFile()
+    {
+        string file = P("gen.json");
+        var (exitCode, output) = Run("--generate-config", file);
+        output.Dispose();
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(File.Exists(file), Is.True);
+    }
+
+    [Test]
     public void WithoutDebug_NothingIsPrintedToStandardError()
     {
         var (_, output) = Run(_dir, "-c", P("ungrouped.json"));

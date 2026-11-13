@@ -89,6 +89,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `--generate-config gen.json` now writes the file `gen.json` instead of creating a directory with that name.
+  A path that ends in `.json` and is not an existing directory is the file to write; any other path is still the directory that receives `cognitive-metrics-settings.json`.
 - The console report no longer prints a false `ConsoleText report generated: <path>` line.
 - Console output no longer depends on the culture of the machine (decimal separator of the coverage, churn, summary and threshold numbers).
 - The report type is matched case-insensitively (`-r html`).

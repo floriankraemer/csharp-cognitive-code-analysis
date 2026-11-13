@@ -36,6 +36,29 @@ public class ConfigFileGeneratorTests
     }
 
     [Test]
+    public void Generate_WithJsonFilePath_WritesThatFile()
+    {
+        string file = Path.Combine(_tempDirectory, "sub", "gen.json");
+
+        var writtenPath = ConfigFileGenerator.Generate(file);
+
+        Assert.That(writtenPath, Is.EqualTo(file));
+        Assert.That(File.Exists(file), Is.True);
+        Assert.That(Directory.Exists(file), Is.False);
+    }
+
+    [Test]
+    public void Generate_WithExistingDirectoryNamedLikeJson_StillWritesIntoIt()
+    {
+        string directory = Path.Combine(_tempDirectory, "dir.json");
+        Directory.CreateDirectory(directory);
+
+        var writtenPath = ConfigFileGenerator.Generate(directory);
+
+        Assert.That(writtenPath, Is.EqualTo(Path.Combine(directory, ConfigurationResolver.DefaultFileName)));
+    }
+
+    [Test]
     public void Generate_WritesValidJson_WithCognitiveSection()
     {
         var writtenPath = ConfigFileGenerator.Generate(_tempDirectory);
