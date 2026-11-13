@@ -35,6 +35,7 @@ internal static class AnalyseRequestMapper
             CoverageCobertura: settings.CoverageCobertura,
             DisplayOverrides: displayOverrides,
             Verbose: settings.Verbose,
+            GenerateBaseline: settings.GenerateBaseline,
             SortBy: settings.SortBy,
             SortOrder: settings.SortOrder,
             Debug: settings.Debug,

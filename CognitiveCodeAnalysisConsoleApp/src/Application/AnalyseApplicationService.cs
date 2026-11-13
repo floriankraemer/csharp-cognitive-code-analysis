@@ -44,6 +44,16 @@ internal sealed class AnalyseApplicationService(
             consoleNotifier.WriteWarning(warning);
         }
 
+        if (prepared.BaselineWarning != null)
+        {
+            consoleNotifier.WriteWarning(prepared.BaselineWarning);
+        }
+
+        if (prepared.BaselineAutoDetected)
+        {
+            consoleNotifier.WriteBaselineAutoDetected(Path.GetFileName(prepared.BaselineFile!));
+        }
+
         if (request.Verbose)
         {
             tracer.Trace(
@@ -107,11 +117,9 @@ internal sealed class AnalyseApplicationService(
                 ? null
                 : tracer.TraceStep(
                     "Comparing baseline",
-                    () => analysisWorkflow.CompareBaselineIfRequested(
-                        prepared.BaselineFile,
-                        metricsCollection,
-                        effectiveProgress
-                    ));
+                    () => CompareBaseline(prepared, request, metricsCollection, effectiveProgress));
+
+            WarnAboutConfigChange(baselineComparison, prepared);
 
             tracer.TraceStep(
                 $"Writing {prepared.ReportType} report",
@@ -148,12 +156,9 @@ internal sealed class AnalyseApplicationService(
                 return new AnalyseResult(AnalyseOutcome.CoverageFailed);
             }
 
-            baselineComparison = analysisWorkflow.CompareBaselineIfRequested(
-                prepared.BaselineFile,
-                metricsCollection!,
-                consoleProgress
-            );
+            baselineComparison = CompareBaseline(prepared, request, metricsCollection!, consoleProgress);
 
+            WarnAboutConfigChange(baselineComparison, prepared);
             reportGenerationService.GenerateReport(
                 prepared: prepared,
                 metricsCollection: metricsCollection!,
@@ -161,7 +166,43 @@ internal sealed class AnalyseApplicationService(
             );
         }
 
+        if (request.GenerateBaseline)
+        {
+            consoleNotifier.WriteBaselineGenerated(
+                analysisWorkflow.GenerateBaseline(prepared.Configuration, metricsCollection!));
+        }
+
         return new AnalyseResult(AnalyseOutcome.Success);
+    }
+
+    /// <summary>
+    /// An auto-detected baseline that cannot be read must not stop <c>--generate-baseline</c>, which is how a broken one
+    /// is replaced. A baseline given with <c>-b</c> still fails the run.
+    /// </summary>
+    private CognitiveBaselineComparison? CompareBaseline(
+        PreparedAnalysis prepared,
+        AnalysisRequest request,
+        CognitiveMetricsCollection metricsCollection,
+        IProgress<AnalysisProgress>? progress
+    ) {
+        try
+        {
+            return analysisWorkflow.CompareBaselineIfRequested(prepared.BaselineFile, metricsCollection, progress);
+        }
+        catch (Exception exception) when (prepared.BaselineAutoDetected && request.GenerateBaseline)
+        {
+            consoleNotifier.WriteWarning(
+                $"The auto-detected baseline {Path.GetFileName(prepared.BaselineFile!)} is ignored: {exception.Message}");
+            return null;
+        }
+    }
+
+    private void WarnAboutConfigChange(CognitiveBaselineComparison? comparison, PreparedAnalysis prepared)
+    {
+        if (AnalysisWorkflow.BaselineConfigWarning(comparison, prepared.Configuration) is { } warning)
+        {
+            consoleNotifier.WriteWarning(warning);
+        }
     }
 
     private static IProgress<AnalysisProgress> Observe(IProgress<AnalysisProgress> progress, ExecutionSummary? summary)

@@ -8,6 +8,7 @@
       "src/HalsteadAnalysis/**/*.cs",
       "src/CouplingAnalysis/**/*.cs",
       "src/Churn/**/*.cs",
+      "src/Reporting/**/*.cs",
       "src/UnderstandabilityAnalysis/**/*.cs"
     ],
     "reporters": ["html", "progress", "json"],

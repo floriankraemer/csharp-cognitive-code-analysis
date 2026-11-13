@@ -19,9 +19,7 @@ public static class BaselineComparer
         IProgress<AnalysisProgress>? progress
     )
     {
-        var baselineMethods = ToDictionaryLastWins(
-            baseline.Methods,
-            BaselineMethodKey.FromSnapshot);
+        var baselineMethods = BaselineMatcher.MatchMethods(current, baseline.Methods);
 
         int totalMethods = current.Count;
         progress?.Report(new AnalysisProgress(
@@ -37,8 +35,7 @@ public static class BaselineComparer
         foreach (CognitiveMetrics metrics in current)
         {
             var key = BaselineMethodKey.FromMetrics(metrics);
-            baselineMethods.TryGetValue(key, out CognitiveBaselineMethodSnapshot? baselineMethod);
-            methodsByKey[key] = BuildMethodComparison(metrics, baselineMethod);
+            methodsByKey[key] = BuildMethodComparison(metrics, baselineMethods.GetValueOrDefault(metrics));
 
             processedMethods++;
             if (processedMethods % progressBatchSize == 0 || processedMethods == totalMethods)
@@ -57,10 +54,7 @@ public static class BaselineComparer
             ProcessedFiles: totalMethods
         ));
 
-        var baselineCoupling = ToDictionaryLastWins(
-            baseline.ClassCoupling,
-            c => c.ClassName);
-
+        var baselineCoupling = BaselineMatcher.MatchCoupling(current, baseline.ClassCoupling, baseline.Methods);
         var classCouplingByName = new Dictionary<string, ClassCouplingComparison>(StringComparer.Ordinal);
         foreach (var classGroup in current.GroupBy(m => m.ClassName, StringComparer.Ordinal))
         {
@@ -70,11 +64,12 @@ public static class BaselineComparer
                 continue;
             }
 
-            baselineCoupling.TryGetValue(classGroup.Key, out CognitiveBaselineClassCouplingSnapshot? baselineCouplingSnapshot);
-            classCouplingByName[classGroup.Key] = BuildClassCouplingComparison(currentCoupling, baselineCouplingSnapshot);
+            classCouplingByName[classGroup.Key] = BuildClassCouplingComparison(
+                currentCoupling,
+                baselineCoupling.GetValueOrDefault(classGroup.Key));
         }
 
-        return new CognitiveBaselineComparison(methodsByKey, classCouplingByName);
+        return new CognitiveBaselineComparison(methodsByKey, classCouplingByName, baseline.ConfigHash);
     }
 
     private static MethodMetricsComparison BuildMethodComparison(
@@ -185,19 +180,5 @@ public static class BaselineComparer
             OutgoingCoupling = MetricDelta.FromRequired(current.OutgoingCoupling, baseline.OutgoingCoupling),
             Stability = MetricDelta.FromRequired(current.Stability, baseline.Stability),
         };
-    }
-
-    private static Dictionary<string, T> ToDictionaryLastWins<T>(
-        IEnumerable<T> items,
-        Func<T, string> keySelector
-    )
-    {
-        var dictionary = new Dictionary<string, T>(StringComparer.Ordinal);
-        foreach (T item in items)
-        {
-            dictionary[keySelector(item)] = item;
-        }
-
-        return dictionary;
     }
 }

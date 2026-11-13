@@ -34,7 +34,10 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   The type is matched case-insensitively, so `-r html` works.
   The CI formats and their paths are described in [docs/CiReports.md](docs/CiReports.md).
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
-- `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values, console and Markdown show the same arrows as plain text or colored text).
+- `-b|--baseline <path>` — JSON baseline snapshot, from `--generate-baseline` or a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values, console and Markdown show the same arrows as plain text or colored text).
+  Without this option the newest file in `.cca/baseline` is used, if that directory exists.
+- `-g|--generate-baseline` — Write the analysis as a new baseline to `.cca/baseline/baseline-<UTC timestamp>.json`, after any baseline was applied.
+  The baseline workflow is described in [docs/Baseline.md](docs/Baseline.md).
 - `--coverage-cobertura <path>` — Optional coverage file (line/branch coverage and risk churn when matched).
   Cobertura reports with counts (`lines-valid`, `branches-valid`, ...) and rate-only reports such as the ones coverlet writes (`line-rate`, `branch-rate`) are read, and so are Visual Studio coverage XML files.
   A method is matched by its name and by a first coverage line inside the method's source lines.
@@ -101,6 +104,9 @@ CognitiveCodeAnalysis .\src -r Json -o .\baseline.json
 
 # Compare against baseline (HTML shows colored deltas)
 CognitiveCodeAnalysis .\src -b .\baseline.json -r Html -o .\report.html
+
+# Save a baseline in .cca/baseline; later runs compare against the newest one on their own
+CognitiveCodeAnalysis .\src -g
 ```
 
 ## Creating a config file
@@ -141,6 +147,17 @@ Reports: `Json`, `Csv`, `Html`, `Markdown`, `SvgTreemap`.
 `CognitiveCodeAnalysis <path> ...` without a command still runs the analysis.
 Do not confuse this git churn with the `Churn` column of the analysis reports, which is the score weighted with the missing coverage (called risk churn in the `churn` command).
 See [docs/Churn.md](docs/Churn.md) for all options, the git details and the risk levels.
+
+## Custom reporters
+
+Your own report format can be added without changing the tool.
+Write a class that implements `ICustomCognitiveReporter` (for `analyse`) or `ICustomChurnReporter` (for `churn`), register it under `cognitive.customReporters` in the configuration file and select it with `-r <key>`.
+
+```json
+{ "cognitive": { "customReporters": { "cognitive": { "hotspots": { "type": "Acme.HotspotReporter", "assembly": "plugins/HotspotReporter.dll" } } } } }
+```
+
+See [docs/CustomReporters.md](docs/CustomReporters.md) for the interface, a complete example and the rules for resolving the key.
 
 ## Resources 🔗
 

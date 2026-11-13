@@ -115,6 +115,10 @@ public class AnalyseCommandCliIntegrationTests
 
         public void WriteReportGenerated(string reportType, string fullPath) { }
 
+        public void WriteBaselineAutoDetected(string fileName) { }
+
+        public void WriteBaselineGenerated(string path) { }
+
         public void WriteConfigUsed(string configSourceDisplay) { }
 
         public void WriteConfigFileCreated(string fullPath) { }

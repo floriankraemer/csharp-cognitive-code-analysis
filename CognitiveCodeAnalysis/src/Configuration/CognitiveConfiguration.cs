@@ -45,6 +45,16 @@ public class CognitiveConfiguration
     public MetricsSorter? Sorter { get; set; }
 
     /// <summary>
+    /// Reporters supplied by plugin assemblies, selectable with <c>-r &lt;key&gt;</c>.
+    /// </summary>
+    public CustomReportersConfiguration CustomReporters { get; set; } = new();
+
+    /// <summary>
+    /// The directory of the configuration file, the base of relative plugin paths. Null for the built-in defaults.
+    /// </summary>
+    public string? ConfigDirectory { get; internal set; }
+
+    /// <summary>
     /// Notes collected while loading the configuration, such as deprecated metric keys that were accepted.
     /// </summary>
     [JsonIgnore]

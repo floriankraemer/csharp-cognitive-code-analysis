@@ -84,6 +84,9 @@ Use this structure:
   The CSV, JSON, SARIF and CI reports always carry every metric.
 - `cache` (`object`): the analysis cache, off by default; see [Analysis cache](#8-analysis-cache).
   `cache.enabled` (`bool`, default `false`) turns it on and `cache.directory` (`string`, default `.cca/cache`) names the directory.
+- `customReporters` (`{ "cognitive": {...}, "churn": {...} }`): reporters from plugin assemblies, each key mapping to `{ "type": "Namespace.Type", "assembly": "path/to/plugin.dll" }`.
+  A relative `assembly` is resolved against the directory of this file.
+  Select a reporter with `-r <key>`; see [Custom reporters](CustomReporters.md).
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
   Every key must be one of the supported metric keys in section 5.
   An unknown key is ignored with a warning that names the key and lists the valid keys.
@@ -161,7 +164,10 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
   Matched case-insensitively.
   See [CiReports.md](CiReports.md) for the CI formats.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
-- `-b|--baseline <path>`: path to a JSON baseline snapshot (from a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
+- `-b|--baseline <path>`: path to a JSON baseline snapshot (from `--generate-baseline` or a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
+  Without this option the newest file in `.cca/baseline` is used, if that directory exists.
+  See [Baseline.md](Baseline.md).
+- `-g|--generate-baseline`: write the analysis as a new baseline to `.cca/baseline`.
 - `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).
   Methods match by name and by a first coverage line inside the method.
   Methods without branches show no branch coverage, and their churn uses the line coverage.
