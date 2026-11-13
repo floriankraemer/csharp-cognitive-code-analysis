@@ -104,6 +104,9 @@ public sealed class CsvReport : IReport
             AddMetricHeaders(headers, "ChurnScore", includeDeltas);
         }
 
+        // Appended last so that readers of the earlier columns by position are not affected.
+        AddMetricHeaders(headers, "LinesOfCodeScore", includeDeltas);
+
         return headers;
     }
 
@@ -181,6 +184,8 @@ public sealed class CsvReport : IReport
             AddMetricValue(row, FormatCoverage(m.branchCoveragePercentage), comparison?.BranchCoveragePercentage, "F1", includeDeltas);
             AddMetricValue(row, FormatChurn(m.churnScore), comparison?.ChurnScore, "F3", includeDeltas);
         }
+
+        AddMetricValue(row, m.linesOfCodeScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LinesOfCodeScore, "F3", includeDeltas);
 
         return row;
     }

@@ -24,6 +24,8 @@ internal sealed class AnalyseCommand(
     ) {
         try
         {
+            WarnAboutIgnoredArguments(context);
+
             if (settings.GenerateConfig.IsSet)
             {
                 string directory = string.IsNullOrWhiteSpace(settings.GenerateConfig.Value)
@@ -43,6 +45,20 @@ internal sealed class AnalyseCommand(
         {
             consoleNotifier.WriteError(exception.Message);
             return Error;
+        }
+    }
+
+    // Unknown options and surplus arguments have always been ignored; say so instead of staying silent.
+    private void WarnAboutIgnoredArguments(CommandContext context)
+    {
+        IEnumerable<string> ignored = context.Remaining.Parsed
+            .SelectMany(group => group.Select(value => value is null ? group.Key : $"{group.Key} {value}")
+                .DefaultIfEmpty(group.Key))
+            .Concat(context.Remaining.Raw);
+
+        if (ignored.Any())
+        {
+            consoleNotifier.WriteWarning($"Ignored unknown arguments: {string.Join(" ", ignored)}");
         }
     }
 }

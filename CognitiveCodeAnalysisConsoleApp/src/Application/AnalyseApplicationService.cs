@@ -23,6 +23,10 @@ internal sealed class AnalyseApplicationService(
 
         var prepared = analysisWorkflow.Prepare(request);
         consoleNotifier.WriteConfigUsed(prepared.ConfigSource.Display);
+        foreach (string warning in prepared.Configuration.Warnings)
+        {
+            consoleNotifier.WriteWarning(warning);
+        }
 
         if (request.Verbose)
         {
@@ -145,7 +149,7 @@ internal sealed class AnalyseApplicationService(
             progress
         );
 
-        if (!result.Success && result.WarningMessage is { } warningMessage)
+        if (result.WarningMessage is { } warningMessage)
         {
             consoleNotifier.WriteWarning(warningMessage);
         }

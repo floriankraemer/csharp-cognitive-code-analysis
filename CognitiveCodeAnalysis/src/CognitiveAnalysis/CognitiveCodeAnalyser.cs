@@ -112,8 +112,12 @@ public class CognitiveCodeAnalyser
             ProcessedFiles: totalFiles
         ));
 
+        // Files are analysed in parallel; sort so every run and every report sees the same order.
         var result = new CognitiveMetricsCollection();
-        foreach (CognitiveMetrics metric in allMetrics)
+        foreach (CognitiveMetrics metric in allMetrics
+            .OrderBy(m => m.FilePath, StringComparer.Ordinal)
+            .ThenBy(m => m.methodLineNumber)
+            .ThenBy(m => m.ClassName, StringComparer.Ordinal))
         {
             result.Add(metric);
         }
@@ -176,8 +180,13 @@ public class CognitiveCodeAnalyser
                 case TryStatementSyntax:
                     tryCount++;
                     break;
-                case ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax or DoStatementSyntax:
+                case ForStatementSyntax or WhileStatementSyntax or DoStatementSyntax:
                     loopCount++;
+                    break;
+                case CommonForEachStatementSyntax forEach:
+                    // The iteration variables (one, or several when deconstructing) have no VariableDeclarator node.
+                    loopCount++;
+                    localVarCount += CountForEachVariables(forEach);
                     break;
                 case SwitchStatementSyntax sw:
                     switchCount++;
@@ -189,8 +198,13 @@ public class CognitiveCodeAnalyser
                 case VariableDeclaratorSyntax declarator when !IsMethodParameter(declarator, methodNode):
                     localVarCount++;
                     break;
-                case CatchClauseSyntax:
+                case CatchClauseSyntax catchClause:
                     catchCount++;
+                    if (!string.IsNullOrEmpty(catchClause.Declaration?.Identifier.ValueText))
+                    {
+                        localVarCount++;
+                    }
+
                     break;
                 case ConditionalExpressionSyntax:
                     conditionalCount++;
@@ -208,6 +222,11 @@ public class CognitiveCodeAnalyser
             returnCount, localVarCount, catchCount, conditionalCount, logicalAndOrCount
         );
     }
+
+    private static int CountForEachVariables(CommonForEachStatementSyntax forEach) =>
+        forEach is ForEachVariableStatementSyntax deconstructing
+            ? deconstructing.Variable.DescendantNodesAndSelf().OfType<SingleVariableDesignationSyntax>().Count()
+            : 1;
 
     private static CognitiveMetricsCollection ExtractMetricsFromClasses(
         CognitiveConfiguration configuration,
@@ -414,12 +433,14 @@ public class CognitiveCodeAnalyser
                 return;
         }
 
+        int childDepth = currentDepth;
         if (IsNestingNode(node))
         {
-            ProcessNestingNode(currentDepth, ref maxDepth);
+            childDepth = currentDepth + 1;
+            maxDepth = Math.Max(maxDepth, childDepth);
         }
 
-        ProcessChildNodes(node, currentDepth, ref maxDepth, configuration);
+        ProcessChildNodes(node, childDepth, ref maxDepth, configuration);
     }
 
     private static void ProcessBlockSyntax(
@@ -495,12 +516,6 @@ public class CognitiveCodeAnalyser
         return currentDepth + 1;
     }
 
-    private static void ProcessNestingNode(int currentDepth, ref int maxDepth)
-    {
-        int newDepth = currentDepth + 1;
-        maxDepth = Math.Max(maxDepth, newDepth);
-    }
-
     private static void ProcessChildNodes(SyntaxNode node, int currentDepth, ref int maxDepth, CognitiveConfiguration configuration)
     {
         foreach (SyntaxNode child in node.ChildNodes())
@@ -513,6 +528,7 @@ public class CognitiveCodeAnalyser
     /// <![CDATA[
     /// Control flow structures that create nesting levels.
     /// Exclude ElseClauseSyntax and IfStatementSyntax as they're handled separately.
+    /// Catch and finally clauses belong to their try statement and share its level.
     /// ]]>
     /// </summary>
     /// <param name="node"></param>
@@ -520,13 +536,11 @@ public class CognitiveCodeAnalyser
     private static bool IsNestingNode(SyntaxNode node)
     {
         return node is ForStatementSyntax
-            || node is ForEachStatementSyntax
+            || node is CommonForEachStatementSyntax
             || node is WhileStatementSyntax
             || node is DoStatementSyntax
             || node is SwitchStatementSyntax
             || node is TryStatementSyntax
-            || node is CatchClauseSyntax
-            || node is FinallyClauseSyntax
             || node is LockStatementSyntax
             || node is UsingStatementSyntax
             || node is FixedStatementSyntax

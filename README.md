@@ -27,13 +27,20 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 **Options:**
 
 - `-c|--config <path>` — JSON config file (same `cognitive` section as the default settings file). Passed to `ConfigurationLoader.Load`.
-- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`. The type is matched case-insensitively, so `-r html` works.
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
-- `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values).
-- `--coverage-cobertura <path>` — Optional Cobertura coverage file (line/branch coverage and risk churn when matched).
+- `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values, console and Markdown show the same arrows as plain text or colored text).
+- `--coverage-cobertura <path>` — Optional coverage file (line/branch coverage and risk churn when matched).
+  Cobertura reports with counts (`lines-valid`, `branches-valid`, ...) and rate-only reports such as the ones coverlet writes (`line-rate`, `branch-rate`) are read, and so are Visual Studio coverage XML files.
+  A method is matched by its name and by a first coverage line inside the method's source lines.
+  A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
+  When a coverage file is read but no method matches, the tool prints a warning.
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
+
+Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
+All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.
 
 **Examples:**
 

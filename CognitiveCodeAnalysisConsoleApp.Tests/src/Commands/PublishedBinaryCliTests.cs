@@ -66,6 +66,17 @@ public class PublishedBinaryCliTests
     }
 
     [Test]
+    public void UnknownOption_IsIgnoredWithAWarning_AndTheExitCodeIsUnchanged()
+    {
+        File.WriteAllText(Path.Combine(_workingDirectory, "Sample.cs"), "public class S { public void M() { } }");
+
+        (int exitCode, string output) = RunExecutable(_workingDirectory, _workingDirectory, "--bogus");
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output, Does.Contain("Ignored unknown arguments: --bogus"));
+    }
+
+    [Test]
     public void GenerateConfig_WithoutPath_WritesFileToWorkingDirectory()
     {
         (int exitCode, _) = RunExecutable(_workingDirectory, "--generate-config");

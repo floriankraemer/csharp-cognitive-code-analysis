@@ -16,5 +16,15 @@ public class CognitiveConfiguration
     public bool ShowHalsteadComplexity { get; set; }
     public bool ShowCyclomaticComplexity { get; set; }
     public bool ShowCouplingMetrics { get; set; }
+
+    /// <summary>
+    /// Shows the detail columns (lines, arguments, returns, nesting, ...) in the console, HTML and Markdown reports.
+    /// </summary>
+    public bool ShowDetailedCognitiveMetrics { get; set; } = true;
     public Dictionary<string, MetricConfiguration> Metrics { get; set; } = new();
+
+    /// <summary>
+    /// Notes collected while loading the configuration, such as deprecated metric keys that were accepted.
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; internal set; } = [];
 }

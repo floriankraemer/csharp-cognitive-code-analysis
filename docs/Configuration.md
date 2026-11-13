@@ -48,15 +48,24 @@ Use this structure:
 - `excludeFilePatterns` (`string[]`): configured but currently not applied in source file discovery.
 - `excludePatterns` (`string[]`): configured but currently not applied in source file discovery.
 - `scoreThreshold` (`double`): threshold used in report filtering and summary counts.
+  It also sets the score colors of the console and HTML reports: green up to the threshold, yellow up to twice the threshold, red above.
 - `showOnlyMethodsExceedingThreshold` (`bool`): if `true`, console report only shows methods above `scoreThreshold`.
 - `groupByClass` (`bool`): groups output by class in console and HTML reports. HTML output also includes a client-side filter (class name / file path) and default ordering by cognitive score: classes by **maximum** method score in the class (highest first), methods within each class by `totalScore` (highest first).
 - `countElseAsNesting` (`bool`): controls whether `else` increases nesting depth.
 - `countElseIfAsNesting` (`bool`): controls whether `else if` increases nesting depth.
+  The nesting depth of a method (`nestingLevels`) is the deepest chain of nested `if`, `for`, `foreach`, `while`, `do`, `switch`, `try`, `lock`, `using`, `fixed`, `checked` and `unsafe` statements.
+  Each of them adds one level for everything inside it.
+  The `catch` and `finally` blocks of a `try` share the level of the `try` body.
+  `for (...) { for (...) { for (...) { } } }` has a nesting depth of 3.
 - `showHalsteadComplexity` (`bool`): when `true`, console and HTML reports include Halstead volume, difficulty, and effort columns (metrics are always computed during analysis).
 - `showCyclomaticComplexity` (`bool`): when `true`, console and HTML reports include cyclomatic complexity (computed during analysis).
 - `showCouplingMetrics` (`bool`): when `true` and `groupByClass` is `true`, console and HTML reports show class coupling (incoming, outgoing, stability) in each class header. Coupling is always computed during analysis.
-- `showDetailedCognitiveMetrics` (`bool`): present in the shipped JSON for parity with other tools; not bound in this project yet (ignored).
+- `showDetailedCognitiveMetrics` (`bool`, default `true`): shows the detail columns (Lines, Ifs, Else, Loops, Switch, Try/Catch, Arguments, Nesting, Returns, Locals, Fields, Props) in the console, HTML and Markdown reports.
+  With `false`, those reports keep only Method, Score and the optional Halstead, Cyclomatic Complexity and Churn columns.
+  The CSV, JSON, SARIF and CI reports always carry every metric.
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
+  Every key must be one of the supported metric keys in section 5.
+  An unknown key is ignored with a warning that names the key and lists the valid keys.
 
 ## 4) Metric option fields
 
@@ -85,7 +94,17 @@ These align with analyzer fields and can contribute to `totalScore` when `enable
 - `fieldAccessCount` → `fieldAccessScore`
 - `propertyAccessCount` → `propertyAccessScore`
 
+### Deprecated metric keys
+
+The first settings file of this project contained `variableCount` and `propertyCallCount`.
+They never scored anything.
+They are still accepted as aliases of `localVariableCount` and `propertyAccessCount`, with a warning that asks you to rename them.
+If you enabled one of them, it now takes effect under its new name.
+
 ### Shipped defaults
+
+The shipped `cognitive-metrics-settings.json` is the single source of the built-in defaults.
+It is embedded in the library, it is what the tool uses when no config file is found, and `--generate-config` writes it out unchanged.
 
 The shipped `cognitive-metrics-settings.json` enables core control-flow and size metrics (`linesOfCode`, `ifCount`, `elseCount`, `argumentCount`, `returnCount`, `nestingLevels`).
 
@@ -93,7 +112,8 @@ Additional metrics (`loopCount`, `switchCount`, `tryCatchCount`, `localVariableC
 
 All listed metrics are counted during analysis and appear in console/CSV output regardless of the `enabled` flag; `enabled` only controls whether the metric contributes to `totalScore`.
 
-`showDetailedCognitiveMetrics` remains unbound in `CognitiveConfiguration` (ignored).
+Local variables include `foreach` iteration variables and `catch` variables, in addition to declared locals.
+Deconstruction and pattern variables are not counted.
 
 ## 6) How to execute
 
@@ -108,13 +128,18 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 ### CLI options
 
 - `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
-- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
+- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`. Matched case-insensitively.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
 - `-b|--baseline <path>`: path to a JSON baseline snapshot (from a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
-- `--coverage-cobertura <path>`: optional Cobertura coverage file.
+- `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).
+  Methods match by name and by a first coverage line inside the method.
+  Methods without branches show no branch coverage, and their churn uses the line coverage.
+  A coverage file that loads but matches no method produces a warning.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
+
+An unknown option or a surplus argument is ignored with a warning that lists it; the exit code is not affected.
 
 CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 

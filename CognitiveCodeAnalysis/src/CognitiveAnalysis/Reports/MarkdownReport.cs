@@ -35,11 +35,11 @@ public sealed class MarkdownReport : IReport
 
         if (configuration.GroupByClass)
         {
-            AppendGrouped(filtered, md, configuration, metricsCollection, Name, progress, totalItems, ref processedItems);
+            AppendGrouped(filtered, md, configuration, metricsCollection, baselineComparison, Name, progress, totalItems, ref processedItems);
         }
         else
         {
-            AppendUngrouped(filtered, md, configuration, Name, progress, totalItems, ref processedItems);
+            AppendUngrouped(filtered, md, configuration, baselineComparison, Name, progress, totalItems, ref processedItems);
         }
 
         CognitiveReportFileWriter.Write(outputFile, md.ToString());
@@ -51,6 +51,7 @@ public sealed class MarkdownReport : IReport
         StringBuilder md,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection fullMetricsCollection,
+        CognitiveBaselineComparison? baselineComparison,
         string reportName,
         IProgress<AnalysisProgress>? progress,
         int totalItems,
@@ -72,8 +73,8 @@ public sealed class MarkdownReport : IReport
             md.AppendLine();
             md.AppendLine($"**File:** `{firstMetric.FilePath}`");
             md.AppendLine();
-            AppendCouplingLine(md, configuration, fullMetricsCollection, firstMetric.ClassName);
-            AppendMetricsTable(md, classMetrics, configuration, hasCoverageData);
+            AppendCouplingLine(md, configuration, fullMetricsCollection, firstMetric.ClassName, baselineComparison);
+            AppendMetricsTable(md, classMetrics, configuration, hasCoverageData, baselineComparison);
 
             foreach (var _ in classMetrics)
             {
@@ -87,6 +88,7 @@ public sealed class MarkdownReport : IReport
         CognitiveMetricsCollection metricsCollection,
         StringBuilder md,
         CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison,
         string reportName,
         IProgress<AnalysisProgress>? progress,
         int totalItems,
@@ -103,7 +105,7 @@ public sealed class MarkdownReport : IReport
             md.AppendLine();
             md.AppendLine($"**File:** `{metrics.FilePath}`");
             md.AppendLine();
-            AppendMetricsTable(md, [metrics], configuration, hasCoverageData);
+            AppendMetricsTable(md, [metrics], configuration, hasCoverageData, baselineComparison);
             processedItems++;
             ReportProgress.ReportItem(progress, reportName, totalItems, processedItems);
         }
@@ -113,17 +115,20 @@ public sealed class MarkdownReport : IReport
         StringBuilder md,
         IReadOnlyList<CognitiveMetrics> metricsList,
         CognitiveConfiguration configuration,
-        bool hasCoverageData
+        bool hasCoverageData,
+        CognitiveBaselineComparison? baselineComparison
     )
     {
         IReadOnlyList<string> headers = CognitiveReportTableFormat.BuildColumnHeaders(configuration, hasCoverageData);
 
         md.AppendLine("| " + string.Join(" | ", headers.Select(CognitiveReportTableFormat.EscapeMarkdownTableCell)) + " |");
-        md.AppendLine("| " + string.Join(" | ", headers.Select(_ => "---:")) + " |");
+        md.AppendLine("| " + string.Join(" | ", headers.Select((_, index) => index == 0 ? ":---" : "---:")) + " |");
 
         foreach (CognitiveMetrics metrics in metricsList)
         {
-            IReadOnlyList<string> cells = CognitiveReportTableFormat.BuildRowValues(metrics, configuration, hasCoverageData);
+            MethodMetricsComparison? comparison = null;
+            baselineComparison?.TryGetMethodComparison(metrics, out comparison);
+            IReadOnlyList<string> cells = CognitiveReportTableFormat.BuildRowValues(metrics, configuration, hasCoverageData, comparison);
             md.AppendLine("| " + string.Join(" | ", cells.Select(CognitiveReportTableFormat.EscapeMarkdownTableCell)) + " |");
         }
 
@@ -134,7 +139,8 @@ public sealed class MarkdownReport : IReport
         StringBuilder md,
         CognitiveConfiguration configuration,
         CognitiveMetricsCollection metricsCollection,
-        string className
+        string className,
+        CognitiveBaselineComparison? baselineComparison
     )
     {
         if (!configuration.GroupByClass || !configuration.ShowCouplingMetrics)
@@ -142,24 +148,36 @@ public sealed class MarkdownReport : IReport
             return;
         }
 
-        string couplingText = FormatCouplingMetrics(metricsCollection, className);
+        string couplingText = FormatCouplingMetrics(metricsCollection, className, baselineComparison);
         md.AppendLine($"**Coupling:** {couplingText}");
         md.AppendLine();
     }
 
-    private static string FormatCouplingMetrics(CognitiveMetricsCollection metricsCollection, string className)
+    private static string FormatCouplingMetrics(
+        CognitiveMetricsCollection metricsCollection,
+        string className,
+        CognitiveBaselineComparison? baselineComparison
+    )
     {
         if (!metricsCollection.TryGetClassCoupling(className, out var coupling) || coupling == null)
         {
             return "n/a";
         }
 
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            "In={0}, Out={1}, Stability={2:F3}",
-            coupling.IncomingCoupling,
-            coupling.OutgoingCoupling,
-            coupling.Stability
-        );
+        ClassCouplingComparison? couplingComparison = null;
+        baselineComparison?.TryGetClassCouplingComparison(className, out couplingComparison);
+
+        string incoming = coupling.IncomingCoupling.ToString(CultureInfo.InvariantCulture);
+        string outgoing = coupling.OutgoingCoupling.ToString(CultureInfo.InvariantCulture);
+        string stability = coupling.Stability.ToString("F3", CultureInfo.InvariantCulture);
+
+        if (couplingComparison is { HasBaseline: true })
+        {
+            incoming = CognitiveReportDeltaFormatter.FormatMarkdownValue(incoming, couplingComparison.IncomingCoupling, "F0");
+            outgoing = CognitiveReportDeltaFormatter.FormatMarkdownValue(outgoing, couplingComparison.OutgoingCoupling, "F0");
+            stability = CognitiveReportDeltaFormatter.FormatMarkdownValue(stability, couplingComparison.Stability, "F3");
+        }
+
+        return $"In={incoming}, Out={outgoing}, Stability={stability}";
     }
 }

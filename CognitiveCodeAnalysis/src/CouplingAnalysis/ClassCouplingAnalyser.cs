@@ -264,7 +264,9 @@ public class ClassCouplingAnalyser
         }
 
         string typePath = string.Join(".", typeParts);
-        string ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+        string ns = symbol.ContainingNamespace is { IsGlobalNamespace: false } containing
+            ? containing.ToDisplayString()
+            : string.Empty;
 
         return string.IsNullOrEmpty(ns) ? typePath : $"{ns}.{typePath}";
     }

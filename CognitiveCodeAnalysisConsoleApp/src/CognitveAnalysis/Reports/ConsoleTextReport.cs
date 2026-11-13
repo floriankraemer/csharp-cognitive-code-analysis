@@ -17,12 +17,41 @@ public class ConsoleTextReport() : IReport
 {
     public string Name => "ConsoleText";
 
+    /// <summary>
+    /// Width used when the output is not an interactive terminal (a pipe, a file, a CI log). Spectre would assume 80
+    /// columns there and squeeze the table into unreadable fragments.
+    /// </summary>
+    internal const int RedirectedWidth = 400;
+
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
         CognitiveBaselineComparison? baselineComparison = null,
         IProgress<AnalysisProgress>? progress = null
+    )
+    {
+        int originalWidth = AnsiConsole.Profile.Width;
+        if (!AnsiConsole.Profile.Capabilities.Interactive)
+        {
+            AnsiConsole.Profile.Width = Math.Max(originalWidth, RedirectedWidth);
+        }
+
+        try
+        {
+            Render(metricsCollection, configuration, baselineComparison, progress);
+        }
+        finally
+        {
+            AnsiConsole.Profile.Width = originalWidth;
+        }
+    }
+
+    private void Render(
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress
     )
     {
         CognitiveMetricsCollection filteredCollection = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
@@ -41,7 +70,7 @@ public class ConsoleTextReport() : IReport
             return;
         }
 
-        foreach (CognitiveMetrics metrics in filteredCollection)
+        foreach (CognitiveMetrics metrics in filteredCollection.OrderByDescending(m => m.totalScore))
         {
             RenderMetrics(metrics, hasCoverageData, configuration, baselineComparison);
             processedItems++;
@@ -125,19 +154,31 @@ public class ConsoleTextReport() : IReport
         MethodMetricsComparison? comparison = null;
         baselineComparison?.TryGetMethodComparison(metrics, out comparison);
 
+        double threshold = configuration.ScoreThreshold;
         var rowData = new List<string>
         {
             "L" + metrics.methodLineNumber + " " + Markup.Escape(metrics.MethodName),
-            CognitiveReportDeltaFormatter.FormatConsoleValue(ColorizeScore(metrics.totalScore), comparison?.TotalScore, "F3"),
-            FormatCountWithScore(metrics.linesOfCode, metrics.linesOfCodeScore, comparison?.LinesOfCode, comparison?.LinesOfCodeScore),
-            FormatCountWithScore(metrics.ifCount, metrics.ifScore, comparison?.IfCount, comparison?.IfScore),
-            FormatCountWithScore(metrics.argumentCount, metrics.argumentScore, comparison?.ArgumentCount, comparison?.ArgumentScore),
-            FormatCountWithScore(metrics.nestingLevels, metrics.nestingScore, comparison?.NestingLevels, comparison?.NestingScore),
-            FormatCountWithScore(metrics.returnCount, metrics.returnScore, comparison?.ReturnCount, comparison?.ReturnScore),
-            FormatCountWithScore(metrics.localVariableCount, metrics.localVariableScore, comparison?.LocalVariableCount, comparison?.LocalVariableScore),
-            FormatCountWithScore(metrics.fieldAccessCount, metrics.fieldAccessScore, comparison?.FieldAccessCount, comparison?.FieldAccessScore),
-            FormatCountWithScore(metrics.propertyAccessCount, metrics.propertyAccessScore, comparison?.PropertyAccessCount, comparison?.PropertyAccessScore),
+            CognitiveReportDeltaFormatter.FormatConsoleValue(ColorizeScore(metrics.totalScore, threshold), comparison?.TotalScore, "F3"),
         };
+
+        if (configuration.ShowDetailedCognitiveMetrics)
+        {
+            rowData.AddRange(
+            [
+                FormatCountWithScore(metrics.linesOfCode, metrics.linesOfCodeScore, threshold, comparison?.LinesOfCode, comparison?.LinesOfCodeScore),
+                FormatCountWithScore(metrics.ifCount, metrics.ifScore, threshold, comparison?.IfCount, comparison?.IfScore),
+                FormatCountWithScore(metrics.elseCount, metrics.elseScore, threshold, comparison?.ElseCount, comparison?.ElseScore),
+                FormatCountWithScore(metrics.loopCount, metrics.loopScore, threshold, comparison?.LoopCount, comparison?.LoopScore),
+                FormatCountWithScore(metrics.switchCount, metrics.switchScore, threshold, comparison?.SwitchCount, comparison?.SwitchScore),
+                FormatCountWithScore(metrics.tryCatchCount, metrics.tryCatchScore, threshold, comparison?.TryCatchCount, comparison?.TryCatchScore),
+                FormatCountWithScore(metrics.argumentCount, metrics.argumentScore, threshold, comparison?.ArgumentCount, comparison?.ArgumentScore),
+                FormatCountWithScore(metrics.nestingLevels, metrics.nestingScore, threshold, comparison?.NestingLevels, comparison?.NestingScore),
+                FormatCountWithScore(metrics.returnCount, metrics.returnScore, threshold, comparison?.ReturnCount, comparison?.ReturnScore),
+                FormatCountWithScore(metrics.localVariableCount, metrics.localVariableScore, threshold, comparison?.LocalVariableCount, comparison?.LocalVariableScore),
+                FormatCountWithScore(metrics.fieldAccessCount, metrics.fieldAccessScore, threshold, comparison?.FieldAccessCount, comparison?.FieldAccessScore),
+                FormatCountWithScore(metrics.propertyAccessCount, metrics.propertyAccessScore, threshold, comparison?.PropertyAccessCount, comparison?.PropertyAccessScore),
+            ]);
+        }
 
         if (configuration.ShowHalsteadComplexity)
         {
@@ -171,6 +212,7 @@ public class ConsoleTextReport() : IReport
     private static string FormatCountWithScore(
         int count,
         double score,
+        double scoreThreshold,
         MetricDelta? countDelta,
         MetricDelta? scoreDelta
     )
@@ -180,7 +222,7 @@ public class ConsoleTextReport() : IReport
             countDelta,
             "F0");
         string scorePart = CognitiveReportDeltaFormatter.FormatConsoleValue(
-            ColorizeScore(score),
+            ColorizeScore(score, scoreThreshold),
             scoreDelta,
             "F3");
         return countPart + " (" + scorePart + ")";
@@ -208,7 +250,7 @@ public class ConsoleTextReport() : IReport
         {
             double lineCoverage = metrics.lineCoveragePercentage!.Value;
             string lineColor = GetCoverageColor(lineCoverage);
-            string lineText = $"[{lineColor}]Line: {lineCoverage:F1}%[/]";
+            string lineText = $"[{lineColor}]Line: {Invariant(lineCoverage, "F1")}%[/]";
             parts.Add(CognitiveReportDeltaFormatter.FormatConsoleValue(lineText, comparison?.LineCoveragePercentage, "F1"));
         }
 
@@ -216,7 +258,7 @@ public class ConsoleTextReport() : IReport
         {
             double branchCoverage = metrics.branchCoveragePercentage!.Value;
             string branchColor = GetCoverageColor(branchCoverage);
-            string branchText = $"[{branchColor}]Branch: {branchCoverage:F1}%[/]";
+            string branchText = $"[{branchColor}]Branch: {Invariant(branchCoverage, "F1")}%[/]";
             parts.Add(CognitiveReportDeltaFormatter.FormatConsoleValue(branchText, comparison?.BranchCoveragePercentage, "F1"));
         }
 
@@ -258,7 +300,7 @@ public class ConsoleTextReport() : IReport
 
         double churnScore = metrics.churnScore.Value;
         string color = GetChurnColor(churnScore);
-        string churnText = $"[{color}]{churnScore:F3}[/]";
+        string churnText = $"[{color}]{Invariant(churnScore, "F3")}[/]";
         return CognitiveReportDeltaFormatter.FormatConsoleValue(churnText, comparison?.ChurnScore, "F3");
     }
 
@@ -288,24 +330,21 @@ public class ConsoleTextReport() : IReport
 
     /// <summary>
     /// <![CDATA[
-    /// Colorizes the metric score based on thresholds.
-    /// ]]>>
+    /// Colorizes a score relative to the configured score threshold:
+    /// green up to the threshold, yellow up to twice the threshold, red above.
+    /// ]]>
     /// </summary>
-    /// <param name="score"></param>
-    /// <returns></returns>
-    private static string ColorizeScore(double score)
+    internal static string ColorizeScore(double score, double scoreThreshold)
     {
-        (double, string)[] colorMap =
-        [
-            (0.5, "green"),
-            (0.85, "yellow"),
-            (double.MaxValue, "red")
-        ];
+        string color = score <= scoreThreshold
+            ? "green"
+            : score <= scoreThreshold * 2 ? "yellow" : "red";
 
-        string color = colorMap.First(x => score < x.Item1).Item2;
-
-        return $"[{color}]{score:F3}[/]";
+        return $"[{color}]{Invariant(score, "F3")}[/]";
     }
+
+    private static string Invariant(double value, string format)
+        => value.ToString(format, CultureInfo.InvariantCulture);
 
     private static void RenderCouplingLine(
         CognitiveConfiguration configuration,
@@ -381,18 +420,23 @@ public class ConsoleTextReport() : IReport
             "F2");
     }
 
+    private static readonly string[] DetailColumnHeaders =
+    [
+        "Lines", "Ifs", "Else", "Loops", "Switch", "Try/Catch", "Arguments", "Nesting", "Returns", "Locals", "Fields", "Props",
+    ];
+
     private static Table AddTableHeaders(Table table, bool hasCoverageData, CognitiveConfiguration configuration)
     {
-        table.AddColumn("Method");
-        table.AddColumn("Score");
-        table.AddColumn("Lines");
-        table.AddColumn("Ifs");
-        table.AddColumn("Arguments");
-        table.AddColumn("Nesting");
-        table.AddColumn("Returns");
-        table.AddColumn("Locals");
-        table.AddColumn("Fields");
-        table.AddColumn("Props");
+        // The method name and the score are what a reader needs most: never break them across lines.
+        table.AddColumn(new TableColumn("Method").NoWrap());
+        table.AddColumn(new TableColumn("Score").NoWrap());
+        if (configuration.ShowDetailedCognitiveMetrics)
+        {
+            foreach (string header in DetailColumnHeaders)
+            {
+                table.AddColumn(header);
+            }
+        }
 
         if (configuration.ShowHalsteadComplexity)
         {
@@ -441,15 +485,15 @@ public class ConsoleTextReport() : IReport
         AnsiConsole.MarkupLine(
             $"[yellow]Classes with Methods Exceeding Threshold:[/] "
             + $"{metricsCollection.GetClassesWithExceedingMethods(scoreThreshold)} "
-            + $"({metricsCollection.GetClassesPercentage(scoreThreshold):F1}%)"
+            + $"({Invariant(metricsCollection.GetClassesPercentage(scoreThreshold), "F1")}%)"
         );
 
         AnsiConsole.MarkupLine(
             $"[yellow]Methods Exceeding Threshold:[/] "
             + $"{metricsCollection.GetMethodsExceedingThreshold(scoreThreshold)} "
-            + $"({metricsCollection.GetMethodsPercentage(scoreThreshold):F1}%)"
+            + $"({Invariant(metricsCollection.GetMethodsPercentage(scoreThreshold), "F1")}%)"
         );
 
-        AnsiConsole.MarkupLine($"Threshold: {scoreThreshold:F3}");
+        AnsiConsole.MarkupLine($"Threshold: {Invariant(scoreThreshold, "F3")}");
     }
 }

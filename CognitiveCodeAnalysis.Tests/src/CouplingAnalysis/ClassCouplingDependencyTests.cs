@@ -85,17 +85,16 @@ public class ClassCouplingDependencyTests
     }
 
     [Test]
-    public void GlobalNamespaceTypes_AreKeyedWithRoslynGlobalNamespaceDisplayName()
+    public void GlobalNamespaceTypes_AreKeyedByTheBareTypeName()
     {
-        // Known defect (tracked for the bug-fix PR): the key should be the bare type name, but Roslyn renders the
-        // global namespace as "<global namespace>", so the empty-namespace branch of GetTypeKey is never taken.
         var all = Analyse("""
             public class Alpha { public Beta B; }
             public class Beta { }
             """);
 
-        AssertCoupling(all, "<global namespace>.Alpha", incoming: 0, outgoing: 1);
-        AssertCoupling(all, "<global namespace>.Beta", incoming: 1, outgoing: 0);
+        Assert.That(all.Keys, Is.EquivalentTo(new[] { "Alpha", "Beta" }));
+        AssertCoupling(all, "Alpha", incoming: 0, outgoing: 1);
+        AssertCoupling(all, "Beta", incoming: 1, outgoing: 0);
     }
 
     [Test]

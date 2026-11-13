@@ -24,7 +24,7 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
     {
         foreach (IReport reportGenerator in _reportGenerators)
         {
-            if (!reportGenerator.Name.Equals(reportType)) continue;
+            if (!reportGenerator.Name.Equals(reportType, StringComparison.OrdinalIgnoreCase)) continue;
 
             reportGenerator.RenderMetrics(
                 outputFile: outputFile,
@@ -35,7 +35,7 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
             );
 
             OnReportGenerated(
-                reportType: reportType,
+                reportType: reportGenerator.Name,
                 fullPath: Path.GetFullPath(outputFile)
             );
 
