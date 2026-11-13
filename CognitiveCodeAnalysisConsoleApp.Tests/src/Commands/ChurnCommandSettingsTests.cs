@@ -96,4 +96,22 @@ public class ChurnCommandSettingsTests
         Assert.That(typeOnly.Message, Is.EqualTo("--report-type and --output-file must be given together."));
         Assert.That(fileOnly.Message, Is.EqualTo(typeOnly.Message));
     }
+
+    [Test]
+    public void Validate_RejectsBothCoverageFormats()
+    {
+        var result = new ChurnCommandSettings { CoverageCobertura = "a.xml", CoverageClover = "b.xml" }.Validate();
+
+        Assert.That(result.Successful, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Only one coverage format can be specified at a time."));
+    }
+
+    [TestCase("a.xml", null)]
+    [TestCase(null, "b.xml")]
+    [TestCase(null, null)]
+    [TestCase("a.xml", "")]
+    public void Validate_AcceptsOneOrNoCoverageFormat(string? cobertura, string? clover)
+    {
+        Assert.That(new ChurnCommandSettings { CoverageCobertura = cobertura, CoverageClover = clover }.Validate().Successful, Is.True);
+    }
 }

@@ -37,7 +37,8 @@ internal static class AnalyseRequestMapper
             Verbose: settings.Verbose,
             SortBy: settings.SortBy,
             SortOrder: settings.SortOrder,
-            Debug: settings.Debug
+            Debug: settings.Debug,
+            CoverageClover: settings.CoverageClover
         );
     }
 }

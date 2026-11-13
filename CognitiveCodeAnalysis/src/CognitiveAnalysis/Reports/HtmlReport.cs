@@ -265,6 +265,8 @@ public class HtmlReport() : IReport
                 : "n/a";
             double churnScoreForColor = metrics.churnScore ?? 0;
             html.AppendLine($"                        <td><span class=\"{GetChurnScoreClass(churnScoreForColor)}\">{churnValue}</span></td>");
+            html.AppendLine($"                        <td>{CoverageValueHtml(metrics.lineCoveragePercentage, comparison?.LineCoveragePercentage)}</td>");
+            html.AppendLine($"                        <td>{CoverageValueHtml(metrics.branchCoveragePercentage, comparison?.BranchCoveragePercentage)}</td>");
         }
 
         if (configuration.ShowUnderstandability)
@@ -273,6 +275,11 @@ public class HtmlReport() : IReport
         }
         html.AppendLine("                    </tr>");
     }
+
+    private static string CoverageValueHtml(double? value, MetricDelta? delta) =>
+        value.HasValue
+            ? CognitiveReportDeltaFormatter.FormatHtmlValue(CognitiveReportTableFormat.FormatCoveragePercent(value), delta, "F1")
+            : "n/a";
 
     private static void AppendDetailCells(StringBuilder html, CognitiveMetrics metrics, MethodMetricsComparison? comparison)
     {
