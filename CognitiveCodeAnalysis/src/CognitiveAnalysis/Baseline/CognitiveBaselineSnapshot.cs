@@ -12,6 +12,9 @@ public sealed class CognitiveBaselineSnapshot
 
     public DateTimeOffset GeneratedAt { get; init; }
 
+    /// <summary>SHA-256 of the canonical metric settings the metrics were scored with; absent in older files.</summary>
+    public string? ConfigHash { get; init; }
+
     public List<CognitiveBaselineMethodSnapshot> Methods { get; init; } = [];
 
     public List<CognitiveBaselineClassCouplingSnapshot> ClassCoupling { get; init; } = [];

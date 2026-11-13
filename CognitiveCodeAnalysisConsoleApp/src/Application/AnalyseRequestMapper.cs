@@ -32,7 +32,8 @@ internal static class AnalyseRequestMapper
             OutputFile: settings.OutputFile,
             CoverageCobertura: settings.CoverageCobertura,
             DisplayOverrides: displayOverrides,
-            Verbose: settings.Verbose
+            Verbose: settings.Verbose,
+            GenerateBaseline: settings.GenerateBaseline
         );
     }
 }

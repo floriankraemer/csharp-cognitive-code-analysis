@@ -31,6 +31,10 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("-b|--baseline")]
     public string? BaselineFile { get; init; }
 
+    [Description("Write the analysis as a new baseline to .cca/baseline for later delta comparison")]
+    [CommandOption("-g|--generate-baseline")]
+    public bool GenerateBaseline { get; init; }
+
     [Description("Output file")]
     [CommandOption("-o|--output-file")]
     public string? OutputFile { get; init; }

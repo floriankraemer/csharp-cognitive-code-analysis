@@ -14,6 +14,10 @@ internal interface IConsoleNotifier
 
     void WriteReportGenerated(string reportType, string fullPath);
 
+    void WriteBaselineAutoDetected(string fileName);
+
+    void WriteBaselineGenerated(string path);
+
     void WriteConfigUsed(string configSourceDisplay);
 
     void WriteConfigFileCreated(string fullPath);

@@ -25,6 +25,7 @@ public class AnalyseRequestMapperTests
         ShowCyclomatic = cyclomatic,
         ShowCoupling = coupling,
         Verbose = true,
+        GenerateBaseline = true,
     };
 
     [Test]
@@ -41,6 +42,7 @@ public class AnalyseRequestMapperTests
             Assert.That(request.OutputFile, Is.EqualTo("out.html"));
             Assert.That(request.CoverageCobertura, Is.EqualTo("cov.xml"));
             Assert.That(request.Verbose, Is.True);
+            Assert.That(request.GenerateBaseline, Is.True);
         }
     }
 

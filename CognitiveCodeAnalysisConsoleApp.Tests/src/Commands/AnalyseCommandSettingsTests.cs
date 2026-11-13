@@ -39,6 +39,16 @@ public class AnalyseCommandSettingsTests
         Assert.That(CliParseProbeCommand.Parsed!.OutputFile, Is.EqualTo(outputFile));
     }
 
+    [TestCase("-g", true)]
+    [TestCase("--generate-baseline", true)]
+    [TestCase("", false)]
+    public void ParseGenerateBaselineOption_BindsTheFlag(string flag, bool expected)
+    {
+        Parse($".\\src {flag}");
+
+        Assert.That(CliParseProbeCommand.Parsed!.GenerateBaseline, Is.EqualTo(expected));
+    }
+
     [Test]
     public void ParseShortReportFormatAndOutputOptions_MapsToAnalysisRequest()
     {

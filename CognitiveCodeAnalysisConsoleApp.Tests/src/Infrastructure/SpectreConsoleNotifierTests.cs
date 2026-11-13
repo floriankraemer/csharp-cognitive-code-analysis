@@ -15,6 +15,8 @@ internal class SpectreConsoleNotifierTests
         ("warning", n => n.WriteWarning("careful [x]"), "Warning: careful [x]"),
         ("no files", n => n.WriteNoSourceFilesFound("/src [x]"), "No C# files found in /src [x]."),
         ("generated", n => n.WriteReportGenerated("Html", "/o [x].html"), "Html report generated: /o [x].html"),
+        ("baseline detected", n => n.WriteBaselineAutoDetected("baseline-x [x].json"), "Auto-detected latest baseline file: baseline-x [x].json"),
+        ("baseline generated", n => n.WriteBaselineGenerated(".cca/baseline/b [x].json"), "Baseline file generated: .cca/baseline/b [x].json"),
         ("config used", n => n.WriteConfigUsed("defaults [x]"), "Config: defaults [x]"),
         ("config created", n => n.WriteConfigFileCreated("/c [x].json"), "Config file created: /c [x].json"),
         ("init created", n => n.WriteInitConfigCreated("/c [x].json"), "Created config at: /c [x].json"),

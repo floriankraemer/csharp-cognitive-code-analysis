@@ -28,6 +28,11 @@ internal sealed class AnalyseApplicationService(
             consoleNotifier.WriteWarning(warning);
         }
 
+        if (prepared.BaselineAutoDetected)
+        {
+            consoleNotifier.WriteBaselineAutoDetected(Path.GetFileName(prepared.BaselineFile!));
+        }
+
         if (request.Verbose)
         {
             tracer.Trace(
@@ -84,6 +89,8 @@ internal sealed class AnalyseApplicationService(
                         effectiveProgress
                     ));
 
+            WarnAboutConfigChange(baselineComparison, prepared);
+
             tracer.TraceStep(
                 $"Writing {prepared.ReportType} report",
                 () =>
@@ -120,6 +127,7 @@ internal sealed class AnalyseApplicationService(
                 consoleProgress
             );
 
+            WarnAboutConfigChange(baselineComparison, prepared);
             reportGenerationService.GenerateReport(
                 prepared: prepared,
                 metricsCollection: metricsCollection!,
@@ -127,7 +135,21 @@ internal sealed class AnalyseApplicationService(
             );
         }
 
+        if (request.GenerateBaseline)
+        {
+            consoleNotifier.WriteBaselineGenerated(
+                analysisWorkflow.GenerateBaseline(prepared.Configuration, metricsCollection!));
+        }
+
         return new AnalyseResult(AnalyseOutcome.Success);
+    }
+
+    private void WarnAboutConfigChange(CognitiveBaselineComparison? comparison, PreparedAnalysis prepared)
+    {
+        if (AnalysisWorkflow.BaselineConfigWarning(comparison, prepared.Configuration) is { } warning)
+        {
+            consoleNotifier.WriteWarning(warning);
+        }
     }
 
     private bool TryApplyCoverage(

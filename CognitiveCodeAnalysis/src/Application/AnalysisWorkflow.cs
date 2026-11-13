@@ -12,7 +12,8 @@ namespace CognitiveCodeAnalysis.Application;
 public sealed class AnalysisWorkflow(
     CognitiveAnalysisFacade cognitiveAnalysisFacade,
     BaselineComparisonService baselineComparisonService,
-    ReportCoordinator reportCoordinator
+    ReportCoordinator reportCoordinator,
+    TimeProvider? timeProvider = null
 ) {
     public PreparedAnalysis Prepare(AnalysisRequest request)
     {
@@ -25,6 +26,16 @@ public sealed class AnalysisWorkflow(
         var outputFile = Path.GetFullPath(request.OutputFile ?? "cognitive-analysis-report");
         var isConsoleTextReport = string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase);
 
+        // Only a project that already keeps baselines has this directory, so everybody else sees no change.
+        string workingDirectory = Directory.GetCurrentDirectory();
+        string? baselineFile = ToAbsolutePath(request.BaselineFile);
+        bool autoDetected = false;
+        if (string.IsNullOrWhiteSpace(baselineFile))
+        {
+            baselineFile = BaselineFiles.Latest(workingDirectory);
+            autoDetected = baselineFile != null;
+        }
+
         return new PreparedAnalysis(
             Configuration: configuration,
             ConfigSource: configSource,
@@ -32,9 +43,10 @@ public sealed class AnalysisWorkflow(
             SourcePaths: sourcePaths,
             ReportType: reportType,
             OutputFile: outputFile,
-            BaselineFile: ToAbsolutePath(request.BaselineFile),
+            BaselineFile: baselineFile,
             CoverageCobertura: ToAbsolutePath(request.CoverageCobertura),
-            IsConsoleTextReport: isConsoleTextReport
+            IsConsoleTextReport: isConsoleTextReport,
+            BaselineAutoDetected: autoDetected
         );
     }
 
@@ -91,6 +103,25 @@ public sealed class AnalysisWorkflow(
         CognitiveMetricsCollection metricsCollection,
         IProgress<AnalysisProgress>? progress
     ) => baselineComparisonService.CompareIfRequested(baselineFile, metricsCollection, progress);
+
+    /// <summary>The warning when the baseline was scored with other metric settings than the current ones, otherwise null.</summary>
+    public static string? BaselineConfigWarning(
+        CognitiveBaselineComparison? comparison,
+        CognitiveConfiguration configuration
+    ) => comparison == null
+        ? null
+        : BaselineConfigHash.Warning(comparison.BaselineConfigHash, BaselineConfigHash.Of(configuration));
+
+    /// <summary>Writes the metrics as a new baseline file below the working directory and returns its relative path.</summary>
+    public string GenerateBaseline(CognitiveConfiguration configuration, CognitiveMetricsCollection metricsCollection)
+    {
+        var snapshot = BaselineSnapshotFactory.FromMetricsCollection(
+            metricsCollection,
+            relativePaths: true,
+            configHash: BaselineConfigHash.Of(configuration),
+            generatedAt: (timeProvider ?? TimeProvider.System).GetUtcNow());
+        return BaselineFiles.Generate(Directory.GetCurrentDirectory(), snapshot);
+    }
 
     public void GenerateReport(
         string reportType,
