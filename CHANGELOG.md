@@ -72,7 +72,7 @@ The project follows [Semantic Versioning](https://semver.org/).
   `showUnderstandability` (default `false`) or `--show-understandability` appends an `Understandability` column such as `7 (medium)` to the console, HTML and Markdown reports and the columns `Understandability` and `UnderstandabilityRiskLevel` to the end of the CSV report.
   The JSON report and baseline files always carry the fields `understandability` and `understandabilityRiskLevel`; older baseline files without them still load.
   See [Understandability](docs/Understandability.md).
-- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity or the count or score of any metric.
+- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity, understandability or the count or score of any metric.
   Without `--sort-by` every report keeps its order.
 - **`--debug`** prints an execution summary to stderr after the run: total time, time per phase and the counts of files and methods.
 - **`--version`** prints the version of the tool.

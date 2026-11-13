@@ -164,7 +164,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
   Methods without branches show no branch coverage, and their churn uses the line coverage.
   A coverage file that loads but matches no method produces a warning.
 - `--sort-by <field>`: sort the rows of the report by a field instead of by total score.
-  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, `understandability`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are case-insensitive; the score column names of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
   Numbers compare numerically, text ignores the letter case, and equal values keep the order of class, method, file and line.
   With `groupByClass` the classes keep their order and the rows inside each class table are sorted.

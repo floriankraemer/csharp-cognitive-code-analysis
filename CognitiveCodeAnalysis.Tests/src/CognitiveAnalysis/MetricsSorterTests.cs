@@ -4,6 +4,7 @@
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
+using CognitiveCodeAnalysis.UnderstandabilityAnalysis;
 
 namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis;
 
@@ -17,7 +18,8 @@ public class MetricsSorterTests
             ifCount: level, elseCount: level, loopCount: level, switchCount: level, tryCatchCount: level,
             returnCount: level, argumentCount: level, linesOfCode: level, nestingLevels: level,
             cyclomaticComplexity: level, localVariableCount: level, fieldAccessCount: level, propertyAccessCount: level,
-            halstead: new HalsteadMetrics { Volume = level })
+            halstead: new HalsteadMetrics { Volume = level },
+            understandability: new Understandability(Structural: level, Hybrid: 0, Fundamental: 0, Nesting: 0, Recursion: 0))
         {
             totalScore = level,
             linesOfCodeScore = level, ifScore = level, elseScore = level, loopScore = level, switchScore = level,
@@ -49,7 +51,7 @@ public class MetricsSorterTests
     {
         Assert.That(MetricsSorter.FieldNames, Is.EquivalentTo(new[]
         {
-            "score", "class", "method", "file", "line", "halstead", "cyclomatic",
+            "score", "class", "method", "file", "line", "halstead", "cyclomatic", "understandability",
             "linesOfCode", "argumentCount", "returnCount", "localVariableCount", "propertyAccessCount", "fieldAccessCount",
             "ifCount", "elseCount", "nestingLevels", "loopCount", "switchCount", "tryCatchCount",
             "linesOfCodeScore", "argumentCountScore", "returnCountScore", "localVariableCountScore",

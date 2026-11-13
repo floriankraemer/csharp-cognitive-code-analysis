@@ -17,6 +17,7 @@ The CSV report gets the columns `Understandability` and `UnderstandabilityRiskLe
 The JSON report, and therefore a baseline file, always has the fields `understandability` and `understandabilityRiskLevel` for each method.
 Baseline files written before these fields existed still load.
 The understandability has no baseline delta.
+`--sort-by understandability` orders the rows by its total.
 
 ## Rules
 

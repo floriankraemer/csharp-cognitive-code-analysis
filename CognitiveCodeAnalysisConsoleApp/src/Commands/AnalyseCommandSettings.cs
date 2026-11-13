@@ -12,7 +12,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
 {
     // An attribute argument must be a constant; a test keeps this list equal to MetricsSorter.FieldNames.
     internal const string SortFields =
-        "score, class, method, file, line, halstead, cyclomatic, "
+        "score, class, method, file, line, halstead, cyclomatic, understandability, "
         + "linesOfCode, argumentCount, returnCount, localVariableCount, propertyAccessCount, fieldAccessCount, "
         + "ifCount, elseCount, nestingLevels, loopCount, switchCount, tryCatchCount, "
         + "linesOfCodeScore, argumentCountScore, returnCountScore, localVariableCountScore, propertyAccessCountScore, "

@@ -41,7 +41,7 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
   When a coverage file is read but no method matches, the tool prints a warning.
 - `--sort-by <field>` — Sort the rows of the report by a field instead of by total score.
-  The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, `understandability`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are matched case-insensitively.
   The score columns of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
   Numbers compare numerically and text ignores the letter case.
