@@ -56,6 +56,14 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The `init` command creates a `cognitive-metrics-settings.json` with the built-in defaults.
+  In an interactive console it asks for `scoreThreshold` and for the `show*` settings and `groupByClass`, and an empty answer keeps the default.
+  `--silent`, a console that is not interactive, or redirected standard input writes the defaults without asking.
+  `-p|--path` sets the file to create (default `./cognitive-metrics-settings.json`), and missing parent directories are created.
+  An existing file is not overwritten unless `-f|--force` is given, and the check happens before any question is asked.
+  A file is written completely or not at all, and `--generate-config` is unchanged.
+- `init` is now a command name, so `CognitiveCodeAnalysis init` no longer analyses a folder called `init`.
+  Use `./init` to analyse such a folder.
 - The console report has the columns Else, Loops, Switch and Try/Catch, like the other reports.
 - The CSV report has a `LinesOfCodeScore` column (and `LinesOfCodeScoreDelta` with a baseline), appended after all existing columns so that positional readers are not affected.
 - Unknown options and surplus arguments on the command line print a warning that lists them.

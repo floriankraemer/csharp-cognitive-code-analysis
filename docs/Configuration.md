@@ -145,6 +145,33 @@ An unknown option or a surplus argument is ignored with a warning that lists it;
 
 CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 
+### Creating a config file
+
+`init` writes a config file that contains every setting, with the built-in defaults.
+
+```powershell
+dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- init
+```
+
+In an interactive console, `init` asks for these settings.
+Each question has a one-line explanation above it, and an empty answer keeps the default shown in brackets.
+
+- `scoreThreshold` (default `0.5`) must be a number greater than 0.
+  An invalid answer is reported, and the question is asked again.
+- `showOnlyMethodsExceedingThreshold`, `showHalsteadComplexity`, `showCyclomaticComplexity`, `showCouplingMetrics`, `showDetailedCognitiveMetrics` and `groupByClass` are yes/no questions.
+
+The answers are written into the built-in defaults, so the file keeps the keys and the metric settings of the shipped file.
+
+- `--path`, `-p <file>` sets the file to create.
+  The default is `./cognitive-metrics-settings.json`, and missing parent directories are created.
+- `--silent` skips the questions and writes the defaults.
+  Questions are also skipped when the output is not an interactive console or standard input is redirected.
+- `--force`, `-f` overwrites an existing file.
+  Without it, `init` refuses to replace the file, reports it, and exits with a non-zero code before asking any question.
+
+The file is created in one step, so a failed write does not leave a partial file behind.
+`init` does not change `--generate-config`, which still writes the shipped file unchanged.
+
 ### Examples
 
 ```powershell
