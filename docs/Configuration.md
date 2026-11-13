@@ -1,19 +1,26 @@
-# Configuration Guide
+# Configuration
 
-This project reads analysis settings from a JSON file with a `cognitive` root section. For a short overview and links to complexity references, see the [README](../README.md).
+This project reads analysis settings from a JSON file with a `cognitive` root section.
+For a short overview and the command line options, see the [README](../README.md).
 
-## 1) Configuration file location
+## 1. Configuration file location
 
-By default, the app loads:
+The tool picks the configuration in this order:
 
-- `cognitive-metrics-settings.json`
-- from the application base directory (`AppContext.BaseDirectory`)
+1. The file given with `-c` or `--config`.
+   A missing file is an error.
+2. `cognitive-metrics-settings.json` in the working directory, if it exists.
+3. The built-in defaults, which are the shipped `cognitive-metrics-settings.json`, see [Shipped defaults](#shipped-defaults).
 
-If you use the library directly, you can load another file path with `ConfigurationLoader.Load("path-to-file.json")`.
+The first line of the output names the source: `Config: <path>` or `Config: Default`.
+The `churn` command resolves the file the same way.
+`init` and `--generate-config` create a file you can then edit, see [Creating a config file](#6-creating-a-config-file).
 
-## 2) Configuration file structure
+If you use the library directly, you can load a file with `ConfigurationLoader.Load("path-to-file.json")`.
 
-Use this structure:
+## 2. Configuration file structure
+
+The complete file is written by `init`; this excerpt shows the structure:
 
 ```json
 {
@@ -45,7 +52,7 @@ Use this structure:
 }
 ```
 
-## 3) Top-level options
+## 3. Top-level options
 
 - `excludeFilePatterns` (`string[]`): regular expressions; a source file is left out when one of them matches its absolute path, written with `/` as the separator on every platform.
 - `excludePatterns` (`string[]`): regular expressions; a method or constructor is left out when one of them matches its name `Namespace.Outer.Inner::Method`, see [Analysed methods](#7-analysed-methods).
@@ -66,7 +73,8 @@ Use this structure:
 - `scoreThreshold` (`double`): threshold used in report filtering and summary counts.
   It also sets the score colors of the console and HTML reports: green up to the threshold, yellow up to twice the threshold, red above.
 - `showOnlyMethodsExceedingThreshold` (`bool`): if `true`, console report only shows methods above `scoreThreshold`.
-- `groupByClass` (`bool`): groups output by class in console and HTML reports. HTML output also includes a client-side filter (class name / file path) and default ordering by cognitive score: classes by **maximum** method score in the class (highest first), methods within each class by `totalScore` (highest first).
+- `groupByClass` (`bool`): groups output by class in console and HTML reports.
+  HTML output also includes a client-side filter (class name / file path) and default ordering by cognitive score: classes by **maximum** method score in the class (highest first), methods within each class by `totalScore` (highest first).
 - `countElseAsNesting` (`bool`): controls whether `else` increases nesting depth.
 - `countElseIfAsNesting` (`bool`): controls whether `else if` increases nesting depth.
   The nesting depth of a method (`nestingLevels`) is the deepest chain of nested `if`, `for`, `foreach`, `while`, `do`, `switch`, `try`, `lock`, `using`, `fixed`, `checked` and `unsafe` statements.
@@ -78,7 +86,8 @@ Use this structure:
 - `showUnderstandability` (`bool`, default `false`): when `true`, the console, HTML and Markdown reports end with an `Understandability` column (`7 (medium)`) and the CSV report ends with the columns `Understandability` and `UnderstandabilityRiskLevel`.
   Understandability is the SonarSource cognitive complexity; see [Understandability.md](Understandability.md).
   It is always computed and always in the JSON report.
-- `showCouplingMetrics` (`bool`): when `true` and `groupByClass` is `true`, console and HTML reports show class coupling (incoming, outgoing, stability) in each class header. Coupling is always computed during analysis.
+- `showCouplingMetrics` (`bool`): when `true` and `groupByClass` is `true`, console and HTML reports show class coupling (incoming, outgoing, stability) in each class header.
+  Coupling is always computed during analysis.
 - `showDetailedCognitiveMetrics` (`bool`, default `true`): shows the detail columns (Lines, Ifs, Else, Loops, Switch, Try/Catch, Arguments, Nesting, Returns, Locals, Fields, Props) in the console, HTML and Markdown reports.
   With `false`, those reports keep only Method, Score and the optional Halstead, Cyclomatic Complexity and Churn columns.
   The CSV, JSON, SARIF and CI reports always carry every metric.
@@ -88,10 +97,10 @@ Use this structure:
   A relative `assembly` is resolved against the directory of this file.
   Select a reporter with `-r <key>`; see [Custom reporters](CustomReporters.md).
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
-  Every key must be one of the supported metric keys in section 5.
+  Every key must be one of the supported metric keys in [section 5](#5-metric-keys).
   An unknown key is ignored with a warning that names the key and lists the valid keys.
 
-## 4) Metric option fields
+## 4. Metric option fields
 
 Each metric entry contains:
 
@@ -99,7 +108,7 @@ Each metric entry contains:
 - `scale` (`double`): controls growth rate of the logarithmic weight.
 - `enabled` (`bool`): enables/disables score contribution for that metric key.
 
-## 5) Metric keys
+## 5. Metric keys
 
 ### Supported metric keys
 
@@ -139,69 +148,12 @@ All listed metrics are counted during analysis and appear in console/CSV output 
 Local variables include `foreach` iteration variables and `catch` variables, in addition to declared locals.
 Deconstruction and pattern variables are not counted.
 
-## 6) How to execute
-
-From repo root, run the console app with:
-
-```powershell
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
-```
-
-- `[searchPath]` optional. A `.cs` file, a directory, or a comma-separated list of both. Defaults to current directory.
-  Directories are searched recursively for `*.cs` files.
-  The entries of a list are trimmed, made absolute, deduplicated and sorted.
-  A path that exists as written stays one path even when it contains a comma.
-  A path that does not exist contributes no files; when no file is found at all, the tool prints `No C# files found in <paths>.` and exits with a non-zero status.
-  Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`, ...) are not searched, because they hold build output and tool state.
-  A path you pass yourself is always searched, even when it is such a directory.
-  Symbolic links to directories are followed, but every real directory is searched only once, so a link to a parent directory neither loops nor reports a file twice.
-  Use `excludeFilePatterns` to leave out anything else.
-
-### CLI options
-
-- `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
-- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, `GitlabCodeQuality`, `Checkstyle`, or `JUnit`.
-  Matched case-insensitively.
-  See [CiReports.md](CiReports.md) for the CI formats.
-- `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
-- `-b|--baseline <path>`: path to a JSON baseline snapshot (from `--generate-baseline` or a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
-  Without this option the newest file in `.cca/baseline` is used, if that directory exists.
-  See [Baseline.md](Baseline.md).
-- `-g|--generate-baseline`: write the analysis as a new baseline to `.cca/baseline`.
-- `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).
-  Methods match by name and by a first coverage line inside the method.
-  Methods without branches show no branch coverage, and their churn uses the line coverage.
-  A coverage file that loads but matches no method produces a warning, and so does one that matches only some of the analysed classes.
-- `--sort-by <field>`: sort the rows of the report by a field instead of by total score.
-  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, `understandability`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
-  Field names are case-insensitive; the score column names of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
-  Numbers compare numerically, text ignores the letter case, and equal values keep the order of class, method, file and line.
-  With `groupByClass` the classes keep their order and the rows inside each class table are sorted.
-  An unknown field or order fails with the list of valid values.
-- `--sort-order <asc|desc>`: direction of `--sort-by` (default `asc`, case-insensitive).
-- `--debug`: after the run, print an execution summary to stderr with the total time, the time of each phase and statistics (files found, analysed and failed, methods analysed).
-  Phases that run side by side, such as cognitive and coupling analysis, can overlap, so the phase times need not add up to the total.
-- `--version`: print the version without the `+sha` suffix and exit.
-- `--coverage-clover <path>`: optional Clover coverage file.
-  It cannot be combined with `--coverage-cobertura`.
-  See [Coverage.md](Coverage.md) for the formats, the matching and the columns the HTML and Markdown reports gain.
-- `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
-- `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
-- `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
-- `--show-understandability`: force `showUnderstandability` on for this run (overrides config).
-- `--cache` / `--no-cache`: turn the analysis cache on or off for this run (overrides `cache.enabled`).
-  The two options cannot be combined.
-
-An unknown option or a surplus argument is ignored with a warning that lists it; the exit code is not affected.
-
-CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
-
-### Creating a config file
+## 6. Creating a config file
 
 `init` writes a config file that contains every setting, with the built-in defaults.
 
-```powershell
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- init
+```bash
+CognitiveCodeAnalysis init
 ```
 
 In an interactive console, `init` asks for these settings.
@@ -223,32 +175,7 @@ The answers are written into the built-in defaults, so the file keeps the keys a
 The file is created in one step, so a failed write does not leave a partial file behind.
 `init` does not change `--generate-config`, which still writes the shipped file unchanged.
 
-### Examples
-
-```powershell
-# Analyze current folder with console output
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp --
-
-# Analyze a specific folder
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src
-
-# Generate HTML report
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Html -o .\report.html
-
-# Custom config and enable Halstead + cyclomatic columns for this run
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -c .\my-config.json --show-halstead --show-cyclomatic
-
-# Cobertura coverage (optional)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src --coverage-cobertura .\coverage.cobertura.xml
-
-# Save a JSON baseline snapshot
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -r Json -o .\baseline.json
-
-# Compare against baseline (HTML shows colored deltas)
-dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- .\src -b .\baseline.json -r Html -o .\report.html
-```
-
-## 7) Analysed methods
+## 7. Analysed methods
 
 The methods and constructors of classes, structs, records, record structs and interfaces are analysed.
 Interface members count only when they have a body, that is default interface methods and static interface methods with a body.
@@ -291,7 +218,7 @@ A comment inside a body does not ignore the method.
 A comment after the end of a declaration belongs to that declaration, unless another declaration starts after it on the same line: in `void A() { } /* @cca-ignore */ void B() { }` only `B` is ignored.
 The tag is case-sensitive.
 
-## 8) Analysis cache
+## 8. Analysis cache
 
 The cache stores the metrics of each file, so a repeated run on an unchanged tree does not analyse the files again.
 This helps most in CI, where one job writes several report types from the same sources.

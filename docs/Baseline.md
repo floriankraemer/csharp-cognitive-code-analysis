@@ -8,8 +8,8 @@ The baseline is a snapshot of the metrics, not a list of accepted violations.
 
 Add `--generate-baseline` (`-g`) to an `analyse` run:
 
-```powershell
-CognitiveCodeAnalysis .\src -g
+```bash
+CognitiveCodeAnalysis ./src -g
 ```
 
 The run prints the analysis as usual and then the path of the new file, such as `Baseline file generated: .cca/baseline/baseline-2026-11-12_21-35-02.json`.
@@ -37,15 +37,14 @@ Only regular files named `baseline-<timestamp>[-<n>].json` with a valid date are
 
 To compare with another file, pass it with `--baseline` (`-b`):
 
-```powershell
-CognitiveCodeAnalysis .\src -b .\.cca\baseline\baseline-2026-11-12_21-35-02.json
+```bash
+CognitiveCodeAnalysis ./src -b ./.cca/baseline/baseline-2026-11-12_21-35-02.json
 ```
 
 A file given with `-b` wins over the auto-detected one.
 When `-g` is given and the auto-detected baseline cannot be read, `analyse` warns, ignores it and writes the new baseline, so a broken file can be replaced.
-A file given with `-b` that cannot be read always fails the run.
+A file given with `-b` must exist and be a valid baseline, otherwise the run fails.
 If `.cca/baseline` cannot be listed, the run warns and goes on without a baseline.
-It must exist, and it must be a valid baseline.
 The JSON report (`-r Json`) writes the same format, so a file from an earlier version of this tool works as a baseline as well.
 
 ## How methods are matched
@@ -70,7 +69,8 @@ Only a class that exists on one side alone, under a name with exactly one insert
 ## Deltas
 
 Each weight that differs from the baseline gets a delta, and so does the Cognitive Complexity score.
-The reports show them as described in [Configuration](Configuration.md).
+The HTML report shows a red ▲ or a green ▼ with the delta after the value, and the console and Markdown reports show the same arrows.
+The JSON report carries the deltas as data.
 
 ## File format
 
