@@ -22,7 +22,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("--generate-config [PATH]")]
     public required FlagValue<string?> GenerateConfig { get; init; }
 
-    [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+    [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Checkstyle, JUnit, Csv. Defaults to console.")]
     [CommandOption("-f|-r|--report-type|--report-format")]
     [DefaultValue("ConsoleText")]
     public string? ReportType { get; init; }

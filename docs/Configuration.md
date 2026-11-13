@@ -128,7 +128,9 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 ### CLI options
 
 - `-c|--config <path>`: load `ConfigurationLoader.Load(path)` from that JSON file (same `cognitive` schema as the default file).
-- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`. Matched case-insensitively.
+- `-r|--report-type <type>`: `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, `GitlabCodeQuality`, `Checkstyle`, or `JUnit`.
+  Matched case-insensitively.
+  See [CiReports.md](CiReports.md) for the CI formats.
 - `-o|--output-file <path>`: output path (default: `cognitive-analysis-report`).
 - `-b|--baseline <path>`: path to a JSON baseline snapshot (from a prior `-r Json` run). When set, all reports include deltas versus that baseline. HTML report shows red ▲ / green ▼ suffixes after values.
 - `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).

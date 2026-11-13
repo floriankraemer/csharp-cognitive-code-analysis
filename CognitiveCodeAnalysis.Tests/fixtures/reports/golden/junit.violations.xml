@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites name="Cognitive Complexity" tests="4" failures="3" errors="0">
+  <testsuite name="Cognitive Complexity" tests="4" failures="3" errors="0">
+    <testcase classname="Ci" name="Warn" time="0">
+      <failure message="Method Warn has cognitive complexity 6.0 (threshold: 5.0)" type="CognitiveComplexity" />
+    </testcase>
+    <testcase classname="Ci" name="Fail" time="0">
+      <failure message="Method Fail has cognitive complexity 10.0 (threshold: 5.0)" type="CognitiveComplexity" />
+    </testcase>
+    <testcase classname="Ci" name="Edge" time="0" />
+    <testcase classname="Ci" name="Unlined" time="0">
+      <failure message="Method Unlined has cognitive complexity 7.4 (threshold: 5.0)" type="CognitiveComplexity" />
+    </testcase>
+  </testsuite>
+</testsuites>

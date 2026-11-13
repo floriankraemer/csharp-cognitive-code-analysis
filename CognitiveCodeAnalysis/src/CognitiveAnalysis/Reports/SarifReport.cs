@@ -63,14 +63,11 @@ public sealed class SarifReport : IReport
                     {
                         PhysicalLocation = new CognitiveSarifPhysicalLocation
                         {
-                            ArtifactLocation = new CognitiveSarifArtifactLocation
-                            {
-                                Uri = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
-                            },
+                            ArtifactLocation = ArtifactLocation(CognitiveCiLocation.DisplayPath(m.FilePath)),
                             Region = new CognitiveSarifRegion
                             {
-                                StartLine = m.methodLineNumber,
-                                EndLine = m.methodLineNumber,
+                                StartLine = CognitiveCiLocation.Line(m),
+                                EndLine = CognitiveCiLocation.Line(m),
                             },
                         },
                     },
@@ -100,6 +97,13 @@ public sealed class SarifReport : IReport
                     ],
                 },
             },
+            OriginalUriBaseIds = new Dictionary<string, CognitiveSarifUriBase>
+            {
+                [CognitiveCiLocation.SourceRootId] = new CognitiveSarifUriBase
+                {
+                    Uri = CognitiveCiLocation.WorkingDirectoryUri(Directory.GetCurrentDirectory()),
+                },
+            },
             Results = results,
         };
 
@@ -114,6 +118,19 @@ public sealed class SarifReport : IReport
         CognitiveReportFileWriter.Write(outputFile, json);
         ReportProgress.ReportComplete(progress, Name, totalItems);
     }
+
+    /// <summary>
+    /// A relative path is a URI reference against the working directory, which is the source root of the run. An
+    /// absolute path is a file URI of its own, since no base applies to it.
+    /// </summary>
+    private static CognitiveSarifArtifactLocation ArtifactLocation(string displayPath) =>
+        CognitiveCiLocation.IsAbsolute(displayPath)
+            ? new CognitiveSarifArtifactLocation { Uri = CognitiveCiLocation.FileUri(displayPath) }
+            : new CognitiveSarifArtifactLocation
+            {
+                Uri = CognitiveCiLocation.EncodeUriPath(displayPath),
+                UriBaseId = CognitiveCiLocation.SourceRootId,
+            };
 }
 
 internal sealed class CognitiveSarifLog
@@ -130,7 +147,14 @@ internal sealed class CognitiveSarifRun
 {
     public CognitiveSarifTool Tool { get; init; } = new();
 
+    public Dictionary<string, CognitiveSarifUriBase> OriginalUriBaseIds { get; init; } = [];
+
     public List<CognitiveSarifResult> Results { get; init; } = [];
+}
+
+internal sealed class CognitiveSarifUriBase
+{
+    public string Uri { get; init; } = "";
 }
 
 internal sealed class CognitiveSarifTool
@@ -189,6 +213,8 @@ internal sealed class CognitiveSarifPhysicalLocation
 internal sealed class CognitiveSarifArtifactLocation
 {
     public string Uri { get; init; } = "";
+
+    public string? UriBaseId { get; init; }
 }
 
 internal sealed class CognitiveSarifRegion

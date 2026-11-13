@@ -27,7 +27,9 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 **Options:**
 
 - `-c|--config <path>` — JSON config file (same `cognitive` section as the default settings file). Passed to `ConfigurationLoader.Load`.
-- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`. The type is matched case-insensitively, so `-r html` works.
+- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, `GitlabCodeQuality`, `Checkstyle`, or `JUnit`.
+  The type is matched case-insensitively, so `-r html` works.
+  The CI formats and their paths are described in [docs/CiReports.md](docs/CiReports.md).
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
 - `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values, console and Markdown show the same arrows as plain text or colored text).
 - `--coverage-cobertura <path>` — Optional coverage file (line/branch coverage and risk churn when matched).
