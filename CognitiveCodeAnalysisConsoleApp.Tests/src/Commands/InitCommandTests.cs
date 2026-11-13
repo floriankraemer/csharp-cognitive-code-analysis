@@ -3,6 +3,7 @@
 /// </copyright>
 
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 using CognitiveCodeAnalysisConsoleApp.Tests.Reports;
 
 using Spectre.Console;
@@ -53,19 +54,24 @@ public class InitCommandTests
         return console;
     }
 
-    private static int RunInit(TestConsole console, params string[] args)
+    private static int RunInit(TestConsole console, params string[] args) =>
+        RunInitIn(console, new FixedConsoleEnvironment(OutputIsInteractive: true, InputIsRedirected: false), args);
+
+    private static int RunInitIn(TestConsole console, IConsoleEnvironment environment, params string[] args)
     {
         IAnsiConsole previous = AnsiConsole.Console;
         AnsiConsole.Console = console;
         try
         {
-            return Program.Main(["init", .. args]);
+            return Program.Run(["init", .. args], environment);
         }
         finally
         {
             AnsiConsole.Console = previous;
         }
     }
+
+    private sealed record FixedConsoleEnvironment(bool OutputIsInteractive, bool InputIsRedirected) : IConsoleEnvironment;
 
     private static ConfigInitAnswers Load(string path) =>
         ConfigInitAnswers.FromConfiguration(ConfigurationLoader.Load(path));
@@ -94,6 +100,62 @@ public class InitCommandTests
         Assert.That(capture.StdOut, Does.Not.Contain("Score threshold"));
         Assert.That(capture.StdOut, Does.Contain($"Created config at: {Path.GetFullPath(_path)}"));
         Assert.That(File.ReadAllText(_path), Is.EqualTo(ConfigInitializer.Render(Defaults)));
+    }
+
+    [Test]
+    public void RedirectedStandardInput_WritesTheDefaultsWithoutAskingAnyQuestion()
+    {
+        var console = Terminal("1.5", "n", "n", "n", "n", "n", "n");
+
+        int exitCode = RunInitIn(
+            console,
+            new FixedConsoleEnvironment(OutputIsInteractive: true, InputIsRedirected: true),
+            "-p",
+            _path);
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(console.Output, Does.Not.Contain("Score threshold"));
+        Assert.That(File.ReadAllText(_path), Is.EqualTo(ConfigInitializer.Render(Defaults)));
+    }
+
+    [Test]
+    public void Silent_OutputIsByteIdenticalToGenerateConfig()
+    {
+        string generatedDirectory = Path.Combine(_directory, "generated");
+        using (new ConsoleOutputCapture(interactive: false))
+        {
+            Assert.That(Program.Main(["--generate-config", generatedDirectory]), Is.EqualTo(0));
+        }
+
+        int exitCode = RunInit(Terminal(), "--silent", "-p", _path);
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(File.ReadAllBytes(_path), Is.EqualTo(File.ReadAllBytes(Path.Combine(generatedDirectory, ConfigurationResolver.DefaultFileName))));
+    }
+
+    [Test]
+    public void Interactive_EachQuestionIsPrecededByItsExplanation()
+    {
+        var console = Terminal("", "", "", "", "", "", "");
+
+        RunInit(console, "-p", _path);
+
+        string[] pairs =
+        [
+            "Methods with a score above this threshold are considered complex and are highlighted.",
+            "Score threshold?",
+            "Show only methods whose score exceeds the threshold, to focus on the most complex ones.",
+            "Show only methods exceeding the threshold?",
+            "Group the results into one table per class instead of a single flat table.",
+            "Group results by class?",
+        ];
+        int previous = -1;
+        foreach (string text in pairs)
+        {
+            int index = console.Output.IndexOf(text, StringComparison.Ordinal);
+            Assert.That(index, Is.GreaterThan(previous), $"'{text}' is missing or out of order");
+            previous = index;
+        }
     }
 
     [Test]

@@ -152,7 +152,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- init
 ```
 
 In an interactive console, `init` asks for these settings.
-An empty answer keeps the default shown in brackets.
+Each question has a one-line explanation above it, and an empty answer keeps the default shown in brackets.
 
 - `scoreThreshold` (default `0.5`) must be a number greater than 0.
   An invalid answer is reported, and the question is asked again.
@@ -163,7 +163,7 @@ The answers are written into the built-in defaults, so the file keeps the keys a
 - `--path`, `-p <file>` sets the file to create.
   The default is `./cognitive-metrics-settings.json`, and missing parent directories are created.
 - `--silent` skips the questions and writes the defaults.
-  Questions are also skipped when the console is not interactive, such as when the output is redirected.
+  Questions are also skipped when the output is not an interactive console or standard input is redirected.
 - `--force`, `-f` overwrites an existing file.
   Without it, `init` refuses to replace the file, reports it, and exits with a non-zero code before asking any question.
 

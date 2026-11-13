@@ -5,6 +5,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace CognitiveCodeAnalysis.Configuration;
 
@@ -17,6 +18,11 @@ public static class ConfigInitializer
     private const string RootSection = "cognitive";
     private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
     private static readonly Encoding FileEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+    // System.Text.Json on .NET 8 indents by two spaces and cannot change it. Each level is exactly two spaces and a JSON
+    // string never holds a raw line break, so doubling the leading spaces of every line gives the four-space layout of
+    // the shipped file.
+    private static readonly Regex LeadingSpaces = new("^ +", RegexOptions.Multiline | RegexOptions.Compiled);
 
     /// <summary>
     /// Renders the shipped settings file with the answers applied. Keys and their order stay as shipped.
@@ -34,7 +40,8 @@ public static class ConfigInitializer
         cognitive["showDetailedCognitiveMetrics"] = answers.ShowDetailedCognitiveMetrics;
         cognitive["groupByClass"] = answers.GroupByClass;
 
-        return root.ToJsonString(IndentedOptions) + "\n";
+        string indented = root.ToJsonString(IndentedOptions);
+        return LeadingSpaces.Replace(indented, match => match.Value + match.Value) + "\n";
     }
 
     /// <summary>

@@ -5,7 +5,6 @@
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 
-using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysisConsoleApp.Commands;
@@ -14,7 +13,8 @@ namespace CognitiveCodeAnalysisConsoleApp.Commands;
 /// Creates a configuration file with the built-in defaults. In an interactive console the main settings are asked for
 /// first; <c>--silent</c> or a non-interactive console writes the defaults.
 /// </summary>
-internal sealed class InitCommand(IConsoleNotifier consoleNotifier) : Command<InitCommandSettings>
+internal sealed class InitCommand(IConsoleNotifier consoleNotifier, IConsoleEnvironment consoleEnvironment)
+    : Command<InitCommandSettings>
 {
     private const int Success = 0;
     private const int Error = -1;
@@ -43,6 +43,6 @@ internal sealed class InitCommand(IConsoleNotifier consoleNotifier) : Command<In
         }
     }
 
-    private static bool ShouldAsk(InitCommandSettings settings) =>
-        !settings.Silent && AnsiConsole.Profile.Capabilities.Interactive;
+    private bool ShouldAsk(InitCommandSettings settings) =>
+        !settings.Silent && consoleEnvironment.OutputIsInteractive && !consoleEnvironment.InputIsRedirected;
 }

@@ -65,6 +65,12 @@ public class ConfigInitializerTests
     }
 
     [Test]
+    public void Render_WithDefaultAnswers_IsByteIdenticalToTheShippedFile()
+    {
+        Assert.That(ConfigInitializer.Render(Defaults), Is.EqualTo(CognitiveConfigurationDefaults.SettingsJson));
+    }
+
+    [Test]
     public void Render_WithDefaultAnswers_KeepsEverySettingOfTheShippedFile()
     {
         JsonNode shipped = JsonNode.Parse(CognitiveConfigurationDefaults.SettingsJson)!;

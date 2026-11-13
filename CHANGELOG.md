@@ -58,7 +58,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 - The `init` command creates a `cognitive-metrics-settings.json` with the built-in defaults.
   In an interactive console it asks for `scoreThreshold` and for the `show*` settings and `groupByClass`, and an empty answer keeps the default.
-  `--silent`, or a console that is not interactive, writes the defaults without asking.
+  `--silent`, a console that is not interactive, or redirected standard input writes the defaults without asking.
   `-p|--path` sets the file to create (default `./cognitive-metrics-settings.json`), and missing parent directories are created.
   An existing file is not overwritten unless `-f|--force` is given, and the check happens before any question is asked.
   A file is written completely or not at all, and `--generate-config` is unchanged.
