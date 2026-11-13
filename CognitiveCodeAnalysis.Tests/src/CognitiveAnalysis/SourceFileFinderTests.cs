@@ -139,6 +139,56 @@ public class SourceFileFinderDiscoveryTests
         Assert.That(Find(_temp.tmpDirectory), Is.EqualTo(new[] { file }));
     }
 
+    private bool TryLink(string relativeLink, string target)
+    {
+        try
+        {
+            Directory.CreateSymbolicLink(Dir(relativeLink), target);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    [Test]
+    public void ASymlinkToAnAncestor_IsNotFollowedInALoop()
+    {
+        string file = Create("src/A.cs");
+        if (!TryLink("src/loop", ".."))
+        {
+            Assert.Ignore("Symbolic links are not supported here.");
+        }
+
+        Assert.That(Find(_temp.tmpDirectory), Is.EqualTo(new[] { file }));
+    }
+
+    [Test]
+    public void ASymlinkToADirectoryOutsideTheSearchPath_IsFollowedOnce()
+    {
+        var outside = new TempFiles();
+        try
+        {
+            string external = Path.Combine(outside.tmpDirectory, "E.cs");
+            File.WriteAllText(external, "class E { }");
+            string file = Create("src/A.cs");
+            if (!TryLink("src/shared", outside.tmpDirectory) || !TryLink("src/again", outside.tmpDirectory))
+            {
+                Assert.Ignore("Symbolic links are not supported here.");
+            }
+
+            List<string> found = Find(_temp.tmpDirectory);
+
+            Assert.That(found, Has.Count.EqualTo(2));
+            Assert.That(found, Does.Contain(file));
+        }
+        finally
+        {
+            outside.CleanUp();
+        }
+    }
+
     [Test]
     public void AFileThatIsNotCSharp_FindsNothing()
     {

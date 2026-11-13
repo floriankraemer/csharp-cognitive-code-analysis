@@ -154,14 +154,41 @@ public class CognitiveCodeAnalyser
     /// <summary>
     /// <![CDATA[
     /// A declaration is ignored when the tag is in a comment between the previous declaration and its name
-    /// (XML doc comments, comments above or between attributes and modifiers) or in a comment trailing its last line.
-    /// Comments inside the body do not count.
+    /// (XML doc comments, comments after an opening brace, above or between attributes and modifiers),
+    /// or in a comment at the end of its last line. Comments inside the body do not count.
+    /// A comment after the end of a declaration belongs to the declaration that starts after it on the same line, if any.
     /// ]]>
     /// </summary>
-    private static bool IsIgnored(MemberDeclarationSyntax declaration, SyntaxToken identifier) =>
-        declaration.DescendantTrivia(TextSpan.FromBounds(declaration.FullSpan.Start, identifier.SpanStart))
-            .Concat(declaration.GetLastToken().TrailingTrivia)
-            .Any(trivia => IsComment(trivia) && trivia.ToFullString().Contains(IgnoreTag, StringComparison.Ordinal));
+    private static bool IsIgnored(MemberDeclarationSyntax declaration, SyntaxToken identifier)
+    {
+        SyntaxToken first = declaration.GetFirstToken();
+        SyntaxToken previous = first.GetPreviousToken();
+        SyntaxToken last = declaration.GetLastToken();
+
+        IEnumerable<SyntaxTrivia> trivia = declaration.DescendantTrivia(TextSpan.FromBounds(declaration.FullSpan.Start, identifier.SpanStart));
+        if (!previous.IsKind(SyntaxKind.None) && (!EndsANode(previous) || OnSameLine(previous, first)))
+        {
+            trivia = trivia.Concat(previous.TrailingTrivia);
+        }
+
+        if (!StartsADeclarationOnTheSameLine(last.GetNextToken(), last))
+        {
+            trivia = trivia.Concat(last.TrailingTrivia);
+        }
+
+        return trivia.Any(t => IsComment(t) && t.ToFullString().Contains(IgnoreTag, StringComparison.Ordinal));
+    }
+
+    private static bool EndsANode(SyntaxToken token) =>
+        token.Parent!.AncestorsAndSelf().Any(node => node.GetLastToken() == token);
+
+    private static bool StartsADeclarationOnTheSameLine(SyntaxToken next, SyntaxToken last) =>
+        !next.IsKind(SyntaxKind.None)
+        && OnSameLine(last, next)
+        && next.Parent!.AncestorsAndSelf().OfType<MemberDeclarationSyntax>().Any(member => member.GetFirstToken() == next);
+
+    private static bool OnSameLine(SyntaxToken earlier, SyntaxToken later) =>
+        earlier.GetLocation().GetLineSpan().EndLinePosition.Line == later.GetLocation().GetLineSpan().StartLinePosition.Line;
 
     private static bool IsComment(SyntaxTrivia trivia) =>
         trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)

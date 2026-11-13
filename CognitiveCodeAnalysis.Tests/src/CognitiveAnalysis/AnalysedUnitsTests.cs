@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -271,6 +271,55 @@ public class AnalysedUnitsTests
             "N.PartiallyIgnored::KeptWithUpperCaseTag",
             "N.PartiallyIgnored.KeptNested::Kept",
         }));
+    }
+
+    [Test]
+    public void CcaIgnore_BetweenTwoDeclarationsOnOneLine_BelongsToTheFollowingDeclaration()
+    {
+        var all = Analyse("""
+            public class C { public void A() { } /* @cca-ignore */ public void B() { } }
+            public class D { } /* @cca-ignore */ public class E { public void M() { } }
+            public class O { public class P { public void M() { } } /* @cca-ignore */ public class Q { public void M() { } } }
+            public class F { public void Hidden() { } } // @cca-ignore
+            public class G { public void Hidden() { } /* @cca-ignore */ }
+            """);
+
+        Assert.That(Units(all), Is.EquivalentTo(new[] { "C::A", "O.P::M" }));
+    }
+
+    [Test]
+    public void CcaIgnore_AfterAnOpeningBrace_BelongsToTheFirstMember()
+    {
+        var all = Analyse("""
+            public interface J { /* @cca-ignore */ void M1() { } void M2() { } }
+            public class K
+            { // @cca-ignore
+                public void M1() { }
+                public void M2() { }
+            }
+            public class L
+            {
+                public void M1() { } // @cca-ignore
+                public void M2() { }
+            }
+            """);
+
+        Assert.That(Units(all), Is.EquivalentTo(new[] { "J::M2", "K::M2", "L::M2" }));
+    }
+
+    [Test]
+    public void CcaIgnore_AtTheEndOfAFieldLine_BelongsToTheField()
+    {
+        var all = Analyse("""
+            public class C
+            {
+                private int _a; // @cca-ignore
+                public void M() { }
+                private int _b; /* @cca-ignore */ public void N() { }
+            }
+            """);
+
+        Assert.That(Units(all), Is.EqualTo(new[] { "C::M" }));
     }
 
     [Test]

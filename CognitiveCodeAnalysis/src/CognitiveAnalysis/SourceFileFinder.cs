@@ -2,7 +2,6 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
-using System.IO.Enumeration;
 using System.Text.RegularExpressions;
 
 using CognitiveCodeAnalysis.Configuration;
@@ -88,14 +87,73 @@ public class SourceFileFinder
             return [];
         }
 
-        return new FileSystemEnumerable<string>(
-            path,
-            (ref FileSystemEntry entry) => entry.ToFullPath(),
-            new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = 0 })
+        return FilesBelow(path);
+    }
+
+    /// <summary>
+    /// <![CDATA[
+    /// Searches a directory tree and follows symbolic links, but enters every real directory only once,
+    /// so a link to an ancestor neither loops nor reports a file twice.
+    /// ]]>
+    /// </summary>
+    private static IEnumerable<string> FilesBelow(string root)
+    {
+        var options = new EnumerationOptions { AttributesToSkip = 0, IgnoreInaccessible = false };
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Stack<(string Path, string? RealPath)>();
+        pending.Push((root, RealPath(root)));
+
+        while (pending.TryPop(out (string Path, string? RealPath) directory))
         {
-            ShouldIncludePredicate = (ref FileSystemEntry entry) => !entry.IsDirectory && IsSourceFile(entry.FileName),
-            ShouldRecursePredicate = (ref FileSystemEntry entry) => !IsSkippedDirectory(entry.FileName),
-        };
+            if (directory.RealPath is null || !visited.Add(directory.RealPath))
+            {
+                continue;
+            }
+
+            foreach (string file in Directory.EnumerateFiles(directory.Path, "*", options).Where(file => IsSourceFile(file)))
+            {
+                yield return file;
+            }
+
+            foreach (DirectoryInfo child in new DirectoryInfo(directory.Path).EnumerateDirectories("*", options))
+            {
+                if (!IsSkippedDirectory(child.Name))
+                {
+                    string? realPath = child.LinkTarget is null ? Path.Combine(directory.RealPath, child.Name) : RealPath(child.FullName);
+                    pending.Push((child.FullName, realPath));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// <![CDATA[The path with every symbolic link resolved, or null when a link cannot be resolved, for example a link cycle.]]>
+    /// </summary>
+    private static string? RealPath(string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string? parent = Path.GetDirectoryName(fullPath);
+        if (parent is null)
+        {
+            return fullPath;
+        }
+
+        string? realParent = RealPath(parent);
+        if (realParent is null)
+        {
+            return null;
+        }
+
+        string candidate = Path.Combine(realParent, Path.GetFileName(fullPath));
+        try
+        {
+            FileSystemInfo? target = new DirectoryInfo(candidate).ResolveLinkTarget(returnFinalTarget: true);
+            return target is null ? candidate : RealPath(target.FullName);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
     }
 
     private static bool IsSourceFile(ReadOnlySpan<char> fileName) =>

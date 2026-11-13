@@ -98,6 +98,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`) are no longer searched for source files.
   Before, generated files under `obj` (such as `AssemblyInfo.cs` and source generator output) were analysed and reported.
   A path passed on the command line is still searched even when it is such a directory.
+- A symbolic link to a parent directory no longer makes the file search loop until the path gets too long, reporting the same files many times.
+  Every real directory is now searched once.
 - The console report no longer prints a false `ConsoleText report generated: <path>` line.
 - Console output no longer depends on the culture of the machine (decimal separator of the coverage, churn, summary and threshold numbers).
 - The report type is matched case-insensitively (`-r html`).

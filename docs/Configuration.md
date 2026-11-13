@@ -144,6 +144,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
   A path that does not exist contributes no files; when no file is found at all, the tool prints `No C# files found in <paths>.` and exits with a non-zero status.
   Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`, ...) are not searched, because they hold build output and tool state.
   A path you pass yourself is always searched, even when it is such a directory.
+  Symbolic links to directories are followed, but every real directory is searched only once, so a link to a parent directory neither loops nor reports a file twice.
   Use `excludeFilePatterns` to leave out anything else.
 
 ### CLI options
@@ -210,7 +211,7 @@ Enums and delegates have no methods to analyse.
 To leave out a type or a member, put `@cca-ignore` into a comment that belongs to its declaration:
 
 - its XML doc comment (`/// <remarks>@cca-ignore</remarks>`),
-- any comment between the previous declaration and its name, including comments between attributes and modifiers,
+- any comment between the previous declaration and its name, including a comment after the opening `{` of its type and comments between attributes and modifiers,
 - or a comment at the end of its last line.
 
 ```csharp
@@ -228,5 +229,6 @@ public class Service
 ```
 
 Ignoring a type also ignores the types nested in it.
-A comment inside a body does not ignore the method, and a comment at the end of the previous member's last line belongs to that member.
+A comment inside a body does not ignore the method.
+A comment after the end of a declaration belongs to that declaration, unless another declaration starts after it on the same line: in `void A() { } /* @cca-ignore */ void B() { }` only `B` is ignored.
 The tag is case-sensitive.
