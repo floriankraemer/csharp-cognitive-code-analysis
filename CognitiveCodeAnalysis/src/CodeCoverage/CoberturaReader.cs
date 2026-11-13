@@ -33,6 +33,7 @@ public class CoberturaReader : ICoverageReader
         string? baseSourcePath = sourcePaths.FirstOrDefault();
 
         List<Coverage> coverageList = [];
+        var generatedTypes = new GeneratedTypeMerger();
 
         // Process all packages
         IEnumerable<XElement> packages = coverageElement.Elements("packages")?.Elements("package") ?? [];
@@ -46,23 +47,33 @@ public class CoberturaReader : ICoverageReader
             {
                 string className = classElement.Attribute("name")?.Value ?? string.Empty;
                 string fileName = classElement.Attribute("filename")?.Value ?? string.Empty;
+                string absoluteFilePath = ConstructAbsolutePath(fileName, baseSourcePath);
+                bool isGenerated = GeneratedTypeMerger.IsGenerated(className, out string outerClassName, out string? stateMachineMethod);
+
                 // Coverlet names the package after the assembly and the class after its full name.
                 string fullyQualifiedClassName = string.IsNullOrEmpty(packageName)
-                    || className.StartsWith(packageName + ".", StringComparison.Ordinal)
-                    ? className
-                    : $"{packageName}.{className}";
+                    || outerClassName.StartsWith(packageName + ".", StringComparison.Ordinal)
+                    ? outerClassName
+                    : $"{packageName}.{outerClassName}";
 
-                string absoluteFilePath = ConstructAbsolutePath(fileName, baseSourcePath);
+                if (isGenerated)
+                {
+                    generatedTypes.AddGeneratedClass(fullyQualifiedClassName, stateMachineMethod, classElement, absoluteFilePath);
+                    continue;
+                }
 
                 AddClassLevelCoverage(classElement, coverageList, fullyQualifiedClassName, absoluteFilePath);
 
                 IEnumerable<XElement> methods = classElement.Elements("methods")?.Elements("method") ?? [];
                 foreach (XElement methodElement in methods)
                 {
-                    AddMethodLevelCoverage(methodElement, coverageList, fullyQualifiedClassName, absoluteFilePath);
+                    Coverage method = AddMethodLevelCoverage(methodElement, coverageList, fullyQualifiedClassName, absoluteFilePath);
+                    generatedTypes.AddMethod(fullyQualifiedClassName, method, methodElement);
                 }
             }
         }
+
+        generatedTypes.MergeInto(coverageList);
 
         return coverageList;
     }
@@ -81,7 +92,7 @@ public class CoberturaReader : ICoverageReader
         coverageList.Add(coverage);
     }
 
-    private static void AddMethodLevelCoverage(
+    private static Coverage AddMethodLevelCoverage(
         XElement methodElement,
         List<Coverage> coverageList,
         string fullyQualifiedClassName,
@@ -96,6 +107,8 @@ public class CoberturaReader : ICoverageReader
         };
         ReadFigures(methodElement, coverage);
         coverageList.Add(coverage);
+
+        return coverage;
     }
 
     private static void ReadFigures(XElement element, Coverage coverage)

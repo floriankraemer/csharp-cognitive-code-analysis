@@ -22,7 +22,10 @@ public static class ConfigurationLoader
 
         CognitiveConfiguration cognitiveConfig = CognitiveConfigurationDefaults.Create();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
-        cognitiveConfig.Warnings = MetricKeyValidator.Normalize(cognitiveConfig);
+        var configuredKeys = configuration.GetSection("cognitive:metrics").GetChildren()
+            .Select(child => child.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        cognitiveConfig.Warnings = MetricKeyValidator.Normalize(cognitiveConfig, configuredKeys);
 
         return cognitiveConfig;
     }

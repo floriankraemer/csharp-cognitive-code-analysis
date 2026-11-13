@@ -97,6 +97,48 @@ public class MetricKeyConfigurationTests
     }
 
     [Test]
+    public void Load_AliasAndCurrentKeyBothConfigured_TheCurrentKeyWinsAndTheAliasIsWarnedAbout()
+    {
+        var configuration = LoadMetrics("""
+            "variableCount": { "threshold": 9, "scale": 9.0, "enabled": true },
+            "localVariableCount": { "threshold": 2, "scale": 3.0, "enabled": false }
+            """);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(configuration.Metrics.ContainsKey("variableCount"), Is.False);
+            Assert.That(configuration.Metrics["localVariableCount"].Threshold, Is.EqualTo(2));
+            Assert.That(configuration.Metrics["localVariableCount"].Enabled, Is.False);
+            Assert.That(configuration.Warnings, Is.EqualTo(new[]
+            {
+                "Deprecated metric 'variableCount' ignored because 'localVariableCount' is also configured.",
+            }));
+        }
+    }
+
+    [Test]
+    public void Load_BothAliasesAndBothCurrentKeys_CurrentKeysWin()
+    {
+        var configuration = LoadMetrics("""
+            "variableCount": { "threshold": 9, "enabled": true }, "localVariableCount": { "threshold": 2, "enabled": true },
+            "propertyCallCount": { "threshold": 8, "enabled": true }, "propertyAccessCount": { "threshold": 3, "enabled": true }
+            """);
+
+        Assert.That(configuration.Metrics["localVariableCount"].Threshold, Is.EqualTo(2));
+        Assert.That(configuration.Metrics["propertyAccessCount"].Threshold, Is.EqualTo(3));
+        Assert.That(configuration.Warnings, Has.Count.EqualTo(2).And.All.StartWith("Deprecated metric").And.All.Contain("is also configured"));
+    }
+
+    [Test]
+    public void Load_AliasWithoutTheCurrentKeyInTheFile_StillWinsOverTheBuiltInDefault()
+    {
+        var configuration = LoadMetrics(""" "propertyCallCount": { "threshold": 8, "scale": 2.0, "enabled": true } """);
+
+        Assert.That(configuration.Metrics["propertyAccessCount"].Threshold, Is.EqualTo(8));
+        Assert.That(configuration.Metrics["propertyAccessCount"].Enabled, Is.True);
+    }
+
+    [Test]
     public void Load_DeprecatedAlias_ScoresLikeTheCurrentKey()
     {
         var configuration = LoadMetrics(""" "variableCount": { "threshold": 1, "scale": 1.0, "enabled": true } """);

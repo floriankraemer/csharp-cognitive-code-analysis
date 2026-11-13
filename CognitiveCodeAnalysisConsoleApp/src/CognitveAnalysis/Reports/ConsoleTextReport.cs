@@ -17,12 +17,41 @@ public class ConsoleTextReport() : IReport
 {
     public string Name => "ConsoleText";
 
+    /// <summary>
+    /// Width used when the output is not an interactive terminal (a pipe, a file, a CI log). Spectre would assume 80
+    /// columns there and squeeze the table into unreadable fragments.
+    /// </summary>
+    internal const int RedirectedWidth = 400;
+
     public void RenderMetrics(
         string outputFile,
         CognitiveMetricsCollection metricsCollection,
         CognitiveConfiguration configuration,
         CognitiveBaselineComparison? baselineComparison = null,
         IProgress<AnalysisProgress>? progress = null
+    )
+    {
+        int originalWidth = AnsiConsole.Profile.Width;
+        if (!AnsiConsole.Profile.Capabilities.Interactive)
+        {
+            AnsiConsole.Profile.Width = Math.Max(originalWidth, RedirectedWidth);
+        }
+
+        try
+        {
+            Render(metricsCollection, configuration, baselineComparison, progress);
+        }
+        finally
+        {
+            AnsiConsole.Profile.Width = originalWidth;
+        }
+    }
+
+    private void Render(
+        CognitiveMetricsCollection metricsCollection,
+        CognitiveConfiguration configuration,
+        CognitiveBaselineComparison? baselineComparison,
+        IProgress<AnalysisProgress>? progress
     )
     {
         CognitiveMetricsCollection filteredCollection = ReportMetricsFilter.FilterForReport(metricsCollection, configuration);
@@ -398,8 +427,9 @@ public class ConsoleTextReport() : IReport
 
     private static Table AddTableHeaders(Table table, bool hasCoverageData, CognitiveConfiguration configuration)
     {
-        table.AddColumn("Method");
-        table.AddColumn("Score");
+        // The method name and the score are what a reader needs most: never break them across lines.
+        table.AddColumn(new TableColumn("Method").NoWrap());
+        table.AddColumn(new TableColumn("Score").NoWrap());
         if (configuration.ShowDetailedCognitiveMetrics)
         {
             foreach (string header in DetailColumnHeaders)

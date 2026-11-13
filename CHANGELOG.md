@@ -38,6 +38,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 
   `catch` and `finally` blocks share the level of their `try`, so `try { } catch { }` is still one level.
   `countElseAsNesting` and `countElseIfAsNesting` keep their meaning and now also apply to loops and other statements inside an `else`.
+- Deconstructing `foreach` loops (`foreach (var (key, value) in map)`) count as loops and as nesting, and their variables as locals, like other `foreach` loops.
 - `foreach` iteration variables and `catch` variables are counted as local variables (`localVariableCount`).
   This only changes scores when `localVariableCount` is enabled.
 - The built-in defaults, the file written by `--generate-config` and the shipped `cognitive-metrics-settings.json` are now one and the same.
@@ -64,9 +65,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 - The Markdown report shows baseline deltas (▲ and ▼) like the HTML report, and its Method column is left-aligned.
 - `showDetailedCognitiveMetrics` is bound and honoured: with `false`, the console, HTML and Markdown reports hide the detail columns.
 - The Cobertura reader reads reports that carry rates only (`line-rate`, `branch-rate`), which is what coverlet writes, next to reports with counts.
+- Coverlet's compiler-generated types are merged into their methods: async state machines (`Outer/<Method>d__N`), iterators, and the holders of lambdas, closures and local functions (`<>c__DisplayClass`).
+  A method that has such data never falls back to class-level coverage.
+- When the console report is not written to an interactive terminal (a pipe, a file, a CI log), it is rendered 400 columns wide instead of Spectre's 80-column default, so tables stay readable.
+  The Method and Score columns never wrap.
 - A warning is printed when a coverage file is read but no method matches.
 - `variableCount` and `propertyCallCount` are accepted as deprecated aliases of `localVariableCount` and `propertyAccessCount` with a warning.
   The first settings file of this project contained them.
+  A configuration that uses them now gets those thresholds applied: they never scored anything before, so scores can change.
+  When a deprecated key and its current name are both configured, the current name wins and a warning says so (`Deprecated metric 'variableCount' ignored because 'localVariableCount' is also configured.`).
 
 ### Fixed
 

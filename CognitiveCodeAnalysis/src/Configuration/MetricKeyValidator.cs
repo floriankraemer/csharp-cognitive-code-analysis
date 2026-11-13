@@ -19,16 +19,23 @@ internal static class MetricKeyValidator
     };
 
     /// <summary>
+    /// <paramref name="configuredKeys"/> are the keys the user's file names, as opposed to the defaults the file is merged into:
+    /// a deprecated key loses against its current name when both are configured.
     /// Renames deprecated keys in place and drops every other unknown key, recording a warning each. Nothing fails, so configurations that worked before keep working.
     /// </summary>
-    public static IReadOnlyList<string> Normalize(CognitiveConfiguration configuration)
+    public static IReadOnlyList<string> Normalize(CognitiveConfiguration configuration, ISet<string> configuredKeys)
     {
         var warnings = new List<string>();
 
         // Alphabetical, because the configuration providers do not keep the order of the file.
         foreach (string key in configuration.Metrics.Keys.OrderBy(key => key, StringComparer.Ordinal).ToList())
         {
-            if (DeprecatedAliases.TryGetValue(key, out string? canonical))
+            if (DeprecatedAliases.TryGetValue(key, out string? canonical) && configuredKeys.Contains(canonical))
+            {
+                configuration.Metrics.Remove(key);
+                warnings.Add($"Deprecated metric '{key}' ignored because '{canonical}' is also configured.");
+            }
+            else if (canonical != null)
             {
                 configuration.Metrics[canonical] = configuration.Metrics[key];
                 configuration.Metrics.Remove(key);

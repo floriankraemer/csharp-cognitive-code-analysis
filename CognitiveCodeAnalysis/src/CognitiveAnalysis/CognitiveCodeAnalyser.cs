@@ -183,10 +183,10 @@ public class CognitiveCodeAnalyser
                 case ForStatementSyntax or WhileStatementSyntax or DoStatementSyntax:
                     loopCount++;
                     break;
-                case ForEachStatementSyntax:
-                    // The iteration variable is a local that has no VariableDeclarator node.
+                case CommonForEachStatementSyntax forEach:
+                    // The iteration variables (one, or several when deconstructing) have no VariableDeclarator node.
                     loopCount++;
-                    localVarCount++;
+                    localVarCount += CountForEachVariables(forEach);
                     break;
                 case SwitchStatementSyntax sw:
                     switchCount++;
@@ -222,6 +222,11 @@ public class CognitiveCodeAnalyser
             returnCount, localVarCount, catchCount, conditionalCount, logicalAndOrCount
         );
     }
+
+    private static int CountForEachVariables(CommonForEachStatementSyntax forEach) =>
+        forEach is ForEachVariableStatementSyntax deconstructing
+            ? deconstructing.Variable.DescendantNodesAndSelf().OfType<SingleVariableDesignationSyntax>().Count()
+            : 1;
 
     private static CognitiveMetricsCollection ExtractMetricsFromClasses(
         CognitiveConfiguration configuration,
@@ -531,7 +536,7 @@ public class CognitiveCodeAnalyser
     private static bool IsNestingNode(SyntaxNode node)
     {
         return node is ForStatementSyntax
-            || node is ForEachStatementSyntax
+            || node is CommonForEachStatementSyntax
             || node is WhileStatementSyntax
             || node is DoStatementSyntax
             || node is SwitchStatementSyntax

@@ -78,6 +78,12 @@ public class Coverage
         : BranchRate * 100;
 
     /// <summary>
+    /// True when lines of compiler-generated types (async and iterator state machines, lambda and local function
+    /// holders) were merged into this method. Such a method never falls back to class-level coverage.
+    /// </summary>
+    public bool FromGeneratedTypes { get; set; }
+
+    /// <summary>
     /// Cyclomatic complexity of the method or class.
     /// </summary>
     public int Complexity { get; set; }

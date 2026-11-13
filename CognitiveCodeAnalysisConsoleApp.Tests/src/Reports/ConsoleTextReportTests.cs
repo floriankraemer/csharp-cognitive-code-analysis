@@ -342,6 +342,76 @@ public class ConsoleTextReportTests
         }
     }
 
+    private static string RenderAt(int width, bool interactive, CognitiveConfiguration config)
+    {
+        using var capture = new ConsoleOutputCapture(width, interactive);
+        new ConsoleTextReport().RenderMetrics(string.Empty, Collection(), config, null);
+        return capture.Text;
+    }
+
+    private static string RedirectedGoldenPath(string name)
+        => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "fixtures", name));
+
+    [TestCase(true, "console.redirected.grouped.txt")]
+    [TestCase(false, "console.redirected.ungrouped.txt")]
+    public void RedirectedOutput_IsRenderedWideAndMatchesTheGoldenFile(bool grouped, string golden)
+    {
+        // Spectre assumes 80 columns when stdout is a pipe or a file.
+        string actual = RenderAt(80, interactive: false, Config(grouped));
+
+        if (Environment.GetEnvironmentVariable("UPDATE_GOLDEN") == "1")
+        {
+            File.WriteAllText(RedirectedGoldenPath(golden), actual);
+            return;
+        }
+
+        Assert.That(actual, Is.EqualTo(File.ReadAllText(RedirectedGoldenPath(golden)).Replace("\r\n", "\n", StringComparison.Ordinal)));
+    }
+
+    [Test]
+    public void RedirectedOutput_KeepsEveryTableRowOnOneLine()
+    {
+        string text = RenderAt(80, interactive: false, Config(grouped: true));
+
+        string[] lines = text.Split('\n');
+        string header = lines.First(l => l.Contains("Method") && l.Contains("Props") && l.Contains("Churn"));
+        string alpha = lines.Single(l => l.Contains("L10 Alpha"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(header, Does.Contain("Score").And.Contain("Else").And.Contain("Try/Catch"));
+            Assert.That(alpha, Does.Contain("8.500").And.Contain("4 (1.500)").And.Contain("120.46"));
+            Assert.That(lines.Max(l => l.Length), Is.LessThanOrEqualTo(ConsoleTextReport.RedirectedWidth));
+        }
+    }
+
+    [Test]
+    public void InteractiveTerminal_KeepsItsRealWidth()
+    {
+        string text = RenderAt(80, interactive: true, Config(grouped: true));
+
+        Assert.That(text.Split('\n').Max(l => l.Length), Is.LessThanOrEqualTo(80));
+    }
+
+    [Test]
+    public void TheWidthOfTheConsole_IsRestoredAfterRendering()
+    {
+        using var capture = new ConsoleOutputCapture(width: 80, interactive: false);
+
+        new ConsoleTextReport().RenderMetrics(string.Empty, Collection(), Config(grouped: true), null);
+
+        Assert.That(Spectre.Console.AnsiConsole.Profile.Width, Is.EqualTo(80));
+    }
+
+    [Test]
+    public void AnAlreadyWiderConsole_IsNotNarrowed()
+    {
+        using var capture = new ConsoleOutputCapture(width: 500, interactive: false);
+
+        new ConsoleTextReport().RenderMetrics(string.Empty, Collection(), Config(grouped: true), null);
+
+        Assert.That(Spectre.Console.AnsiConsole.Profile.Width, Is.EqualTo(500));
+    }
+
     private sealed class SyncProgress(List<AnalysisProgress> sink) : IProgress<AnalysisProgress>
     {
         public void Report(AnalysisProgress value) => sink.Add(value);

@@ -302,6 +302,37 @@ public class CognitiveCodeAnalyserDetailTests
     }
 
     [Test]
+    public void DeconstructingForeach_CountsAsLoopNestingAndLocals()
+    {
+        var m = Method("foreach (var (k, v) in new System.Collections.Generic.Dictionary<int, int>()) { foreach (var x in new[] { 1 }) { } }");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(m.loopCount, Is.EqualTo(2));
+            Assert.That(m.nestingLevels, Is.EqualTo(2));
+            Assert.That(m.localVariableCount, Is.EqualTo(3));
+            Assert.That(m.cyclomaticComplexity, Is.EqualTo(3));
+        }
+    }
+
+    [Test]
+    public void DeconstructingForeach_ReviewExample_HasNestingLoopsAndLocalsOfTwo()
+    {
+        var m = Method("foreach (var (k, v) in d) { }");
+
+        Assert.That((m.loopCount, m.nestingLevels, m.localVariableCount), Is.EqualTo((1, 1, 2)));
+    }
+
+    [TestCase("foreach ((int a, int b) in d) { }", 2)]
+    [TestCase("foreach (var (a, _) in d) { }", 1)]
+    [TestCase("foreach (var (a, (b, c)) in d) { }", 3)]
+    [TestCase("foreach (var (_, _) in d) { }", 0)]
+    public void DeconstructingForeach_CountsNamedVariablesOnly(string body, int locals)
+    {
+        Assert.That(Method(body).localVariableCount, Is.EqualTo(locals));
+    }
+
+    [Test]
     public void LocalVariables_ForLoopAndDeclarations_AreNotCountedTwice()
     {
         var m = Method("for (int i = 0; i < 3; i++) { } int x = 0;");

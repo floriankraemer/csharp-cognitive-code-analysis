@@ -103,6 +103,9 @@ public static class CoverageMatcher
         // key: "normalizedPath|methodName"; overloads share a key and are told apart by their first line
         private readonly Dictionary<string, List<Coverage>> _methodLevel;
 
+        // method keys whose coverage includes compiler-generated types; they never use class-level coverage
+        private readonly HashSet<string> _generatedMethods;
+
         // key: "normalizedPath|fullyQualifiedClassName"  (class-level entries only)
         private readonly Dictionary<string, Coverage> _classLevel;
 
@@ -111,10 +114,12 @@ public static class CoverageMatcher
 
         private CoverageIndex(
             Dictionary<string, List<Coverage>> methodLevel,
+            HashSet<string> generatedMethods,
             Dictionary<string, Coverage> classLevel,
             Dictionary<string, Coverage> fileLevel
         ) {
             _methodLevel = methodLevel;
+            _generatedMethods = generatedMethods;
             _classLevel = classLevel;
             _fileLevel = fileLevel;
         }
@@ -122,6 +127,7 @@ public static class CoverageMatcher
         internal static CoverageIndex Build(List<Coverage> coverageList)
         {
             var methodLevel = new Dictionary<string, List<Coverage>>(StringComparer.OrdinalIgnoreCase);
+            var generatedMethods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var classLevel = new Dictionary<string, Coverage>(StringComparer.OrdinalIgnoreCase);
             var fileLevel = new Dictionary<string, Coverage>(StringComparer.OrdinalIgnoreCase);
 
@@ -140,6 +146,10 @@ public static class CoverageMatcher
                     }
 
                     candidates.Add(c);
+                    if (c.FromGeneratedTypes)
+                    {
+                        generatedMethods.Add(key);
+                    }
                 }
                 else if (string.IsNullOrEmpty(c.FullyQualifiedClassName))
                 {
@@ -154,7 +164,7 @@ public static class CoverageMatcher
                 }
             }
 
-            return new CoverageIndex(methodLevel, classLevel, fileLevel);
+            return new CoverageIndex(methodLevel, generatedMethods, classLevel, fileLevel);
         }
 
         internal Coverage? Find(CognitiveMetrics metrics)
@@ -166,6 +176,12 @@ public static class CoverageMatcher
             if (methodMatch != null)
             {
                 return methodMatch;
+            }
+
+            // The class-level figures say nothing about an async, iterator or closure body, so report no data instead.
+            if (_generatedMethods.Contains(MethodKey(normalizedPath, metrics.MethodName)))
+            {
+                return null;
             }
 
             // 2. Class-level match — try both the full FQCN stored in the index and
