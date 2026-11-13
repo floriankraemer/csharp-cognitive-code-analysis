@@ -6,6 +6,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-13
+
 ### Added
 
 - **`churn` command: complex code that changes often.**
@@ -177,3 +179,6 @@ The project follows [Semantic Versioning](https://semver.org/).
 - A Visual Studio coverage range with an unparsable `end_line` is kept as a single line instead of being dropped.
 - The Cobertura reader no longer prefixes class names with the package name twice when the package is the assembly name, as coverlet writes it.
 - `TypeRegistrar.RegisterLazy` checks the factory delegate for `null` instead of its name.
+
+[Unreleased]: https://github.com/floriankraemer/csharp-cognitive-code-analysis/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/floriankraemer/csharp-cognitive-code-analysis/compare/1.0.7...1.1.0
