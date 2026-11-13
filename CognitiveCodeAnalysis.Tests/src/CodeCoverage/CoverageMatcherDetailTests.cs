@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -159,5 +159,53 @@ public class CoverageMatcherDetailTests
     public void EmptyInputs_ProduceNoMatches()
     {
         Assert.That(CoverageMatcher.MatchCoverageToMetrics(new CognitiveMetricsCollection(), []), Is.Empty);
+    }
+}
+
+public class CoverageMatcherConstructorTests
+{
+    private static readonly string SourceFile = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "cov-ctor", "a.cs"));
+
+    private static CognitiveMetrics Unit(string cls, string name, string signature) =>
+        new(name, cls, SourceFile, signature, 10, linesOfCode: 3);
+
+    private static Coverage MethodCov(string name, int line, int covered) =>
+        new() { FilePath = SourceFile, MethodName = name, MethodLineNumber = line, FullyQualifiedClassName = "N.C", LinesCovered = covered, LinesTotal = 4 };
+
+    private static Coverage? Match(CognitiveMetrics m, params Coverage[] cov) =>
+        CoverageMatcher.MatchCoverageToMetrics(new CognitiveMetricsCollection { m }, cov).GetValueOrDefault(m);
+
+    [Test]
+    public void Constructor_MatchesCtor()
+    {
+        Assert.That(Match(Unit("N.C", "C", "public C(int a)"), MethodCov(".cctor", 11, 1), MethodCov(".ctor", 11, 2))?.LinesCovered, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void StaticConstructor_MatchesCctor()
+    {
+        Assert.That(Match(Unit("N.C", "C", "static C()"), MethodCov(".ctor", 11, 2), MethodCov(".cctor", 11, 1))?.LinesCovered, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ConstructorOfAGlobalType_MatchesCtor()
+    {
+        Assert.That(Match(Unit("C", "C", "C()"), MethodCov(".ctor", 11, 2))?.LinesCovered, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void MethodNamedLikeAnotherType_IsNotAConstructor()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Match(Unit("N.C", "D", "public void D()"), MethodCov(".ctor", 11, 2)), Is.Null);
+            Assert.That(Match(Unit("N.C", "D", "public void D()"), MethodCov("D", 11, 2))?.LinesCovered, Is.EqualTo(2));
+        }
+    }
+
+    [Test]
+    public void StaticModifierAsPartOfAName_DoesNotMakeAStaticConstructor()
+    {
+        Assert.That(Match(Unit("N.C", "C", "public C(staticValue x)"), MethodCov(".ctor", 11, 2))?.LinesCovered, Is.EqualTo(2));
     }
 }

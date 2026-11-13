@@ -3,6 +3,7 @@
 /// </copyright>
 
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
@@ -11,6 +12,7 @@ using CognitiveCodeAnalysis.HalsteadAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
@@ -76,6 +78,7 @@ public class CognitiveCodeAnalyser
         progress?.Report(new AnalysisProgress(AnalysisProgressPhase.AnalysingFiles, TotalFiles: totalFiles));
 
         var allMetrics = new ConcurrentBag<CognitiveMetrics>();
+        Regex[] excludePatterns = RegexPatterns.Compile(configuration.ExcludePatterns);
 
         Parallel.ForEach(
             sources.SyntaxTrees,
@@ -88,7 +91,7 @@ public class CognitiveCodeAnalyser
                     SemanticModel semanticModel = sources.Compilation.GetSemanticModel(tree);
 
                     var localCollection = new CognitiveMetricsCollection();
-                    AnalyseClasses(configuration, root, localCollection, tree.FilePath, semanticModel);
+                    AnalyseClasses(configuration, root, localCollection, tree.FilePath, semanticModel, excludePatterns);
 
                     foreach (CognitiveMetrics metric in localCollection)
                     {
@@ -125,21 +128,74 @@ public class CognitiveCodeAnalyser
         return result;
     }
 
+    private const string IgnoreTag = "@cca-ignore";
+
     private static CognitiveMetricsCollection AnalyseClasses(
         CognitiveConfiguration configuration,
         SyntaxNode root,
         CognitiveMetricsCollection metricsCollection,
         string file,
-        SemanticModel? semanticModel
+        SemanticModel? semanticModel,
+        Regex[] excludePatterns
     ) {
-        IEnumerable<ClassDeclarationSyntax> classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        // Classes, structs, records and interfaces; an ignored type also hides every type nested in it.
+        IEnumerable<TypeDeclarationSyntax> typeNodes = root.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .Where(type => !type.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().Any(t => IsIgnored(t, t.Identifier)));
 
-        foreach (ClassDeclarationSyntax classNode in classNodes)
+        foreach (TypeDeclarationSyntax typeNode in typeNodes)
         {
-            metricsCollection = ExtractMetricsFromClasses(configuration, classNode, metricsCollection, file, semanticModel);
+            ExtractMetricsFromType(configuration, typeNode, metricsCollection, file, semanticModel, excludePatterns);
         }
 
         return metricsCollection;
+    }
+
+    /// <summary>
+    /// <![CDATA[
+    /// A declaration is ignored when the tag is in a comment between the previous declaration and its name
+    /// (XML doc comments, comments above or between attributes and modifiers) or in a comment trailing its last line.
+    /// Comments inside the body do not count.
+    /// ]]>
+    /// </summary>
+    private static bool IsIgnored(MemberDeclarationSyntax declaration, SyntaxToken identifier) =>
+        declaration.DescendantTrivia(TextSpan.FromBounds(declaration.FullSpan.Start, identifier.SpanStart))
+            .Concat(declaration.GetLastToken().TrailingTrivia)
+            .Any(trivia => IsComment(trivia) && trivia.ToFullString().Contains(IgnoreTag, StringComparison.Ordinal));
+
+    private static bool IsComment(SyntaxTrivia trivia) =>
+        trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)
+        || trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)
+        || trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)
+        || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+
+    /// <summary>
+    /// <![CDATA[
+    /// Methods and constructors are the analysed units. Interface members only count when they have a body.
+    /// ]]>
+    /// </summary>
+    private static IEnumerable<(BaseMethodDeclarationSyntax Node, SyntaxToken Identifier)> AnalysedUnits(TypeDeclarationSyntax typeNode)
+    {
+        bool isInterface = typeNode is InterfaceDeclarationSyntax;
+
+        foreach (MemberDeclarationSyntax member in typeNode.Members)
+        {
+            (BaseMethodDeclarationSyntax Node, SyntaxToken Identifier)? unit = member switch
+            {
+                MethodDeclarationSyntax method => (method, method.Identifier),
+                ConstructorDeclarationSyntax constructor => (constructor, constructor.Identifier),
+                _ => null,
+            };
+
+            if (unit is not { } found
+                || (isInterface && found.Node.Body is null && found.Node.ExpressionBody is null)
+                || IsIgnored(found.Node, found.Identifier))
+            {
+                continue;
+            }
+
+            yield return found;
+        }
     }
 
     private readonly record struct MethodNodeCounts(
@@ -161,7 +217,7 @@ public class CognitiveCodeAnalyser
             ConditionalExpressionCount + LogicalAndOrCount + 1;
     }
 
-    private static MethodNodeCounts CountMethodNodes(MethodDeclarationSyntax methodNode)
+    private static MethodNodeCounts CountMethodNodes(BaseMethodDeclarationSyntax methodNode)
     {
         int ifCount = 0, elseCount = 0, tryCount = 0, loopCount = 0,
             switchCount = 0, switchSectionCount = 0, returnCount = 0,
@@ -228,29 +284,35 @@ public class CognitiveCodeAnalyser
             ? deconstructing.Variable.DescendantNodesAndSelf().OfType<SingleVariableDesignationSyntax>().Count()
             : 1;
 
-    private static CognitiveMetricsCollection ExtractMetricsFromClasses(
+    private static void ExtractMetricsFromType(
         CognitiveConfiguration configuration,
-        ClassDeclarationSyntax classNode,
+        TypeDeclarationSyntax typeNode,
         CognitiveMetricsCollection metricsCollection,
         string file,
-        SemanticModel? semanticModel
+        SemanticModel? semanticModel,
+        Regex[] excludePatterns
     ) {
-        string fullClassName = GetFullyQualifiedClassName(classNode);
+        string fullClassName = GetFullyQualifiedClassName(typeNode);
 
-        IEnumerable<MethodDeclarationSyntax> methodNodes = classNode.Members.OfType<MethodDeclarationSyntax>();
-        foreach (MethodDeclarationSyntax methodNode in methodNodes)
+        foreach ((BaseMethodDeclarationSyntax methodNode, SyntaxToken identifier) in AnalysedUnits(typeNode))
         {
+            string methodName = identifier.Text;
+            string unitName = fullClassName + "::" + methodName;
+            if (excludePatterns.Any(pattern => pattern.IsMatch(unitName)))
+            {
+                continue;
+            }
+
             MethodNodeCounts counts = CountMethodNodes(methodNode);
             (int fieldAccessCount, int propertyAccessCount) = CountFieldAndPropertyAccesses(methodNode, semanticModel);
 
-            string halsteadId = fullClassName + "::" + methodNode.Identifier.Text;
-            HalsteadMetrics halstead = HalsteadSyntaxCollector.CollectForMethod(methodNode, halsteadId);
+            HalsteadMetrics halstead = HalsteadSyntaxCollector.CollectForMethod(methodNode, unitName);
 
             metricsCollection.Add(new CognitiveMetrics(
-                methodName: methodNode.Identifier.Text,
+                methodName: methodName,
                 className: fullClassName,
                 filePath: file,
-                methodSignature: GetFullSignature(methodNode),
+                methodSignature: GetFullSignature(methodNode, methodName),
                 methodLineNumber: methodNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
                 ifCount: counts.IfCount,
                 argumentCount: methodNode.ParameterList.Parameters.Count,
@@ -268,19 +330,17 @@ public class CognitiveCodeAnalyser
                 halstead: halstead
             ));
         }
-
-        return metricsCollection;
     }
 
-    private static bool IsMethodParameter(VariableDeclaratorSyntax declarator, MethodDeclarationSyntax methodNode)
+    private static bool IsMethodParameter(VariableDeclaratorSyntax declarator, BaseMethodDeclarationSyntax methodNode)
     {
         return declarator.Ancestors()
             .OfType<ParameterSyntax>()
-            .Any(parameter => parameter.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault() == methodNode);
+            .Any(parameter => parameter.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault() == methodNode);
     }
 
     private static (int FieldAccessCount, int PropertyAccessCount) CountFieldAndPropertyAccesses(
-        MethodDeclarationSyntax methodNode,
+        BaseMethodDeclarationSyntax methodNode,
         SemanticModel? semanticModel
     ) {
         if (semanticModel == null)
@@ -327,8 +387,13 @@ public class CognitiveCodeAnalyser
         }
     }
 
-    private static string GetFullSignature(MethodDeclarationSyntax methodNode)
+    private static string GetFullSignature(BaseMethodDeclarationSyntax node, string name)
     {
+        if (node is not MethodDeclarationSyntax methodNode)
+        {
+            return (node.Modifiers.ToString() + " " + name + node.ParameterList).TrimStart();
+        }
+
         string typeParameters = methodNode.TypeParameterList?.ToString() ?? string.Empty;
         string constraints = methodNode.ConstraintClauses.Count > 0
             ? " " + string.Join(" ", methodNode.ConstraintClauses.Select(c => c.ToString()))
@@ -345,7 +410,7 @@ public class CognitiveCodeAnalyser
             constraints);
     }
 
-    private static int GetLinesOfCode(MethodDeclarationSyntax methodNode)
+    private static int GetLinesOfCode(BaseMethodDeclarationSyntax methodNode)
     {
         return methodNode.GetLocation()
                 .GetLineSpan()
@@ -362,7 +427,7 @@ public class CognitiveCodeAnalyser
     /// </summary>
     /// <param name="classNode"></param>
     /// <returns></returns>
-    private static string GetFullyQualifiedClassName(ClassDeclarationSyntax classNode)
+    private static string GetFullyQualifiedClassName(TypeDeclarationSyntax classNode)
     {
         IEnumerable<string> containingTypes = CollectNestedClasses(classNode);
         IEnumerable<string> namespaceParts = CollectNamespaceParts(classNode);
@@ -374,16 +439,16 @@ public class CognitiveCodeAnalyser
         );
     }
 
-    private static IEnumerable<string> CollectNestedClasses(ClassDeclarationSyntax classNode)
+    private static IEnumerable<string> CollectNestedClasses(TypeDeclarationSyntax classNode)
     {
         return classNode.Ancestors()
-            .OfType<ClassDeclarationSyntax>()
+            .OfType<TypeDeclarationSyntax>()
             .Reverse()
             .Select(c => c.Identifier.Text);
     }
 
     // Collect namespace parts (including file-scoped namespaces)
-    private static IEnumerable<string> CollectNamespaceParts(ClassDeclarationSyntax classNode)
+    private static IEnumerable<string> CollectNamespaceParts(TypeDeclarationSyntax classNode)
     {
         return classNode.Ancestors()
             .OfType<NamespaceDeclarationSyntax>()
@@ -395,7 +460,7 @@ public class CognitiveCodeAnalyser
             .Reverse();
     }
 
-    private static int CalculateNestingLevels(MethodDeclarationSyntax methodNode, CognitiveConfiguration configuration)
+    private static int CalculateNestingLevels(BaseMethodDeclarationSyntax methodNode, CognitiveConfiguration configuration)
     {
         BlockSyntax? body = methodNode.Body;
 

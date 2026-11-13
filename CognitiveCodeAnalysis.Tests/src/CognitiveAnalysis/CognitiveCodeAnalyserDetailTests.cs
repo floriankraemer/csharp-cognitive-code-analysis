@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -136,18 +136,6 @@ public class CognitiveCodeAnalyserDetailTests
         var m = Analyse("public class C { void M(int a) { } }").Single();
 
         Assert.That(m.methodSignature, Is.EqualTo(" void M(int a)").Or.EqualTo("void M(int a)"));
-    }
-
-    [Test]
-    public void OnlyMethodsOfClasses_AreAnalysed()
-    {
-        var all = Analyse("""
-            public class C { public C() { } public int P { get; set; } public void M() { } }
-            public struct S { public void N() { } }
-            public interface I { void O(); }
-            """);
-
-        Assert.That(all.Select(m => m.MethodName), Is.EqualTo(new[] { "M" }));
     }
 
     [Test]
