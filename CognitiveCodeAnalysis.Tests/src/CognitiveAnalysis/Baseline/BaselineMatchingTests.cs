@@ -47,7 +47,7 @@ public class BaselineMatchingTests
     }
 
     [Test]
-    public void RelativePath_OldAbsolutePathOfAnotherCheckoutMatches()
+    public void OldAbsolutePathOfAnotherCheckout_MatchesByUniqueClassAndSignature()
     {
         var baseline = Baseline(Method("/old/checkout/src/A.cs", "N.A", score: 1.0));
 
@@ -55,13 +55,13 @@ public class BaselineMatchingTests
     }
 
     [Test]
-    public void RelativePath_PicksTheFileWhenTheSameMethodIsInTwoFiles()
+    public void SameMethodInTwoFilesOfAnotherCheckout_IsAmbiguousAndNotMatched()
     {
         var baseline = Baseline(
             Method("/old/src/A.cs", "N.A", score: 1.0),
             Method("/old/src/B.cs", "N.A", score: 10.0));
 
-        Assert.That(DeltaOf(baseline, Method(Absolute("src/B.cs"), "N.A", score: 11.0)), Is.EqualTo(1.0));
+        Assert.That(DeltaOf(baseline, Method(Absolute("src/B.cs"), "N.A", score: 11.0)), Is.Null);
     }
 
     [Test]
@@ -103,10 +103,14 @@ public class BaselineMatchingTests
     public void RenamedNestedClass_AmbiguousOlderNames_DoesNotMatch()
     {
         var baseline = Baseline(
-            Method("src/A.cs", "N.Inner"),
-            Method("src/A.cs", "Inner"));
+            Method("src/A.cs", "N.Holder.Inner"),
+            Method("src/A.cs", "N.Other.Inner"));
+        var current = new CognitiveMetricsCollection { Method("src/A.cs", "N.Holder.Other.Inner") };
 
-        Assert.That(DeltaOf(baseline, Method("src/A.cs", "N.Holder.Inner")), Is.Null);
+        var comparison = BaselineComparer.Compare(current, baseline);
+
+        Assert.That(comparison.TryGetMethodComparison(current[0], out var method), Is.True);
+        Assert.That(method!.HasBaseline, Is.False);
     }
 
     [Test]
@@ -118,14 +122,16 @@ public class BaselineMatchingTests
     }
 
     [TestCase("N.Inner", "N.Holder.Inner", true)]
-    [TestCase("Inner", "N.Holder.Inner", true)]
+    [TestCase("Inner", "N.Inner", true)]
+    [TestCase("Inner", "N.Holder.Inner", false)]
     [TestCase("N.Holder.Inner", "N.Holder.Inner", false)]
     [TestCase("N.Holder.Inner", "N.Inner", false)]
     [TestCase("N.Other", "N.Holder.Inner", false)]
     [TestCase("M.Inner", "N.Holder.Inner", false)]
+    [TestCase("N.Inner", "N.Holder.Other", false)]
     [TestCase("Holder.N", "N.Holder.Inner", false)]
     public void IsRenamedFrom_ComparesTheNameChains(string older, string current, bool expected) =>
-        Assert.That(BaselineMethodIndex.IsRenamedFrom(older, current), Is.EqualTo(expected));
+        Assert.That(BaselineMatcher.IsRenamedFrom(older, current), Is.EqualTo(expected));
 
     [Test]
     public void DuplicateBaselineKeys_LastEntryWins()
@@ -190,5 +196,95 @@ public class BaselineMatchingTests
         Assert.That(relative.GeneratedAt, Is.EqualTo(now));
         Assert.That(absolute.Methods.Single().FilePath, Is.EqualTo(Absolute("src/A.cs")));
         Assert.That(absolute.ConfigHash, Is.Null);
+    }
+
+    [Test]
+    public void SameMethodInTwoFiles_OnlyTheExactFileIsMatched_NotTheOtherByFallback()
+    {
+        var baseline = Baseline(Method("src/A.cs", "N1.Util", "int M(int x)", score: 1.0));
+        var inA = Method("src/A.cs", "N1.Util", "int M(int x)", score: 2.0);
+        var inC = Method("src/C.cs", "N1.Util", "int M(int x)", score: 9.0);
+        var current = new CognitiveMetricsCollection { inC, inA };
+
+        var comparison = BaselineComparer.Compare(current, baseline);
+
+        Assert.That(comparison.TryGetMethodComparison(inA, out var a), Is.True);
+        Assert.That(comparison.TryGetMethodComparison(inC, out var c), Is.True);
+        Assert.That(a!.TotalScore.Delta, Is.EqualTo(1.0));
+        Assert.That(c!.HasBaseline, Is.False);
+    }
+
+    [Test]
+    public void TwoCurrentMethodsForOneUnclaimedBaselineEntry_NeitherIsMatched()
+    {
+        var baseline = Baseline(Method("/old/Gone.cs", "N.A"));
+        var one = Method("src/X.cs", "N.A");
+        var two = Method("src/Y.cs", "N.A");
+
+        var comparison = BaselineComparer.Compare(new CognitiveMetricsCollection { one, two }, baseline);
+
+        Assert.That(comparison.TryGetMethodComparison(one, out var first), Is.True);
+        Assert.That(comparison.TryGetMethodComparison(two, out var second), Is.True);
+        Assert.That(first!.HasBaseline || second!.HasBaseline, Is.False);
+    }
+
+    [Test]
+    public void BaselinePathOfAnotherCheckout_IsNotMatchedByAPathSuffix()
+    {
+        // Same class and signature exist twice in the baseline, so only the full path could tell them apart.
+        var baseline = Baseline(
+            Method("/old/checkout/src/A.cs", "N.A", score: 1.0),
+            Method("/old/checkout/other/src/A.cs", "N.A", score: 7.0));
+
+        Assert.That(DeltaOf(baseline, Method(Absolute("src/A.cs"), "N.A", score: 2.0)), Is.Null);
+    }
+
+    private static CognitiveMetricsCollection WithCoupling(string className, string file, int incoming)
+    {
+        var collection = new CognitiveMetricsCollection { Method(file, className) };
+        collection.SetClassCouplingMetrics([new ClassCouplingMetrics { ClassName = className, IncomingCoupling = incoming }]);
+        return collection;
+    }
+
+    [Test]
+    public void ClassCoupling_RenameIsNotMatchedWhenTheOldNameStillExistsInTheRun()
+    {
+        var baseline = BaselineSnapshotFactory.FromMetricsCollection(WithCoupling("Acme.Foo", "src/A.cs", 1));
+        var current = WithCoupling("Acme.Sub.Foo", "src/A.cs", 5);
+        current.Add(Method("src/B.cs", "Acme.Foo"));
+        current.SetClassCouplingMetrics(
+        [
+            new ClassCouplingMetrics { ClassName = "Acme.Sub.Foo", IncomingCoupling = 5 },
+            new ClassCouplingMetrics { ClassName = "Acme.Foo", IncomingCoupling = 1 },
+        ]);
+
+        var comparison = BaselineComparer.Compare(current, baseline);
+
+        Assert.That(comparison.TryGetClassCouplingComparison("Acme.Sub.Foo", out var renamed), Is.True);
+        Assert.That(renamed!.Baseline, Is.Null);
+        Assert.That(comparison.TryGetClassCouplingComparison("Acme.Foo", out var same), Is.True);
+        Assert.That(same!.Baseline, Is.Not.Null);
+    }
+
+    [Test]
+    public void ClassCoupling_RenameInAnotherFile_IsNotMatched()
+    {
+        var baseline = BaselineSnapshotFactory.FromMetricsCollection(WithCoupling("Acme.Foo", "src/A.cs", 1));
+
+        var comparison = BaselineComparer.Compare(WithCoupling("Acme.Sub.Foo", "src/Z.cs", 5), baseline);
+
+        Assert.That(comparison.TryGetClassCouplingComparison("Acme.Sub.Foo", out var coupling), Is.True);
+        Assert.That(coupling!.Baseline, Is.Null);
+    }
+
+    [Test]
+    public void ClassCoupling_RenameWithTwoInsertedSegments_IsNotMatched()
+    {
+        var baseline = BaselineSnapshotFactory.FromMetricsCollection(WithCoupling("Acme.Foo", "src/A.cs", 1));
+
+        var comparison = BaselineComparer.Compare(WithCoupling("Acme.A.B.Foo", "src/A.cs", 5), baseline);
+
+        Assert.That(comparison.TryGetClassCouplingComparison("Acme.A.B.Foo", out var coupling), Is.True);
+        Assert.That(coupling!.Baseline, Is.Null);
     }
 }

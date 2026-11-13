@@ -18,6 +18,7 @@ The path is relative to the working directory.
 The file is written to `.cca/baseline` below the working directory, and its name carries the UTC time of the run.
 An existing file is never replaced: when the name is taken, `-1`, `-2` and so on are appended.
 The directory is created when it is missing.
+The file is written next to its final name and then moved into place, so no reader sees a partial file.
 
 If a baseline is in use, it is applied first, so the report of that run still shows the deltas, and then the new file is written.
 The new file holds the metrics of the current run without any deltas.
@@ -41,6 +42,9 @@ CognitiveCodeAnalysis .\src -b .\.cca\baseline\baseline-2026-11-12_21-35-02.json
 ```
 
 A file given with `-b` wins over the auto-detected one.
+When `-g` is given and the auto-detected baseline cannot be read, `analyse` warns, ignores it and writes the new baseline, so a broken file can be replaced.
+A file given with `-b` that cannot be read always fails the run.
+If `.cca/baseline` cannot be listed, the run warns and goes on without a baseline.
 It must exist, and it must be a valid baseline.
 The JSON report (`-r Json`) writes the same format, so a file from an earlier version of this tool works as a baseline as well.
 
@@ -48,17 +52,20 @@ The JSON report (`-r Json`) writes the same format, so a file from an earlier ve
 
 A method is identified by its file, its class and its signature.
 The file is the path relative to the working directory, so a baseline also works in another checkout of the project.
-Baselines with absolute paths, such as every file written by `-r Json`, are matched with these steps, and the first one that finds exactly one method wins:
+A baseline with absolute paths, such as every file written by `-r Json`, matches as long as the working directory is below the same absolute path.
 
-1. The exact key, which is the relative path, the class and the signature, or the absolute path of the file if the baseline holds one.
-2. The same class and signature in a file with the same relative path, where the baseline path may be absolute and from another checkout.
-3. The same class and signature anywhere in the baseline, when the method is unique there.
-   This follows a file that was moved or renamed.
-4. A class whose name lost containing types, such as `N.Inner` in the baseline and `N.Shape.Inner` now, in the same file.
-   Structs, records and interfaces became part of the name of their nested classes, so older baselines need this step.
+Matching has two passes, and a baseline entry is used for at most one method:
+
+1. Exact: the same relative path, class and signature.
+2. Fallbacks, only for methods and baseline entries the first pass left over.
+   If more than one candidate exists on either side, the method has no match.
+   1. The same class and signature in another file, which follows a moved or renamed file or a baseline from another checkout path.
+   2. A class whose name gained exactly one containing type, such as `N.Inner` in the baseline and `N.Shape.Inner` now, in the same file.
+      Structs, records and interfaces became part of the name of their nested classes, so older baselines need this step.
 
 A method that is new, or whose signature changed, has no delta.
-The coupling of a class is matched by its name, and by the rule of step 4.
+The coupling of a class is matched by its name.
+Only a class that exists on one side alone, under a name with exactly one inserted segment and in the same file, is matched across a rename.
 
 ## Deltas
 

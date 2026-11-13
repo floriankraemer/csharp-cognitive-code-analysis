@@ -20,8 +20,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - **Baselines match methods by their path relative to the working directory**, so a baseline also works in another checkout of the project.
-  A baseline with absolute paths, such as every one written by `-r Json` so far, still works: when the exact key is not found, the method is matched by the relative path, then by class and signature when that is unique in the baseline.
-  A nested class that gained a containing type through the change below is matched to its old name when that is unambiguous.
+  A baseline with absolute paths, such as every one written by `-r Json` so far, still works: when the exact key is not found, the method is matched by class and signature when that is unique among the entries that are left.
+  A nested class that gained a containing type through the change below is matched to its old name when exactly one containing type was added and that is unambiguous.
 - **A baseline file is validated when it is read.**
   Wrong types, negative numbers and numbers that are not finite are rejected, and all problems are reported together as `Invalid baseline file format in <path>: ...`.
   Only the fields that are read are checked, so unknown fields and older files with missing fields still load.

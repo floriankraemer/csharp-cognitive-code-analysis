@@ -297,4 +297,42 @@ public class BaselineEndToEndTests
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(TotalScoreDelta(Report), Is.GreaterThan(0));
     }
+
+    [Test]
+    public void Generate_ReplacesABrokenAutoDetectedBaseline_WithAWarning()
+    {
+        Directory.CreateDirectory(BaselineDirectory);
+        File.WriteAllText(Path.Combine(BaselineDirectory, "baseline-2020-01-01_00-00-00.json"), "{broken");
+
+        var (exitCode, output) = Run(Project, "src", "-g");
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output, Does.Contain("Warning: The auto-detected baseline baseline-2020-01-01_00-00-00.json is ignored: Invalid baseline file format"));
+        Assert.That(output, Does.Contain("Baseline file generated:"));
+        Assert.That(Baselines(), Has.Length.EqualTo(2));
+    }
+
+    [Test]
+    public void ABrokenAutoDetectedBaseline_WithoutTheFlag_StillFails()
+    {
+        Directory.CreateDirectory(BaselineDirectory);
+        File.WriteAllText(Path.Combine(BaselineDirectory, "baseline-2020-01-01_00-00-00.json"), "{broken");
+
+        var (exitCode, output) = Run(Project, "src");
+
+        Assert.That(exitCode, Is.EqualTo(-1));
+        Assert.That(output, Does.Contain("Invalid baseline file format"));
+    }
+
+    [Test]
+    public void ABrokenExplicitBaseline_WithTheFlag_StillFailsAndWritesNothing()
+    {
+        string broken = Path.Combine(_root, "broken.json");
+        File.WriteAllText(broken, "{broken");
+
+        var (exitCode, _) = Run(Project, "src", "-b", broken, "-g");
+
+        Assert.That(exitCode, Is.EqualTo(-1));
+        Assert.That(Baselines(), Is.Empty);
+    }
 }

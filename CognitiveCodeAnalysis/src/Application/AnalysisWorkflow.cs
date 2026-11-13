@@ -32,9 +32,10 @@ public sealed class AnalysisWorkflow(
         string workingDirectory = Directory.GetCurrentDirectory();
         string? baselineFile = ToAbsolutePath(request.BaselineFile);
         bool autoDetected = false;
+        string? baselineWarning = null;
         if (string.IsNullOrWhiteSpace(baselineFile))
         {
-            baselineFile = BaselineFiles.Latest(workingDirectory);
+            baselineFile = BaselineFiles.Latest(workingDirectory, out baselineWarning);
             autoDetected = baselineFile != null;
         }
 
@@ -48,7 +49,8 @@ public sealed class AnalysisWorkflow(
             BaselineFile: baselineFile,
             CoverageCobertura: ToAbsolutePath(request.CoverageCobertura),
             IsConsoleTextReport: isConsoleTextReport,
-            BaselineAutoDetected: autoDetected
+            BaselineAutoDetected: autoDetected,
+            BaselineWarning: baselineWarning
         );
     }
 

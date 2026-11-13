@@ -141,6 +141,55 @@ public class BaselineFilesTests
     }
 
     [Test]
+    public void Generate_LeavesNoTemporaryFileBehind()
+    {
+        BaselineFiles.Generate(_temp.tmpDirectory, new CognitiveBaselineSnapshot());
+        BaselineFiles.Generate(_temp.tmpDirectory, new CognitiveBaselineSnapshot());
+
+        Assert.That(Directory.GetFiles(Dir).Select(Path.GetFileName), Has.All.StartsWith("baseline-").And.EndsWith(".json"));
+    }
+
+    [Test]
+    public void Generate_CollidingNameIsAFileOrDirectory_TakesTheNextSuffix()
+    {
+        var snapshot = new CognitiveBaselineSnapshot { GeneratedAt = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero) };
+        Directory.CreateDirectory(Path.Combine(Dir, "baseline-2026-01-02_03-04-05.json"));
+
+        string relative = BaselineFiles.Generate(_temp.tmpDirectory, snapshot);
+
+        Assert.That(Path.GetFileName(relative), Is.EqualTo("baseline-2026-01-02_03-04-05-1.json"));
+    }
+
+    [Test]
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    public void Latest_UnreadableDirectory_ReturnsNullWithAWarning()
+    {
+        Assume.That(!OperatingSystem.IsWindows() && Environment.UserName != "root", "needs a user that file permissions apply to");
+        Touch("baseline-2026-01-01_10-00-00.json");
+        File.SetUnixFileMode(Dir, UnixFileMode.None);
+        try
+        {
+            string? latest = BaselineFiles.Latest(_temp.tmpDirectory, out string? warning);
+
+            Assert.That(latest, Is.Null);
+            Assert.That(warning, Does.StartWith("Cannot read baseline directory " + Dir));
+        }
+        finally
+        {
+            File.SetUnixFileMode(Dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+    }
+
+    [Test]
+    public void Latest_ReadableDirectory_HasNoWarning()
+    {
+        Touch("baseline-2026-01-01_10-00-00.json");
+
+        Assert.That(BaselineFiles.Latest(_temp.tmpDirectory, out string? warning), Is.Not.Null);
+        Assert.That(warning, Is.Null);
+    }
+
+    [Test]
     public void Generate_FailsWhenTheDirectoryCannotBeCreated()
     {
         File.WriteAllText(Path.Combine(_temp.tmpDirectory, ".cca"), "a file where the directory belongs");

@@ -19,7 +19,7 @@ public static class BaselineComparer
         IProgress<AnalysisProgress>? progress
     )
     {
-        var baselineMethods = new BaselineMethodIndex(baseline.Methods);
+        var baselineMethods = BaselineMatcher.MatchMethods(current, baseline.Methods);
 
         int totalMethods = current.Count;
         progress?.Report(new AnalysisProgress(
@@ -35,7 +35,7 @@ public static class BaselineComparer
         foreach (CognitiveMetrics metrics in current)
         {
             var key = BaselineMethodKey.FromMetrics(metrics);
-            methodsByKey[key] = BuildMethodComparison(metrics, baselineMethods.Find(metrics));
+            methodsByKey[key] = BuildMethodComparison(metrics, baselineMethods.GetValueOrDefault(metrics));
 
             processedMethods++;
             if (processedMethods % progressBatchSize == 0 || processedMethods == totalMethods)
@@ -54,6 +54,7 @@ public static class BaselineComparer
             ProcessedFiles: totalMethods
         ));
 
+        var baselineCoupling = BaselineMatcher.MatchCoupling(current, baseline.ClassCoupling, baseline.Methods);
         var classCouplingByName = new Dictionary<string, ClassCouplingComparison>(StringComparer.Ordinal);
         foreach (var classGroup in current.GroupBy(m => m.ClassName, StringComparer.Ordinal))
         {
@@ -65,7 +66,7 @@ public static class BaselineComparer
 
             classCouplingByName[classGroup.Key] = BuildClassCouplingComparison(
                 currentCoupling,
-                BaselineMethodIndex.FindCoupling(classGroup.Key, baseline.ClassCoupling));
+                baselineCoupling.GetValueOrDefault(classGroup.Key));
         }
 
         return new CognitiveBaselineComparison(methodsByKey, classCouplingByName, baseline.ConfigHash);

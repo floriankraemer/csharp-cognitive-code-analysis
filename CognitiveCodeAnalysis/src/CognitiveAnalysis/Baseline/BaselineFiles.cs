@@ -26,22 +26,34 @@ public static partial class BaselineFiles
     /// The newest regular file <c>baseline-&lt;timestamp&gt;[-&lt;n&gt;].json</c>, by the timestamp of its name and then
     /// its suffix. Other names, including impossible dates, are not baselines.
     /// </summary>
-    /// <returns>The full path, or null when the directory does not exist or holds no baseline.</returns>
-    public static string? Latest(string workingDirectory)
+    /// <returns>The full path, or null when the directory does not exist, holds no baseline or cannot be read.</returns>
+    public static string? Latest(string workingDirectory) => Latest(workingDirectory, out _);
+
+    /// <param name="warning">Why the directory could not be read, otherwise null.</param>
+    public static string? Latest(string workingDirectory, out string? warning)
     {
+        warning = null;
         string directory = Path.Combine(workingDirectory, RelativeDirectory);
-        if (!Directory.Exists(directory))
+        try
         {
+            if (!Directory.Exists(directory))
+            {
+                return null;
+            }
+
+            return Directory.EnumerateFiles(directory)
+                .Select(file => (File: file, Key: SortKey(Path.GetFileName(file))))
+                .Where(candidate => candidate.Key != null)
+                .OrderBy(candidate => candidate.Key!.Value.Timestamp)
+                .ThenBy(candidate => candidate.Key!.Value.Suffix)
+                .Select(candidate => candidate.File)
+                .LastOrDefault();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            warning = $"Cannot read baseline directory {directory}: {exception.Message}";
             return null;
         }
-
-        return Directory.EnumerateFiles(directory)
-            .Select(file => (File: file, Key: SortKey(Path.GetFileName(file))))
-            .Where(candidate => candidate.Key != null)
-            .OrderBy(candidate => candidate.Key!.Value.Timestamp)
-            .ThenBy(candidate => candidate.Key!.Value.Suffix)
-            .Select(candidate => candidate.File)
-            .LastOrDefault();
     }
 
     private static (DateTime Timestamp, int Suffix)? SortKey(string fileName)
@@ -65,35 +77,44 @@ public static partial class BaselineFiles
     }
 
     /// <summary>
-    /// Writes the snapshot as a new baseline file. An existing file is never replaced: when the name is taken,
-    /// <c>-1</c>, <c>-2</c> and so on are appended.
+    /// Writes the snapshot as a new baseline file. The content goes to a temporary file in the directory first and is
+    /// then moved into place without replacing anything, so a reader never sees a partial file and an existing file
+    /// is never overwritten: when the name is taken, <c>-1</c>, <c>-2</c> and so on are appended.
     /// </summary>
     /// <returns>The path of the new file, relative to the working directory.</returns>
     public static string Generate(string workingDirectory, CognitiveBaselineSnapshot snapshot)
     {
         string stem = "baseline-" + snapshot.GeneratedAt.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture);
-        byte[] content = new UTF8Encoding(false).GetBytes(BaselineLoader.Serialize(snapshot) + "\n");
-        Directory.CreateDirectory(Path.Combine(workingDirectory, RelativeDirectory));
+        string directory = Path.Combine(workingDirectory, RelativeDirectory);
+        Directory.CreateDirectory(directory);
 
-        for (int suffix = 0; ; suffix++)
+        string temporary = Path.Combine(directory, $".{stem}-{Guid.NewGuid():N}.tmp");
+        try
         {
-            string relative = Path.Combine(RelativeDirectory, stem + (suffix == 0 ? "" : "-" + suffix) + ".json");
-            if (TryWriteNew(Path.Combine(workingDirectory, relative), content))
+            File.WriteAllText(temporary, BaselineLoader.Serialize(snapshot) + "\n", new UTF8Encoding(false));
+            for (int suffix = 0; ; suffix++)
             {
-                return relative;
+                string relative = Path.Combine(RelativeDirectory, stem + (suffix == 0 ? "" : "-" + suffix) + ".json");
+                if (TryMoveNew(temporary, Path.Combine(workingDirectory, relative)))
+                {
+                    return relative;
+                }
             }
+        }
+        finally
+        {
+            File.Delete(temporary);
         }
     }
 
-    private static bool TryWriteNew(string path, byte[] content)
+    private static bool TryMoveNew(string temporary, string target)
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            stream.Write(content);
+            File.Move(temporary, target, overwrite: false);
             return true;
         }
-        catch (IOException) when (File.Exists(path))
+        catch (IOException) when (File.Exists(target) || Directory.Exists(target))
         {
             return false;
         }
