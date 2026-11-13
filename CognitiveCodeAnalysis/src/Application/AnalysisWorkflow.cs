@@ -20,6 +20,8 @@ public sealed class AnalysisWorkflow(
             request.ConfigFile,
             request.DisplayOverrides
         );
+        var sorter = MetricsSorter.Create(request.SortBy, request.SortOrder);
+        configuration.Sorter = request.SortBy is null ? null : sorter;
         var sourcePaths = SourceFileFinder.SplitPathList(request.SourcePath ?? Directory.GetCurrentDirectory());
         var reportType = request.ReportType;
         var outputFile = Path.GetFullPath(request.OutputFile ?? "cognitive-analysis-report");

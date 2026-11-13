@@ -70,7 +70,7 @@ public class ConsoleTextReport() : IReport
             return;
         }
 
-        foreach (CognitiveMetrics metrics in filteredCollection.OrderByDescending(m => m.totalScore))
+        foreach (CognitiveMetrics metrics in ReportMetricsFilter.OrderRows(filteredCollection, configuration))
         {
             RenderMetrics(metrics, hasCoverageData, configuration, baselineComparison);
             processedItems++;
@@ -97,7 +97,7 @@ public class ConsoleTextReport() : IReport
 
         foreach (var classGroup in groupedByClass)
         {
-            List<CognitiveMetrics> classMetrics = classGroup.ToList();
+            List<CognitiveMetrics> classMetrics = configuration.Sorter?.Sort(classGroup).ToList() ?? classGroup.ToList();
 
             // Skip classes with no metrics (after filtering)
             if (classMetrics.Count == 0)

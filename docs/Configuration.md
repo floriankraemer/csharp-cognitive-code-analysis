@@ -163,6 +163,16 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
   Methods match by name and by a first coverage line inside the method.
   Methods without branches show no branch coverage, and their churn uses the line coverage.
   A coverage file that loads but matches no method produces a warning.
+- `--sort-by <field>`: sort the rows of the report by a field instead of by total score.
+  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  Field names are case-insensitive; the score column names of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
+  Numbers compare numerically, text ignores the letter case, and equal values keep the order of class, method, file and line.
+  With `groupByClass` the classes keep their order and the rows inside each class table are sorted.
+  An unknown field or order fails with the list of valid values.
+- `--sort-order <asc|desc>`: direction of `--sort-by` (default `asc`, case-insensitive).
+- `--debug`: after the run, print an execution summary to stderr with the total time, the time of each phase and statistics (files found, analysed and failed, methods analysed).
+  Phases that run side by side, such as cognitive and coupling analysis, can overlap, so the phase times need not add up to the total.
+- `--version`: print the version without the `+sha` suffix and exit.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).

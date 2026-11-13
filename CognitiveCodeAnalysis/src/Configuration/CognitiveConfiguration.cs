@@ -2,6 +2,8 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.CognitiveAnalysis;
+
 namespace CognitiveCodeAnalysis.Configuration;
 
 public class CognitiveConfiguration
@@ -28,6 +30,11 @@ public class CognitiveConfiguration
     /// </summary>
     public bool ShowDetailedCognitiveMetrics { get; set; } = true;
     public Dictionary<string, MetricConfiguration> Metrics { get; set; } = new();
+
+    /// <summary>
+    /// The order of the rows in the reports, set by <c>--sort-by</c> for one run. When null, reports order by total score, highest first.
+    /// </summary>
+    public MetricsSorter? Sorter { get; set; }
 
     /// <summary>
     /// Notes collected while loading the configuration, such as deprecated metric keys that were accepted.

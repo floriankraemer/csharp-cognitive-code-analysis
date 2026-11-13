@@ -40,6 +40,20 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   A method is matched by its name and by a first coverage line inside the method's source lines.
   A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
   When a coverage file is read but no method matches, the tool prints a warning.
+- `--sort-by <field>` — Sort the rows of the report by a field instead of by total score.
+  The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  Field names are matched case-insensitively.
+  The score columns of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
+  Numbers compare numerically and text ignores the letter case.
+  Methods with an equal value keep the order of class, method, file and line.
+  An unknown field fails with a list of the valid ones.
+  Without the option every report keeps its default order.
+  With the config setting `groupByClass`, the classes keep their order and the rows inside each class table are sorted.
+- `--sort-order <asc|desc>` — Direction of `--sort-by`.
+  Defaults to `asc`, matched case-insensitively.
+- `--debug` — After the run, print an execution summary to stderr: the total time, the time of each phase (searching, compiling, analysing, scoring, coverage, baseline, report) and the counts of files found, analysed and failed and of methods analysed.
+  `-v|--verbose` is unchanged and still logs every step as it happens.
+- `--version` — Print the version of the tool, without the commit suffix, and exit.
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).

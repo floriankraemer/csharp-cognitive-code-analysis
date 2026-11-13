@@ -12,6 +12,7 @@ using CognitiveCodeAnalysis.CouplingAnalysis;
 using CognitiveCodeAnalysisConsoleApp.Application;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 using CognitiveCodeAnalysisConsoleApp.Progress;
+using CognitiveCodeAnalysisConsoleApp.Tests.Infrastructure;
 
 namespace CognitiveCodeAnalysisConsoleApp.Tests.Application;
 
@@ -184,6 +185,72 @@ public class AnalyseApplicationServiceTests
 
         Assert.That(_notifier.ConfigUsedMessages, Has.Count.EqualTo(1));
         Assert.That(_notifier.ConfigUsedMessages[0], Is.EqualTo(Path.GetFullPath(explicitConfig)));
+    }
+
+    [Test]
+    public void Run_WithDebug_PrintsTheExecutionSummaryToStandardError()
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, "Sample.cs"), "class Sample { void M() { } void N() { } }");
+        var service = new AnalyseApplicationService(_workflow, _reportGenerationService, _notifier, new SteppingTimeProvider());
+        var originalError = Console.Error;
+        using var error = new StringWriter { NewLine = "\n" };
+        Console.SetError(error);
+
+        try
+        {
+            service.Run(CreateRequest(reportType: "Html") with { Debug = true });
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+
+        string text = error.ToString();
+        Assert.That(text, Does.StartWith("Execution Summary:\n  Total execution time: "));
+        Assert.That(text, Does.Contain("Phase timings:\n    SearchingFiles: "));
+        Assert.That(text, Does.Contain("    CompilingSources: "));
+        Assert.That(text, Does.Contain("    AnalysingFiles: "));
+        Assert.That(text, Does.Contain("    CalculatingScores: "));
+        Assert.That(text, Does.EndWith("Statistics:\n    Files found: 1\n    Files analysed: 1\n    Files failed: 0\n    Methods analysed: 2\n"));
+    }
+
+    [Test]
+    public void Run_WithDebug_WhenNoSourceFiles_StillPrintsTheSummary()
+    {
+        var originalError = Console.Error;
+        using var error = new StringWriter { NewLine = "\n" };
+        Console.SetError(error);
+
+        try
+        {
+            _service.Run(CreateRequest(reportType: "Html") with { Debug = true });
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+
+        Assert.That(error.ToString(), Does.Contain("Files found: 0"));
+    }
+
+    [Test]
+    public void Run_WithoutDebug_PrintsNoSummary()
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, "Sample.cs"), "class Sample { void M() { } }");
+        var originalError = Console.Error;
+        using var error = new StringWriter();
+        Console.SetError(error);
+
+        try
+        {
+            _service.Run(CreateRequest(reportType: "Html"));
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+
+        Assert.That(error.ToString(), Does.Not.Contain("Execution Summary"));
     }
 
     private AnalysisRequest CreateRequest(

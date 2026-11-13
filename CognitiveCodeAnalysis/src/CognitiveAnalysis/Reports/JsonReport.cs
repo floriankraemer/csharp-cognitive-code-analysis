@@ -30,6 +30,12 @@ public sealed class JsonReport : IReport
     )
     {
         var snapshot = BaselineSnapshotFactory.FromMetricsCollection(metricsCollection);
+        IReadOnlyList<CognitiveMetrics> rows = configuration.Sorter?.Sort(metricsCollection) ?? [.. metricsCollection];
+        if (configuration.Sorter != null)
+        {
+            snapshot.Methods.Clear();
+            snapshot.Methods.AddRange(rows.Select(BaselineSnapshotFactory.FromMetrics));
+        }
 
         if (baselineComparison == null)
         {
@@ -46,7 +52,7 @@ public sealed class JsonReport : IReport
         ReportProgress.ReportStart(progress, Name, totalItems);
 
         var methods = new List<JsonReportMethodWithDeltas>();
-        foreach (var metrics in metricsCollection)
+        foreach (var metrics in rows)
         {
             baselineComparison.TryGetMethodComparison(metrics, out MethodMetricsComparison? comparison);
             methods.Add(new JsonReportMethodWithDeltas

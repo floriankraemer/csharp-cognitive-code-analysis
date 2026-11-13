@@ -148,7 +148,7 @@ public class HtmlReport() : IReport
 
         foreach (var classGroup in groupedByClass)
         {
-            List<CognitiveMetrics> classMetrics = classGroup.OrderByDescending(m => m.totalScore).ToList();
+            List<CognitiveMetrics> classMetrics = ReportMetricsFilter.OrderRows(classGroup, configuration).ToList();
             CognitiveMetrics firstMetric = classMetrics[0];
 
             html.AppendLine(
@@ -186,7 +186,7 @@ public class HtmlReport() : IReport
         var html = new StringBuilder();
         bool hasCoverageData = metricsCollection.HasCoverageData();
 
-        foreach (CognitiveMetrics metrics in metricsCollection.OrderByDescending(m => m.totalScore))
+        foreach (CognitiveMetrics metrics in ReportMetricsFilter.OrderRows(metricsCollection, configuration))
         {
             html.AppendLine(
                 $"        <div class=\"report-class-section\" data-class-name=\"{HtmlEncode(metrics.ClassName)}\" data-file-path=\"{HtmlEncode(metrics.FilePath)}\">");
