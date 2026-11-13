@@ -8,6 +8,16 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **More declarations are analysed: the methods of structs, records and record structs, interface methods with a body, and constructors.**
+  Before, only the methods of `class` declarations were analysed.
+  This adds rows to every report, the summary counts and baselines; existing rows keep their names, signatures and metrics.
+  A constructor is named after its type (`MyApp.Order::Order`), a static constructor too, with the signature `static Order()`.
+  Property accessors, operators and finalizers are still not analysed, as in the Java port.
+  See [Analysed methods](docs/Configuration.md#7-analysed-methods).
+- A class nested in a struct, record or interface is named through that type (`MyApp.Shape.Builder`).
+  Before, such a containing type was left out of the name (`MyApp.Builder`), so two nested classes of the same name could collide.
+  A baseline written earlier reports these methods as new on the next comparison.
+
 - **Nesting depth now accumulates through loops, `switch`, `try`, `lock`, `using`, `fixed`, `checked` and `unsafe` statements.**
   Before, only nested `if` statements added up.
   A loop, `switch` or `try` raised the maximum by one but passed its old depth on to its children, so a statement nested inside it was measured as if the loop were not there.
@@ -56,6 +66,14 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `@cca-ignore` in the XML doc comment or in any other comment of a type or member leaves it out of the analysis; a type leaves out its nested types too.
+- The search path accepts a single `.cs` file and a comma-separated list of files and directories (`src,tools/Build.cs`).
+  A path that exists as written stays one path even when it contains a comma, so existing invocations keep their meaning.
+  The `churn` command accepts the same forms.
+- `excludeFilePatterns` (regular expressions on the absolute path, with `/` separators) and `excludePatterns` (regular expressions on `Namespace.Class::Method`) are applied.
+  Before, they were read but had no effect.
+  An invalid pattern is ignored with a warning that names it, so an old configuration with such a pattern keeps working.
+- A constructor is matched to the `.ctor` (or `.cctor`) entry of a coverage report.
 - The console report has the columns Else, Loops, Switch and Try/Catch, like the other reports.
 - The CSV report has a `LinesOfCodeScore` column (and `LinesOfCodeScoreDelta` with a baseline), appended after all existing columns so that positional readers are not affected.
 - Unknown options and surplus arguments on the command line print a warning that lists them.
@@ -77,6 +95,9 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`) are no longer searched for source files.
+  Before, generated files under `obj` (such as `AssemblyInfo.cs` and source generator output) were analysed and reported.
+  A path passed on the command line is still searched even when it is such a directory.
 - The console report no longer prints a false `ConsoleText report generated: <path>` line.
 - Console output no longer depends on the culture of the machine (decimal separator of the coverage, churn, summary and threshold numbers).
 - The report type is matched case-insensitively (`-r html`).
