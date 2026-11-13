@@ -15,6 +15,7 @@ using CognitiveCodeAnalysisConsoleApp.CognitiveAnalysis.Reports;
 using CognitiveCodeAnalysisConsoleApp.DependencyInjection;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysisConsoleApp;
@@ -55,11 +56,23 @@ public class Program
         serviceCollection.AddSingleton<IConsoleNotifier, SpectreConsoleNotifier>();
         serviceCollection.AddSingleton<IReportGenerationService, SpectreReportGenerationService>();
         serviceCollection.AddSingleton<AnalyseApplicationService>();
+        serviceCollection.AddSingleton(TimeProvider.System);
 
         // Create a type registrar and register any dependencies.
         // A type registrar is an adapter for a DI framework.
         var registrar = new TypeRegistrar(serviceCollection);
 
-        return new CommandApp<AnalyseCommand>(registrar).Run(args);
+        // `analyse` stays the default command, so `CognitiveCodeAnalysis <path> ...` keeps working.
+        var app = new CommandApp<AnalyseCommand>(registrar);
+        app.Configure(configurator =>
+        {
+            // Spectre would otherwise keep the console of the first run for all later runs in the same process.
+            configurator.ConfigureConsole(AnsiConsole.Console);
+            configurator
+                .AddCommand<ChurnCommand>("churn")
+                .WithDescription("Calculates the churn (cognitive score times number of git changes) of classes.");
+        });
+
+        return app.Run(args);
     }
 }

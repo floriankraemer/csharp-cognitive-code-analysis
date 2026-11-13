@@ -1,0 +1,32 @@
+{
+  "createdAt": "2023-10-01 12:00:00",
+  "classes": {
+    "a.B<T>|\"x\"&'y'": {
+      "file": "f<1>.cs",
+      "score": 1,
+      "timesChanged": 2,
+      "churn": 2,
+      "coverage": 0.5,
+      "riskChurn": 1,
+      "riskLevel": "LOW"
+    },
+    "a.NoChurn": {
+      "file": "g.cs",
+      "score": 0,
+      "timesChanged": 0,
+      "churn": 0,
+      "coverage": null,
+      "riskChurn": null,
+      "riskLevel": null
+    },
+    "a.NoScore": {
+      "file": "h.cs",
+      "score": 0,
+      "timesChanged": 4,
+      "churn": 0,
+      "coverage": null,
+      "riskChurn": null,
+      "riskLevel": null
+    }
+  }
+}
