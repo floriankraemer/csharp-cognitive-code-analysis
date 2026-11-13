@@ -50,9 +50,9 @@ public sealed class AnalysisWorkflow(
             BaselineFile: baselineFile,
             CoverageCobertura: ToAbsolutePath(request.CoverageCobertura),
             IsConsoleTextReport: isConsoleTextReport,
-BaselineAutoDetected: autoDetected,
+            BaselineAutoDetected: autoDetected,
             BaselineWarning: baselineWarning,
-CoverageClover: ToAbsolutePath(request.CoverageClover)
+            CoverageClover: ToAbsolutePath(request.CoverageClover)
         );
     }
 
