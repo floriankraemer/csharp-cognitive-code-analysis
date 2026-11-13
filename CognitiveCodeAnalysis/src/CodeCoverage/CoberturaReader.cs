@@ -274,15 +274,7 @@ public class CoberturaReader : ICoverageReader
             throw new FileNotFoundException($"Coverage file not found: {filePath}", filePath);
         }
 
-        XDocument document;
-        try
-        {
-            document = XDocument.Load(filePath);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to load or parse XML file: {filePath}", ex);
-        }
+        XDocument document = CoverageXml.Load(filePath);
 
         XElement? coverageElement = document.Element("coverage");
         if (coverageElement == null)

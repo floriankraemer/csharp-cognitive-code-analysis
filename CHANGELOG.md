@@ -56,6 +56,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`--coverage-clover <file>` for `analyse` and `churn`.**
+  The Clover reader takes the class figures from the statement and conditional metrics and the method figures from the `method` and `stmt` lines, and it understands the `signature` attribute of OpenClover.
+  The option cannot be combined with `--coverage-cobertura` (`Only one coverage format can be specified at a time.`).
+  `--coverage-cobertura` detects Cobertura and Visual Studio files as before.
+- **The HTML and Markdown reports show `Line Coverage` and `Branch Coverage` columns after `Churn` when a coverage file was given.**
+- **`analyse` warns when a coverage file matches only some of the analysed classes** (`Coverage report <file> matched M of N analysed classes.`).
+- All coverage readers skip a `DOCTYPE` without loading DTDs or external entities and without expanding entities, so a report cannot read local files or run an entity bomb.
+  A coverage file that is not well-formed is reported as `Invalid coverage file <file>: <reason>` and the command exits with a non-zero code.
+- See [docs/Coverage.md](docs/Coverage.md).
 - The `init` command creates a `cognitive-metrics-settings.json` with the built-in defaults.
   In an interactive console it asks for `scoreThreshold` and for the `show*` settings and `groupByClass`, and an empty answer keeps the default.
   `--silent`, a console that is not interactive, or redirected standard input writes the defaults without asking.

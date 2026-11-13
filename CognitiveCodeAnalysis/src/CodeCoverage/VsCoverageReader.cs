@@ -26,7 +26,7 @@ public sealed class VsCoverageReader : ICoverageReader
 
         try
         {
-            using var reader = XmlReader.Create(filePath, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore });
+            using var reader = CoverageXml.CreateReader(filePath);
 
             var foundRoot = false;
             while (reader.Read())
@@ -65,6 +65,10 @@ public sealed class VsCoverageReader : ICoverageReader
         catch (InvalidOperationException)
         {
             throw;
+        }
+        catch (XmlException ex)
+        {
+            throw new InvalidCoverageFileException(filePath, ex.Message, ex);
         }
         catch (Exception ex)
         {

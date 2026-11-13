@@ -48,6 +48,10 @@ internal sealed class ChurnCommandSettings : CommandSettings
     [CommandOption("--coverage-cobertura")]
     public string? CoverageCobertura { get; init; }
 
+    [Description("Path to Clover coverage report file; adds risk churn, coverage and risk level")]
+    [CommandOption("--coverage-clover")]
+    public string? CoverageClover { get; init; }
+
     public DateOnly SinceDate => ParseSince(Since)!.Value;
 
     public ChurnReportType? ReportTypeValue =>
@@ -55,6 +59,11 @@ internal sealed class ChurnCommandSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
+        if (!CoverageOptions.AreExclusive(CoverageCobertura, CoverageClover))
+        {
+            return ValidationResult.Error(CoverageOptions.OnlyOneFormatMessage);
+        }
+
         if (ParseSince(Since) is null)
         {
             return ValidationResult.Error($"Invalid --since date '{Since}'. Expected format: {DateFormat}.");

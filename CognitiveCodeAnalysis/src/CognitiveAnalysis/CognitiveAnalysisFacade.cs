@@ -138,12 +138,13 @@ public class CognitiveAnalysisFacade(
     public CoverageLoadingResult LoadCoverageData(
         string coverageFilePath,
         CognitiveMetricsCollection metricsCollection,
-        IProgress<AnalysisProgress>? progress
+        IProgress<AnalysisProgress>? progress,
+        CoverageFormat format = CoverageFormat.Auto
     )
     {
         try
         {
-            IEnumerable<Coverage> coverageData = coverageReader.ReadCoverage(coverageFilePath);
+            IEnumerable<Coverage> coverageData = format.ReaderFor(coverageReader).ReadCoverage(coverageFilePath);
             var coverageList = coverageData.ToList();
 
             Dictionary<CognitiveMetrics, Coverage> matches = CoverageMatcher.MatchCoverageToMetrics(
@@ -165,7 +166,7 @@ public class CognitiveAnalysisFacade(
 
             if (matches.Count > 0)
             {
-                return new CoverageLoadingResult { Success = true };
+                return new CoverageLoadingResult { Success = true, WarningMessage = PartialMatchWarning(coverageFilePath, metricsCollection, matches) };
             }
 
             if (coverageList.Count > 0)
@@ -180,6 +181,10 @@ public class CognitiveAnalysisFacade(
 
             return new CoverageLoadingResult { Success = false, ErrorMessage = "No coverage data found" };
         }
+        catch (InvalidCoverageFileException exception)
+        {
+            return new CoverageLoadingResult { Success = false, ErrorMessage = exception.Message };
+        }
         catch (FileNotFoundException exception)
         {
             return new CoverageLoadingResult { Success = false, ErrorMessage = $"Coverage file not found: {exception.FileName ?? coverageFilePath}" };
@@ -189,6 +194,24 @@ public class CognitiveAnalysisFacade(
             return new CoverageLoadingResult { Success = false, ErrorMessage = $"Failed to load coverage data: {exception.Message}" };
         }
     }
+
+    /// <summary>
+    /// A report that knows only some of the analysed classes was probably produced from other sources or another module.
+    /// </summary>
+    private static string? PartialMatchWarning(
+        string coverageFilePath,
+        CognitiveMetricsCollection metricsCollection,
+        Dictionary<CognitiveMetrics, Coverage> matches
+    ) {
+        int analysed = metricsCollection.Select(ClassKey).Distinct().Count();
+        int matched = matches.Keys.Select(ClassKey).Distinct().Count();
+
+        return matched < analysed
+            ? $"Coverage report {coverageFilePath} matched {matched} of {analysed} analysed classes."
+            : null;
+    }
+
+    private static (string, string) ClassKey(CognitiveMetrics metrics) => (metrics.FilePath, metrics.ClassName);
 
     public class CoverageLoadingResult
     {

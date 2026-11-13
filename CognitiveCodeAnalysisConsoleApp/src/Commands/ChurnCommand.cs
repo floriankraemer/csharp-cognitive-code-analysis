@@ -65,7 +65,7 @@ internal sealed class ChurnCommand(
             return Error;
         }
 
-        ClassCoverageIndex? coverage = LoadCoverage(settings.CoverageCobertura);
+        ClassCoverageIndex? coverage = LoadCoverage(settings);
         CognitiveMetricsCollection metrics = facade.AnalyseSourceFiles(files, configuration);
         var counter = new GitChangeCounter(GitChangeCounter.DefaultExecutable, settings.SinceDate, GitTimeout);
         List<ChurnMetrics> churn = GitChurnCalculator.Calculate(metrics, counter, coverage);
@@ -87,8 +87,10 @@ internal sealed class ChurnCommand(
         return Success;
     }
 
-    private ClassCoverageIndex? LoadCoverage(string? coverageFile)
+    private ClassCoverageIndex? LoadCoverage(ChurnCommandSettings settings)
     {
+        CoverageFormat format = string.IsNullOrWhiteSpace(settings.CoverageClover) ? CoverageFormat.Auto : CoverageFormat.Clover;
+        string? coverageFile = format == CoverageFormat.Clover ? settings.CoverageClover : settings.CoverageCobertura;
         if (string.IsNullOrWhiteSpace(coverageFile))
         {
             return null;
@@ -102,7 +104,11 @@ internal sealed class ChurnCommand(
 
         try
         {
-            return new ClassCoverageIndex(coverageReader.ReadCoverage(fullPath).ToList());
+            return new ClassCoverageIndex(format.ReaderFor(coverageReader).ReadCoverage(fullPath).ToList());
+        }
+        catch (InvalidCoverageFileException exception)
+        {
+            throw new ChurnException(exception.Message, exception);
         }
         catch (Exception exception)
         {

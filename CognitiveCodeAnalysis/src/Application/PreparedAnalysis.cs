@@ -14,5 +14,6 @@ public sealed record PreparedAnalysis(
     string OutputFile,
     string? BaselineFile,
     string? CoverageCobertura,
-    bool IsConsoleTextReport
+    bool IsConsoleTextReport,
+    string? CoverageClover = null
 );

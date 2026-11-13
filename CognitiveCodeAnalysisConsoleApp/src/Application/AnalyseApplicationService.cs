@@ -3,6 +3,7 @@
 /// </copyright>
 
 using CognitiveCodeAnalysis.Application;
+using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
@@ -138,15 +139,18 @@ internal sealed class AnalyseApplicationService(
     ) {
         failed = false;
 
-        if (string.IsNullOrEmpty(prepared.CoverageCobertura))
+        bool clover = !string.IsNullOrEmpty(prepared.CoverageClover);
+        string? coverageFile = clover ? prepared.CoverageClover : prepared.CoverageCobertura;
+        if (string.IsNullOrEmpty(coverageFile))
         {
             return true;
         }
 
         var result = analysisWorkflow.ApplyCoverageIfRequested(
-            prepared.CoverageCobertura,
+            coverageFile,
             metricsCollection,
-            progress
+            progress,
+            clover ? CoverageFormat.Clover : CoverageFormat.Auto
         );
 
         if (result.WarningMessage is { } warningMessage)

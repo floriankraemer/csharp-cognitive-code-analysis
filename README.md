@@ -36,7 +36,10 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   Cobertura reports with counts (`lines-valid`, `branches-valid`, ...) and rate-only reports such as the ones coverlet writes (`line-rate`, `branch-rate`) are read, and so are Visual Studio coverage XML files.
   A method is matched by its name and by a first coverage line inside the method's source lines.
   A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
-  When a coverage file is read but no method matches, the tool prints a warning.
+  When a coverage file is read but no method matches, or only some of the classes match, the tool prints a warning.
+- `--coverage-clover <path>` — Optional Clover coverage file; cannot be combined with `--coverage-cobertura`.
+  HTML and Markdown reports then show `Line Coverage` and `Branch Coverage` columns.
+  See [docs/Coverage.md](docs/Coverage.md).
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).

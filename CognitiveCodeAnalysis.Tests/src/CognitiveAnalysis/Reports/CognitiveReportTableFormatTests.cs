@@ -59,7 +59,7 @@ public class CognitiveReportTableFormatTests
 
         Assert.That(headers, Is.EqualTo(new[]
         {
-            "Method", "Score", "Halstead Volume", "Halstead Difficulty", "Halstead Effort", "Cyclomatic Complexity", "Churn",
+            "Method", "Score", "Halstead Volume", "Halstead Difficulty", "Halstead Effort", "Cyclomatic Complexity", "Churn", "Line Coverage", "Branch Coverage",
         }));
     }
 
@@ -83,7 +83,7 @@ public class CognitiveReportTableFormatTests
 
         Assert.That(headers.Skip(BaseColumns), Is.EqualTo(new[]
         {
-            "Halstead Volume", "Halstead Difficulty", "Halstead Effort", "Cyclomatic Complexity", "Churn",
+            "Halstead Volume", "Halstead Difficulty", "Halstead Effort", "Cyclomatic Complexity", "Churn", "Line Coverage", "Branch Coverage",
         }));
     }
 
@@ -127,7 +127,7 @@ public class CognitiveReportTableFormatTests
 
         var row = CognitiveReportTableFormat.BuildRowValues(m, config, hasCoverageData: true);
 
-        Assert.That(row.Skip(BaseColumns), Is.EqualTo(new[] { "1.00", "2.00", "3.13", "3.3", "4.500" }));
+        Assert.That(row.Skip(BaseColumns), Is.EqualTo(new[] { "1.00", "2.00", "3.13", "3.3", "4.500", "n/a", "n/a" }));
     }
 
     [Test]
@@ -137,7 +137,32 @@ public class CognitiveReportTableFormatTests
 
         var row = CognitiveReportTableFormat.BuildRowValues(Metric(), config, hasCoverageData: true);
 
-        Assert.That(row.Skip(BaseColumns), Is.EqualTo(new[] { "n/a", "n/a", "n/a", "n/a" }));
+        Assert.That(row.Skip(BaseColumns), Is.EqualTo(new[] { "n/a", "n/a", "n/a", "n/a", "n/a", "n/a" }));
+    }
+
+    [Test]
+    public void BuildRowValues_CoverageFigures_AreFormattedWithOneDecimalAndPercent()
+    {
+        var m = Metric();
+        m.churnScore = 4.5;
+        m.lineCoveragePercentage = 83.333;
+        m.branchCoveragePercentage = 50;
+
+        var row = CognitiveReportTableFormat.BuildRowValues(m, new CognitiveConfiguration(), hasCoverageData: true);
+
+        Assert.That(row.Skip(BaseColumns), Is.EqualTo(new[] { "4.500", "83.3%", "50.0%" }));
+    }
+
+    [Test]
+    public void BuildRowValues_BranchCoverageNull_ShowsNotAvailableForBranchOnly()
+    {
+        var m = Metric();
+        m.lineCoveragePercentage = 100;
+        m.branchCoveragePercentage = null;
+
+        var row = CognitiveReportTableFormat.BuildRowValues(m, new CognitiveConfiguration(), hasCoverageData: true);
+
+        Assert.That(row.Skip(BaseColumns + 1), Is.EqualTo(new[] { "100.0%", "n/a" }));
     }
 
     [Test]

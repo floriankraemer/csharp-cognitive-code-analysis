@@ -136,7 +136,10 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).
   Methods match by name and by a first coverage line inside the method.
   Methods without branches show no branch coverage, and their churn uses the line coverage.
-  A coverage file that loads but matches no method produces a warning.
+  A coverage file that loads but matches no method produces a warning, and so does one that matches only some of the analysed classes.
+- `--coverage-clover <path>`: optional Clover coverage file.
+  It cannot be combined with `--coverage-cobertura`.
+  See [Coverage.md](Coverage.md) for the formats, the matching and the columns the HTML and Markdown reports gain.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
