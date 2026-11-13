@@ -34,7 +34,7 @@ If `Render` throws or returns `null`, nothing is written and the run fails with 
 | --- | --- |
 | `Methods` | Every analysed method. Ordered by `--sort-by`, otherwise by total score, highest first. Not filtered by the score threshold. |
 | `Settings` | `ScoreThreshold`, `ShowOnlyMethodsExceedingThreshold`, `GroupByClass`, `ShowHalsteadComplexity`, `ShowCyclomaticComplexity`, `ShowCouplingMetrics`, `ShowDetailedCognitiveMetrics`. |
-| `HasBaseline` | `true` when `--baseline` was given. |
+| `HasBaseline` | `true` when a baseline was applied, given with `--baseline` or found in `.cca/baseline`. |
 
 Each `CognitiveMethodRow` has:
 
@@ -51,7 +51,7 @@ Each `CognitiveMethodRow` has:
 | Member | Content |
 | --- | --- |
 | `Classes` | One `ChurnRow` per class, highest churn first. |
-| `CoverageProvided` | `true` when `--coverage-cobertura` was given. |
+| `CoverageProvided` | `true` when a coverage file was given (`--coverage-cobertura` or `--coverage-clover`). |
 | `Since` | The day the changes are counted from. |
 
 Each `ChurnRow` has `ClassName`, `FilePath` (as above), `Score`, `TimesChanged`, `Churn`, and, with coverage, `Coverage` (0.0 to 1.0), `RiskChurn` and `RiskLevel` (`CRITICAL`, `HIGH`, `MEDIUM` or `LOW`).
@@ -61,8 +61,8 @@ New members may be added in later releases without breaking a plugin; existing o
 
 ## Example
 
-The library is not published as a NuGet package.
-Reference the `CognitiveCodeAnalysis.dll` that sits next to the tool.
+The library is not published as a NuGet package, and the release executables bundle it.
+Build `CognitiveCodeAnalysis.dll` from the same version of this repository (`dotnet build CognitiveCodeAnalysis -c Release`) and reference that file.
 Set `Private` to `false`, so the build does not copy it: at run time the plugin uses the copy the tool already loaded.
 
 `HotspotReporter.csproj`:
@@ -77,7 +77,7 @@ Set `Private` to `false`, so the build does not copy it: at run time the plugin 
 
   <ItemGroup>
     <Reference Include="CognitiveCodeAnalysis">
-      <HintPath>C:\tools\cognitive\CognitiveCodeAnalysis.dll</HintPath>
+      <HintPath>/path/to/CognitiveCodeAnalysis.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -135,8 +135,8 @@ Register it in the configuration file, under `cognitive`:
 
 Copy `HotspotReporter.dll` to `plugins/` next to the configuration file and run:
 
-```powershell
-CognitiveCodeAnalysis .\src -c .\cognitive-metrics-settings.json -r hotspots -o .\hotspots.txt
+```bash
+CognitiveCodeAnalysis ./src -c ./cognitive-metrics-settings.json -r hotspots -o ./hotspots.txt
 ```
 
 A churn reporter works the same way with `ICustomChurnReporter`, listed under `customReporters.churn`, and is used with `CognitiveCodeAnalysis churn -r <key>`.

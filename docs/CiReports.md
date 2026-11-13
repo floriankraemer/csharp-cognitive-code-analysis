@@ -2,6 +2,7 @@
 
 The analysis writes five report formats for continuous integration systems.
 Use them with `-r <type> -o <file>`, and the type name is matched case-insensitively.
+A complete pipeline for GitHub Actions and GitLab CI, with baselines and caching, is in [Continuous integration](CI.md).
 
 | Type | File format | Read by |
 | --- | --- | --- |
