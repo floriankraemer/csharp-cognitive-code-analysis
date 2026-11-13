@@ -2,6 +2,7 @@
   "stryker-config": {
     "project": "CognitiveCodeAnalysis.csproj",
     "mutate": [
+      "src/Cache/**/*.cs",
       "src/CognitiveAnalysis/**/*.cs",
       "src/CodeCoverage/**/*.cs",
       "src/HalsteadAnalysis/**/*.cs",

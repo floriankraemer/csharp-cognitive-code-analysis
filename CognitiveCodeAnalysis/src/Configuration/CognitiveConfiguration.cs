@@ -29,6 +29,9 @@ public class CognitiveConfiguration
     /// Shows the detail columns (lines, arguments, returns, nesting, ...) in the console, HTML and Markdown reports.
     /// </summary>
     public bool ShowDetailedCognitiveMetrics { get; set; } = true;
+
+    public CacheSettings Cache { get; set; } = new();
+
     public Dictionary<string, MetricConfiguration> Metrics { get; set; } = new();
 
     /// <summary>

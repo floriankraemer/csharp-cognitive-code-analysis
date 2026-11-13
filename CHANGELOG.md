@@ -66,6 +66,10 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Analysis cache** (off by default).
+  `cache.enabled` and `cache.directory` in the configuration file, and `--cache` / `--no-cache`, store the metrics of each file so a repeated run on an unchanged tree skips the analysis.
+  Because the field and property counts depend on all files, any change to any file invalidates every entry.
+  See [Analysis cache](docs/Configuration.md#8-analysis-cache).
 - **Understandability: the cognitive complexity as specified by SonarSource (G. Ann Campbell's white paper), measured for every method and constructor.**
   It counts structural increments with a nesting penalty (`if`, `?:`, `switch`, loops, `catch`), `else` and `else if`, sequences of `&&` and `||`, `goto` and recursion, with the C# choices of SonarC#.
   It does not enter the score.

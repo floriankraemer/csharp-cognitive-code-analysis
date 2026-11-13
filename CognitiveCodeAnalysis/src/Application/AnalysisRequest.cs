@@ -16,5 +16,6 @@ public sealed record AnalysisRequest(
     string? SortBy = null,
     string SortOrder = "asc",
     bool Debug = false,
-    string? CoverageClover = null
+    string? CoverageClover = null,
+    bool? Cache = null
 );

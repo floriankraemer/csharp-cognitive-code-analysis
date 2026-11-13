@@ -8,21 +8,23 @@ namespace CognitiveCodeAnalysis.Application;
 
 public static class CognitiveConfigurationFactory
 {
-    public static CognitiveConfiguration Load(string? configFile, AnalysisDisplayOverrides? overrides = null)
+    public static CognitiveConfiguration Load(string? configFile, AnalysisDisplayOverrides? overrides = null, bool? cache = null)
     {
-        var (configuration, _) = LoadWithSource(configFile, overrides);
+        var (configuration, _) = LoadWithSource(configFile, overrides, cache);
         return configuration;
     }
 
     public static (CognitiveConfiguration Configuration, ConfigSource Source) LoadWithSource(
         string? configFile,
-        AnalysisDisplayOverrides? overrides = null
+        AnalysisDisplayOverrides? overrides = null,
+        bool? cache = null
     ) {
         var source = ConfigurationResolver.Resolve(configFile);
         var configuration = source.IsDefault
             ? CognitiveConfigurationDefaults.Create()
             : ConfigurationLoader.Load(source.Path);
         ApplyDisplayOverrides(configuration, overrides);
+        configuration.Cache.Enabled = cache ?? configuration.Cache.Enabled;
         return (configuration, source);
     }
 

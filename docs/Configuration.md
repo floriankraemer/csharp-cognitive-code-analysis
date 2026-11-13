@@ -30,6 +30,7 @@ Use this structure:
     "groupByClass": true,
     "countElseAsNesting": false,
     "countElseIfAsNesting": false,
+    "cache": { "enabled": false, "directory": ".cca/cache" },
     "metrics": {
       "ifCount": { "threshold": 3, "scale": 1.0, "enabled": true },
       "elseCount": { "threshold": 1, "scale": 1.0, "enabled": true },
@@ -81,6 +82,8 @@ Use this structure:
 - `showDetailedCognitiveMetrics` (`bool`, default `true`): shows the detail columns (Lines, Ifs, Else, Loops, Switch, Try/Catch, Arguments, Nesting, Returns, Locals, Fields, Props) in the console, HTML and Markdown reports.
   With `false`, those reports keep only Method, Score and the optional Halstead, Cyclomatic Complexity and Churn columns.
   The CSV, JSON, SARIF and CI reports always carry every metric.
+- `cache` (`object`): the analysis cache, off by default; see [Analysis cache](#8-analysis-cache).
+  `cache.enabled` (`bool`, default `false`) turns it on and `cache.directory` (`string`, default `.cca/cache`) names the directory.
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
   Every key must be one of the supported metric keys in section 5.
   An unknown key is ignored with a warning that names the key and lists the valid keys.
@@ -180,6 +183,8 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
 - `--show-understandability`: force `showUnderstandability` on for this run (overrides config).
+- `--cache` / `--no-cache`: turn the analysis cache on or off for this run (overrides `cache.enabled`).
+  The two options cannot be combined.
 
 An unknown option or a surplus argument is ignored with a warning that lists it; the exit code is not affected.
 
@@ -279,3 +284,27 @@ Ignoring a type also ignores the types nested in it.
 A comment inside a body does not ignore the method.
 A comment after the end of a declaration belongs to that declaration, unless another declaration starts after it on the same line: in `void A() { } /* @cca-ignore */ void B() { }` only `B` is ignored.
 The tag is case-sensitive.
+
+## 8) Analysis cache
+
+The cache stores the metrics of each file, so a repeated run on an unchanged tree does not analyse the files again.
+This helps most in CI, where one job writes several report types from the same sources.
+
+It is off by default.
+A run without it reads and writes nothing and creates no directory.
+Turn it on with `cache.enabled: true` or `--cache` and off with `--no-cache`; the command line wins over the file.
+`cache.directory` is resolved against the working directory.
+Add it to `.gitignore`; the directory is safe to delete at any time.
+
+- Each entry is one JSON file at `<directory>/<first two characters of the key>/<key>.json`.
+- The key is a SHA-256 hash of the file path, the hash of the content of the file, a digest of the content of every analysed file, the settings that change the unscored metrics (`excludePatterns`, `countElseAsNesting`, `countElseIfAsNesting`), the version of the tool and the .NET runtime.
+- Scores, thresholds, display options, coverage, baselines and the report type are applied after the cache, so changing them does not invalidate it.
+- Class coupling is not cached; it is computed across all files on every run.
+- A corrupt, unreadable or outdated entry counts as missing and is overwritten.
+- Entries are written to a temporary file and moved into place, so a run that is interrupted leaves no partial entry.
+- When the cache cannot be written, the run prints one warning and continues without it.
+
+**Limit: any change to any file invalidates every entry.**
+The field and property counts of a method come from the semantic model of all files together, so the metrics of a file can change when another file changes, for example when a member turns from a field into a property.
+The cache therefore cannot reuse the entries of the untouched files after an edit.
+It pays off for repeated runs on the same sources, not for incremental runs while editing.
