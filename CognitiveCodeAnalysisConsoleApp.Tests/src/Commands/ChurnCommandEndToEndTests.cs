@@ -294,7 +294,6 @@ public class ChurnCommandEndToEndTests
 
     [TestCase("--since", "yesterday", "Invalid --since date 'yesterday'. Expected format: yyyy-MM-dd.")]
     [TestCase("--vcs", "svn", "Unknown VCS 'svn'. Supported: git.")]
-    [TestCase("-r", "Pdf", "Invalid report type 'Pdf'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap.")]
     [TestCase("-r", "Json", "--report-type and --output-file must be given together.")]
     [TestCase("-o", "x.json", "--report-type and --output-file must be given together.")]
     public void InvalidOptions_PrintAMessageAndExitNonZeroWithoutAnalysing(string option, string value, string message)
@@ -304,6 +303,18 @@ public class ChurnCommandEndToEndTests
         {
             Assert.That(exitCode, Is.Not.Zero);
             Assert.That(AllOutput(output), Does.Contain(message));
+            Assert.That(output.Text, Does.Not.Contain("Samples.Sample"));
+        }
+    }
+
+    [Test]
+    public void UnknownReportType_IsRejectedBeforeAnalysing()
+    {
+        var (exitCode, output) = Run("churn", _repo.Directory, "-r", "Pdf", "-o", Out("x.pdf"));
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain("Invalid report type 'Pdf'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap."));
             Assert.That(output.Text, Does.Not.Contain("Samples.Sample"));
         }
     }

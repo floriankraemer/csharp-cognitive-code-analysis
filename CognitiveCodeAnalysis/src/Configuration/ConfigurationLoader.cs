@@ -29,6 +29,9 @@ public static class ConfigurationLoader
         cognitiveConfig.ExcludeFilePatterns = RegexPatterns.KeepValid(cognitiveConfig.ExcludeFilePatterns, "excludeFilePatterns", warnings);
         cognitiveConfig.ExcludePatterns = RegexPatterns.KeepValid(cognitiveConfig.ExcludePatterns, "excludePatterns", warnings);
         cognitiveConfig.Warnings = warnings;
+        cognitiveConfig.ConfigDirectory = string.IsNullOrEmpty(configFilePath)
+            ? null
+            : Path.GetDirectoryName(Path.GetFullPath(configFilePath));
 
         return cognitiveConfig;
     }

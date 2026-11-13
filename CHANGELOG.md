@@ -6,6 +6,16 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Custom reporters.**
+  A class in your own assembly can render the `analyse` or `churn` result in any format.
+  Register it under `cognitive.customReporters` in the configuration file and select it with `-r <key>`.
+  The plugin interface (`ICustomCognitiveReporter`, `ICustomChurnReporter` and their immutable input records) is in the namespace `CognitiveCodeAnalysis.Reporting.Spi`.
+  Built-in report types win over custom keys, and a custom key with the name of a built-in type is an error when that type is requested.
+  `churn` now checks an unknown `-r` value after reading the configuration, because it may be a custom key; the message for an unknown type is unchanged when no custom reporters are configured.
+  See [Custom reporters](docs/CustomReporters.md).
+
 ### Changed
 
 - **More declarations are analysed: the methods of structs, records and record structs, interface methods with a body, and constructors.**

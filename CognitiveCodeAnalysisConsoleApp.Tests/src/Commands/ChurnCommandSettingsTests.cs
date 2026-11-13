@@ -76,13 +76,12 @@ public class ChurnCommandSettingsTests
     [TestCase("ConsoleText")]
     [TestCase("Sarif")]
     [TestCase("")]
-    public void Validate_RejectsUnknownReportTypesAndListsTheValidOnes(string type)
+    public void Validate_LeavesUnknownReportTypesToTheCommand_BecauseTheyMayBeCustomReporters(string type)
     {
-        var result = new ChurnCommandSettings { ReportType = type, OutputFile = "out" }.Validate();
+        var settings = new ChurnCommandSettings { ReportType = type, OutputFile = "out" };
 
-        Assert.That(result.Successful, Is.False);
-        Assert.That(result.Message, Is.EqualTo(
-            $"Invalid report type '{type}'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap."));
+        Assert.That(settings.Validate().Successful, Is.True);
+        Assert.That(settings.ReportTypeValue, Is.Null);
     }
 
     [Test]

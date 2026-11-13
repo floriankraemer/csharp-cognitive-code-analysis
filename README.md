@@ -135,6 +135,17 @@ Reports: `Json`, `Csv`, `Html`, `Markdown`, `SvgTreemap`.
 Do not confuse this git churn with the `Churn` column of the analysis reports, which is the score weighted with the missing coverage (called risk churn in the `churn` command).
 See [docs/Churn.md](docs/Churn.md) for all options, the git details and the risk levels.
 
+## Custom reporters
+
+Your own report format can be added without changing the tool.
+Write a class that implements `ICustomCognitiveReporter` (for `analyse`) or `ICustomChurnReporter` (for `churn`), register it under `cognitive.customReporters` in the configuration file and select it with `-r <key>`.
+
+```json
+{ "cognitive": { "customReporters": { "cognitive": { "hotspots": { "type": "Acme.HotspotReporter", "assembly": "plugins/HotspotReporter.dll" } } } } }
+```
+
+See [docs/CustomReporters.md](docs/CustomReporters.md) for the interface, a complete example and the rules for resolving the key.
+
 ## Resources 🔗
 
 These pages and papers provide more information on cognitive limitations and readability and the impact on the business.

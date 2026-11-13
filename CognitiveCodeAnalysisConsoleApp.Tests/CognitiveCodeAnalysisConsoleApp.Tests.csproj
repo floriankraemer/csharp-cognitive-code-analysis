@@ -33,6 +33,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Compiles the plugin assemblies of the custom reporter tests. -->
+    <Compile Include="..\CognitiveCodeAnalysis.Tests\src\Reporting\PluginBuilder.cs" Link="src\Reporting\PluginBuilder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CognitiveCodeAnalysisConsoleApp\CognitiveCodeAnalysisConsoleApp.csproj" />
   </ItemGroup>
 

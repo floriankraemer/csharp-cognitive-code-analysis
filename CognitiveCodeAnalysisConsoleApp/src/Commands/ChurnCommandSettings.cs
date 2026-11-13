@@ -32,7 +32,7 @@ internal sealed class ChurnCommandSettings : CommandSettings
     [DefaultValue(SupportedVcs)]
     public string Vcs { get; init; } = SupportedVcs;
 
-    [Description("Report type: Json, Csv, Html, Markdown, SvgTreemap (any letter case). Requires --output-file. Defaults to a console table.")]
+    [Description("Report type: Json, Csv, Html, Markdown, SvgTreemap (any letter case), or the key of a custom reporter from the configuration. Requires --output-file. Defaults to a console table.")]
     [CommandOption("-r|--report-type")]
     public string? ReportType { get; init; }
 
@@ -65,12 +65,7 @@ internal sealed class ChurnCommandSettings : CommandSettings
             return ValidationResult.Error($"Unknown VCS '{Vcs}'. Supported: {SupportedVcs}.");
         }
 
-        if (ReportType is not null && ReportTypeValue is null)
-        {
-            return ValidationResult.Error(
-                $"Invalid report type '{ReportType}'. Expected one of: {ChurnReportTypes.Accepted}.");
-        }
-
+        // An unknown report type may be a custom reporter of the configuration; the command checks it there.
         if ((ReportType is null) != (OutputFile is null))
         {
             return ValidationResult.Error("--report-type and --output-file must be given together.");
