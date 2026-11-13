@@ -81,6 +81,9 @@ Use this structure:
 - `showDetailedCognitiveMetrics` (`bool`, default `true`): shows the detail columns (Lines, Ifs, Else, Loops, Switch, Try/Catch, Arguments, Nesting, Returns, Locals, Fields, Props) in the console, HTML and Markdown reports.
   With `false`, those reports keep only Method, Score and the optional Halstead, Cyclomatic Complexity and Churn columns.
   The CSV, JSON, SARIF and CI reports always carry every metric.
+- `customReporters` (`{ "cognitive": {...}, "churn": {...} }`): reporters from plugin assemblies, each key mapping to `{ "type": "Namespace.Type", "assembly": "path/to/plugin.dll" }`.
+  A relative `assembly` is resolved against the directory of this file.
+  Select a reporter with `-r <key>`; see [Custom reporters](CustomReporters.md).
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
   Every key must be one of the supported metric keys in section 5.
   An unknown key is ignored with a warning that names the key and lists the valid keys.

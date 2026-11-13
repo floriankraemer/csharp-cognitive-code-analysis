@@ -4,6 +4,7 @@
 
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.Reporting;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
 
@@ -22,9 +23,15 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
         IProgress<AnalysisProgress>? progress = null
     )
     {
+        var custom = configuration.CustomReporters.Cognitive;
         foreach (IReport reportGenerator in _reportGenerators)
         {
             if (!reportGenerator.Name.Equals(reportType, StringComparison.OrdinalIgnoreCase)) continue;
+
+            if (custom.Keys.Any(key => key.Equals(reportGenerator.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw CustomReporterLoader.Collision(reportGenerator.Name, "cognitive");
+            }
 
             reportGenerator.RenderMetrics(
                 outputFile: outputFile,
@@ -42,9 +49,17 @@ public class ReportCoordinator(IEnumerable<IReport> reports)
             return;
         }
 
+        if (custom.ContainsKey(reportType))
+        {
+            CustomReporterLoader.RunCognitive(reportType, configuration, outputFile, metricsCollection, baselineComparison);
+            OnReportGenerated(reportType, Path.GetFullPath(outputFile));
+            return;
+        }
+
         var supported = string.Join(", ", _reportGenerators.Select(r => r.Name).OrderBy(n => n, StringComparer.Ordinal));
         throw new InvalidOperationException(
-            $"Unknown report type '{reportType}'. Supported report types: {supported}.");
+            $"Unknown report type '{reportType}'. Supported report types: {supported}."
+            + (custom.Count == 0 ? "" : $" Custom report types: {string.Join(", ", custom.Keys.Order(StringComparer.Ordinal))}."));
     }
 
     protected virtual void OnReportGenerated(string reportType, string fullPath)

@@ -5,6 +5,7 @@
 using System.ComponentModel;
 using System.Globalization;
 
+using CognitiveCodeAnalysis.Application;
 using CognitiveCodeAnalysis.Churn;
 
 using Spectre.Console;
@@ -32,7 +33,7 @@ internal sealed class ChurnCommandSettings : CommandSettings
     [DefaultValue(SupportedVcs)]
     public string Vcs { get; init; } = SupportedVcs;
 
-    [Description("Report type: Json, Csv, Html, Markdown, SvgTreemap (any letter case). Requires --output-file. Defaults to a console table.")]
+    [Description("Report type: Json, Csv, Html, Markdown, SvgTreemap (any letter case), or the key of a custom reporter from the configuration. Requires --output-file. Defaults to a console table.")]
     [CommandOption("-r|--report-type")]
     public string? ReportType { get; init; }
 
@@ -76,8 +77,11 @@ internal sealed class ChurnCommandSettings : CommandSettings
 
         if (ReportType is not null && ReportTypeValue is null)
         {
-            return ValidationResult.Error(
-                $"Invalid report type '{ReportType}'. Expected one of: {ChurnReportTypes.Accepted}.");
+            IReadOnlyCollection<string> customKeys = CustomReporterKeys();
+            if (!customKeys.Contains(ReportType))
+            {
+                return ValidationResult.Error(InvalidReportTypeMessage(ReportType, customKeys));
+            }
         }
 
         if ((ReportType is null) != (OutputFile is null))
@@ -87,6 +91,23 @@ internal sealed class ChurnCommandSettings : CommandSettings
 
         return ValidationResult.Success();
     }
+
+    /// <summary>The keys of the custom churn reporters of the configuration. A configuration that cannot be read has none; the command reports it later.</summary>
+    private IReadOnlyCollection<string> CustomReporterKeys()
+    {
+        try
+        {
+            return CognitiveConfigurationFactory.Load(ConfigFile).CustomReporters.Churn.Keys.ToList();
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    private static string InvalidReportTypeMessage(string type, IReadOnlyCollection<string> customKeys) =>
+        $"Invalid report type '{type}'. Expected one of: {ChurnReportTypes.Accepted}."
+        + (customKeys.Count == 0 ? "" : $" Custom report types: {string.Join(", ", customKeys.Order(StringComparer.Ordinal))}.");
 
     private static DateOnly? ParseSince(string value) =>
         DateOnly.TryParseExact(value, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly date)

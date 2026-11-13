@@ -308,6 +308,21 @@ public class ChurnCommandEndToEndTests
         }
     }
 
+    [TestCase("-r", "Pdf")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf", "-c", "does-not-exist.json")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf", "--coverage-cobertura", "does-not-exist.xml")]
+    public void InvalidReportType_IsReportedFirst_BeforePairingConfigAndCoverageErrors(params string[] options)
+    {
+        var (exitCode, output) = Run(["churn", _repo.Directory, .. options]);
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain("Invalid report type 'Pdf'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap."));
+            Assert.That(AllOutput(output), Does.Not.Contain("must be given together").And.Not.Contain("not found"));
+        }
+    }
+
     [Test]
     public void Since_InTheFutureIsRejectedButTodayIsAccepted()
     {
