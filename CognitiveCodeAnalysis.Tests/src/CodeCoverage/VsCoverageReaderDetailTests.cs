@@ -164,9 +164,9 @@ public class VsCoverageReaderDetailTests
     {
         var path = _temp.CreateFileWithContent("bad.xml", "<results><module>");
 
-        var ex = Assert.Throws<InvalidOperationException>(() => new VsCoverageReader().ReadCoverage(path));
+        var ex = Assert.Throws<InvalidCoverageFileException>(() => new VsCoverageReader().ReadCoverage(path));
 
-        Assert.That(ex!.Message, Does.Contain("Failed to load or parse Visual Studio coverage XML"));
+        Assert.That(ex!.Message, Does.StartWith($"Invalid coverage file {path}: "));
         Assert.That(ex.InnerException, Is.Not.Null);
     }
 
@@ -176,7 +176,7 @@ public class VsCoverageReaderDetailTests
         var path = _temp.CreateFileWithContent("empty.xml", "<!-- nothing -->");
 
         // An XML document without a root element is rejected by the parser; it is reported as a parse failure.
-        Assert.Throws<InvalidOperationException>(() => new VsCoverageReader().ReadCoverage(path));
+        Assert.Throws<InvalidCoverageFileException>(() => new VsCoverageReader().ReadCoverage(path));
     }
 
     [Test]
@@ -201,6 +201,6 @@ public class VsCoverageReaderDetailTests
     {
         var path = _temp.CreateFileWithContent("noelem.xml", "");
 
-        Assert.Throws<System.Xml.XmlException>(() => new AutoDetectCoverageReader().ReadCoverage(path));
+        Assert.Throws<InvalidCoverageFileException>(() => new AutoDetectCoverageReader().ReadCoverage(path));
     }
 }

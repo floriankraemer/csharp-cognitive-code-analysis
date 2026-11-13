@@ -163,9 +163,9 @@ public class CoberturaReaderDetailTests
     {
         var path = _temp.CreateFileWithContent("bad.xml", "<coverage><oops>");
 
-        var ex = Assert.Throws<InvalidOperationException>(() => new CoberturaReader().ReadCoverage(path).ToList());
+        var ex = Assert.Throws<InvalidCoverageFileException>(() => new CoberturaReader().ReadCoverage(path).ToList());
 
-        Assert.That(ex!.Message, Does.Contain("Failed to load or parse XML file"));
+        Assert.That(ex!.Message, Does.StartWith($"Invalid coverage file {path}: "));
         Assert.That(ex.InnerException, Is.Not.Null);
     }
 

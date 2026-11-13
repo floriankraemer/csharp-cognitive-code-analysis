@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -36,7 +37,8 @@ public sealed class AnalysisWorkflow(
             OutputFile: outputFile,
             BaselineFile: ToAbsolutePath(request.BaselineFile),
             CoverageCobertura: ToAbsolutePath(request.CoverageCobertura),
-            IsConsoleTextReport: isConsoleTextReport
+            IsConsoleTextReport: isConsoleTextReport,
+            CoverageClover: ToAbsolutePath(request.CoverageClover)
         );
     }
 
@@ -64,7 +66,8 @@ public sealed class AnalysisWorkflow(
     public CoverageApplicationResult ApplyCoverageIfRequested(
         string? coverageFilePath,
         CognitiveMetricsCollection metricsCollection,
-        IProgress<AnalysisProgress>? progress
+        IProgress<AnalysisProgress>? progress,
+        CoverageFormat format = CoverageFormat.Auto
     ) {
         if (string.IsNullOrEmpty(coverageFilePath))
         {
@@ -74,7 +77,8 @@ public sealed class AnalysisWorkflow(
         var result = cognitiveAnalysisFacade.LoadCoverageData(
             coverageFilePath: coverageFilePath,
             metricsCollection: metricsCollection,
-            progress: progress
+            progress: progress,
+            format: format
         );
 
         return new CoverageApplicationResult(

@@ -4,6 +4,7 @@
 
 using System.ComponentModel;
 
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace CognitiveCodeAnalysisConsoleApp.Commands;
@@ -44,9 +45,13 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("-o|--output-file")]
     public string? OutputFile { get; init; }
 
-    [Description("Path to Cobertura coverage report file")]
+    [Description("Path to Cobertura (or Visual Studio) coverage report file")]
     [CommandOption("--coverage-cobertura")]
     public string? CoverageCobertura { get; init; }
+
+    [Description("Path to Clover coverage report file")]
+    [CommandOption("--coverage-clover")]
+    public string? CoverageClover { get; init; }
 
     [Description("Show Halstead volume/difficulty/effort in reports (overrides config when set)")]
     [CommandOption("--show-halstead")]
@@ -76,4 +81,9 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [Description("Emit timestamped diagnostic logs to stderr for each analysis phase")]
     [CommandOption("-v|--verbose")]
     public bool Verbose { get; init; }
+
+    public override ValidationResult Validate() =>
+        CoverageOptions.AreExclusive(CoverageCobertura, CoverageClover)
+            ? ValidationResult.Success()
+            : ValidationResult.Error(CoverageOptions.OnlyOneFormatMessage);
 }

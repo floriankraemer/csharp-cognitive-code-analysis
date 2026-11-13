@@ -138,6 +138,24 @@ public class AnalyseCommandSettingsTests
         Assert.That(CliParseProbeCommand.Parsed, Is.Not.Null, "Settings should be bound.");
     }
 
+    [Test]
+    public void Validate_RejectsBothCoverageFormats()
+    {
+        var result = new AnalyseCommandSettings { GenerateConfig = new FlagValue<string?>(), CoverageCobertura = "a.xml", CoverageClover = "b.xml" }.Validate();
+
+        Assert.That(result.Successful, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Only one coverage format can be specified at a time."));
+    }
+
+    [Test]
+    public void ParseCoverageClover_BindsTheOption()
+    {
+        Parse(".\\src --coverage-clover .\\clover.xml");
+
+        Assert.That(CliParseProbeCommand.Parsed!.CoverageClover, Is.EqualTo(".\\clover.xml"));
+        Assert.That(CliParseProbeCommand.Parsed!.CoverageCobertura, Is.Null);
+    }
+
     private static string[] SplitCommandLine(string commandLine)
         => commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

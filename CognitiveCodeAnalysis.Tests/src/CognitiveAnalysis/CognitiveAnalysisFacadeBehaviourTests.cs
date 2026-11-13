@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -145,6 +145,81 @@ public class CognitiveAnalysisFacadeBehaviourTests
 
         Assert.That(result.Success, Is.False);
         Assert.That(result.ErrorMessage, Does.StartWith("Failed to load coverage data: Unrecognized coverage XML format"));
+    }
+
+    private static string CloverFor(string source, string classNames) => $"""
+        <coverage><project><file name="{source}">
+          {classNames}
+          <line num="5" type="method" name="Run" count="1"/>
+          <line num="6" type="stmt" count="1"/><line num="7" type="stmt" count="0"/>
+        </file></project></coverage>
+        """;
+
+    [Test]
+    public void LoadCoverageData_Clover_AppliesLineAndBranchCoverageToTheMethod()
+    {
+        var (facade, metrics, source) = AnalysedMethod();
+        var clover = _temp.CreateFileWithContent("clover.xml", CloverFor(source, """<class name="Calc" namespace="N"><metrics statements="2" coveredstatements="1"/></class>"""));
+
+        var result = facade.LoadCoverageData(clover, metrics, progress: null, CoverageFormat.Clover);
+
+        var method = metrics.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.WarningMessage, Is.Null);
+            Assert.That(method.lineCoveragePercentage, Is.EqualTo(50.0));
+            Assert.That(method.branchCoveragePercentage, Is.Null);
+        }
+    }
+
+    [Test]
+    public void LoadCoverageData_CloverFileWithAutoDetection_IsReadAsCobertura()
+    {
+        var (facade, metrics, source) = AnalysedMethod();
+        var clover = _temp.CreateFileWithContent("clover.xml", CloverFor(source, """<class name="Calc" namespace="N"><metrics statements="2" coveredstatements="1"/></class>"""));
+
+        var result = facade.LoadCoverageData(clover, metrics);
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorMessage, Is.EqualTo("No coverage data found"));
+    }
+
+    [Test]
+    public void LoadCoverageData_CoverageOfOnlySomeClasses_WarnsWithTheCounts()
+    {
+        var other = _temp.CreateFileWithContent("Other.cs", "namespace N;\npublic class Other\n{\n    public int Go(int a)\n    {\n        if (a > 0) { return 1; }\n        return 0;\n    }\n}\n");
+        var (facade, _, source) = AnalysedMethod();
+        var metrics = facade.AnalyseSourceFiles([source, other]);
+        var clover = _temp.CreateFileWithContent("clover.xml", CloverFor(source, """<class name="Calc" namespace="N"><metrics statements="2" coveredstatements="1"/></class>"""));
+
+        var result = facade.LoadCoverageData(clover, metrics, progress: null, CoverageFormat.Clover);
+
+        Assert.That(result.Success, Is.True);
+        Assert.That(result.WarningMessage, Is.EqualTo($"Coverage report {clover} matched 1 of 2 analysed classes."));
+    }
+
+    [Test]
+    public void LoadCoverageData_Clover_ReportsAnInvalidFileWithFileAndReason()
+    {
+        var (facade, metrics, _) = AnalysedMethod();
+        var bad = _temp.CreateFileWithContent("bad.xml", "<coverage><project>");
+
+        var result = facade.LoadCoverageData(bad, metrics, progress: null, CoverageFormat.Clover);
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorMessage, Does.StartWith($"Invalid coverage file {bad}: "));
+    }
+
+    [Test]
+    public void LoadCoverageData_CoberturaFileGivenAsClover_ReportsNotAClover()
+    {
+        var (facade, metrics, _) = AnalysedMethod();
+        var cobertura = _temp.CreateFileWithContent("cov.xml", "<coverage><packages/></coverage>");
+
+        var result = facade.LoadCoverageData(cobertura, metrics, progress: null, CoverageFormat.Clover);
+
+        Assert.That(result.ErrorMessage, Is.EqualTo($"Invalid coverage file {cobertura}: not a Clover report, the root element is <coverage>"));
     }
 
     [Test]

@@ -52,6 +52,8 @@ internal static class CognitiveReportTableFormat
         if (hasCoverageData)
         {
             headers.Add("Churn");
+            headers.Add("Line Coverage");
+            headers.Add("Branch Coverage");
         }
 
         return headers;
@@ -108,6 +110,8 @@ internal static class CognitiveReportTableFormat
                     ? DeltaValue(metrics.churnScore.Value, comparison?.ChurnScore, "F3")
                     : "n/a"
             );
+            row.Add(CoverageValue(metrics.lineCoveragePercentage, comparison?.LineCoveragePercentage));
+            row.Add(CoverageValue(metrics.branchCoveragePercentage, comparison?.BranchCoveragePercentage));
         }
 
         return row;
@@ -115,6 +119,15 @@ internal static class CognitiveReportTableFormat
 
     private static string DeltaValue(double value, MetricDelta? delta, string format)
         => CognitiveReportDeltaFormatter.FormatMarkdownValue(FormatInvariant(value, format), delta, format);
+
+    private static string CoverageValue(double? value, MetricDelta? delta)
+        => value.HasValue
+            ? CognitiveReportDeltaFormatter.FormatMarkdownValue(FormatCoveragePercent(value), delta, "F1")
+            : "n/a";
+
+    /// <summary>One decimal and a percent sign, like the console; "n/a" when there is no data.</summary>
+    internal static string FormatCoveragePercent(double? value)
+        => value.HasValue ? FormatInvariant(value.Value, "F1") + "%" : "n/a";
 
     private static string HalsteadValue(double? value, MetricDelta? delta)
         => value.HasValue ? DeltaValue(value.Value, delta, "F2") : "n/a";

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1794513480">
+  <project timestamp="1794513480">
+    <file name="/proj/src/Calculator.cs">
+      <class name="Calculator" namespace="Demo\Math">
+        <metrics complexity="5" methods="3" coveredmethods="2" conditionals="4" coveredconditionals="3" statements="8" coveredstatements="6" elements="15" coveredelements="11"/>
+      </class>
+      <line num="7" type="method" name="Add" visibility="public" complexity="1" crap="1" count="3"/>
+      <line num="9" type="stmt" count="3"/>
+      <line num="12" type="method" name="Divide" visibility="public" complexity="3" crap="3" count="2"/>
+      <line num="14" type="cond" truecount="1" falsecount="0"/>
+      <line num="15" type="stmt" count="1"/>
+      <line num="17" type="stmt" count="0"/>
+      <line num="18" type="stmt" count="2"/>
+      <line num="22" type="method" name="Unused" visibility="private" complexity="1" crap="2" count="0"/>
+      <line num="23" type="stmt" count="0"/>
+      <metrics loc="25" ncloc="20" classes="1" methods="3" coveredmethods="2" conditionals="4" coveredconditionals="3" statements="8" coveredstatements="6" elements="15" coveredelements="11"/>
+    </file>
+    <metrics files="1" loc="25" ncloc="20" classes="1" methods="3" coveredmethods="2" conditionals="4" coveredconditionals="3" statements="8" coveredstatements="6" elements="15" coveredelements="11"/>
+  </project>
+</coverage>

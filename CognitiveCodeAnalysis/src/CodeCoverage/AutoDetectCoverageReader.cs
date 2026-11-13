@@ -36,13 +36,20 @@ public sealed class AutoDetectCoverageReader : ICoverageReader
             throw new FileNotFoundException($"Coverage file not found: {filePath}", filePath);
         }
 
-        using var reader = XmlReader.Create(filePath, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore });
-        while (reader.Read())
+        try
         {
-            if (reader.NodeType == XmlNodeType.Element)
+            using XmlReader reader = CoverageXml.CreateReader(filePath);
+            while (reader.Read())
             {
-                return reader.Name;
+                if (reader.NodeType == XmlNodeType.Element)
+                {
+                    return reader.Name;
+                }
             }
+        }
+        catch (XmlException exception)
+        {
+            throw new InvalidCoverageFileException(filePath, exception.Message, exception);
         }
 
         throw new InvalidOperationException($"Coverage XML file contains no elements: {filePath}");
