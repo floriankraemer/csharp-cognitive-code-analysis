@@ -72,6 +72,20 @@ public class GitChangeCounterTests
     }
 
     [Test]
+    public void Count_MatchesGlobCharactersInFileNamesLiterally()
+    {
+        using var repo = TempGitRepo.Create();
+        repo.Commit("C1.cs", "2024-02-01T12:00:00+0000");
+        repo.Commit("C[1].cs", "2024-02-02T12:00:00+0000");
+        repo.Commit("C[1].cs", "2024-02-03T12:00:00+0000");
+        repo.Commit("star.cs", "2024-02-04T12:00:00+0000");
+
+        Assert.That(Counter("2000-01-01").Count(repo.PathOf("C1.cs")), Is.EqualTo(1));
+        Assert.That(Counter("2000-01-01").Count(repo.PathOf("C[1].cs")), Is.EqualTo(2));
+        Assert.That(Counter("2000-01-01").Count(repo.PathOf("*.cs")), Is.Zero);
+    }
+
+    [Test]
     public void Count_FileOutsideAnyRepositoryFailsWithNotAGitRepository()
     {
         var temp = new TempFiles();
@@ -128,7 +142,7 @@ public class GitChangeCounterTests
             Assert.That(count, Is.EqualTo(7));
             Assert.That(File.ReadAllLines(script + ".args"), Is.EqualTo(new[]
             {
-                "-C", "/some dir", "rev-list", "--since=2024-03-09 00:00:00", "--no-merges", "--count", "HEAD", "--",
+                "--literal-pathspecs", "-C", "/some dir", "rev-list", "--since=2024-03-09 00:00:00", "--no-merges", "--count", "HEAD", "--",
                 "/some dir/A.cs",
             }));
         }

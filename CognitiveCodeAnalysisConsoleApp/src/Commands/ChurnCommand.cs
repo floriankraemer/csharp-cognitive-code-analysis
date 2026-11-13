@@ -29,6 +29,14 @@ internal sealed class ChurnCommand(
     private const int Error = -1;
     private static readonly TimeSpan GitTimeout = TimeSpan.FromSeconds(60);
 
+    public override ValidationResult Validate(CommandContext context, ChurnCommandSettings settings)
+    {
+        DateOnly today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+        return settings.SinceDate > today
+            ? ValidationResult.Error("--since must not be in the future.")
+            : ValidationResult.Success();
+    }
+
     public override int Execute(
         CommandContext context,
         ChurnCommandSettings settings,

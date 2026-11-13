@@ -63,6 +63,8 @@ public sealed class GitChangeCounter(string executable, DateOnly since, TimeSpan
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        // Names like C[1].cs or * must match literally, not as glob patterns.
+        info.ArgumentList.Add("--literal-pathspecs");
         info.ArgumentList.Add("-C");
         info.ArgumentList.Add(directory);
         info.ArgumentList.Add("rev-list");

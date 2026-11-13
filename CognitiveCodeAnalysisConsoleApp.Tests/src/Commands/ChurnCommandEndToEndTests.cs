@@ -98,7 +98,7 @@ public class ChurnCommandEndToEndTests
             Assert.That(Row(output.Text, "Samples.Sample").Changes, Is.EqualTo(2));
         }
 
-        var (_, later) = Run("churn", _repo.Directory, "-s", "2030-01-01");
+        var (_, later) = Run("churn", _repo.Directory, "-s", "2024-04-02");
         using (later)
         {
             Assert.That(later.Text, Does.Not.Contain("Samples.Sample"));
@@ -226,6 +226,26 @@ public class ChurnCommandEndToEndTests
     }
 
     [Test]
+    public void Coverage_AmbiguousShortNameIsNotAvailableAndCountedInTheWarning()
+    {
+        string coverage = Path.Combine(_repo.Directory, "ambiguous.xml");
+        File.WriteAllText(coverage, """
+            <coverage><packages>
+              <package name="One"><classes><class name="Sample" filename="Sample.cs" lines-covered="1" lines-valid="2"><methods/></class></classes></package>
+              <package name="Two"><classes><class name="Sample" filename="Other.cs" lines-covered="2" lines-valid="2"><methods/></class></classes></package>
+            </packages></coverage>
+            """);
+        _repo.WriteFile("Sample.cs", Source.Replace("namespace Samples;", ""));
+
+        var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-cobertura", coverage);
+        using (output)
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(AllOutput(output), Does.Contain("Warning: 2 of 2 classes are not in the coverage report"));
+        }
+    }
+
+    [Test]
     public void Coverage_MissingFileFailsBeforeAnyAnalysis()
     {
         var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-cobertura", Path.Combine(_repo.Directory, "nope.xml"));
@@ -264,6 +284,24 @@ public class ChurnCommandEndToEndTests
             Assert.That(AllOutput(output), Does.Contain(message));
             Assert.That(output.Text, Does.Not.Contain("Samples.Sample"));
         }
+    }
+
+    [Test]
+    public void Since_InTheFutureIsRejectedButTodayIsAccepted()
+    {
+        string tomorrow = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var (exitCode, output) = Run("churn", _repo.Directory, "--since", tomorrow);
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain("--since must not be in the future."));
+            Assert.That(output.Text, Does.Not.Contain("Samples.Sample"));
+        }
+
+        string today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var (todayExit, todayOutput) = Run("churn", _repo.Directory, "--since", today);
+        todayOutput.Dispose();
+        Assert.That(todayExit, Is.Zero);
     }
 
     [Test]

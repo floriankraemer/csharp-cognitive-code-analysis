@@ -33,16 +33,14 @@ public sealed class ClassCoverageIndex
         }
 
         // A report may name "Engine" where the analysis says "MyNs.Engine", or the other way round.
-        foreach ((string name, double rate) in _byName)
-        {
-            if (name.EndsWith("." + className, StringComparison.Ordinal)
-                || className.EndsWith("." + name, StringComparison.Ordinal))
-            {
-                return rate;
-            }
-        }
+        // Only an unambiguous match counts; guessing between two namespaces would show wrong coverage.
+        List<double> candidates = _byName
+            .Where(entry => entry.Key.EndsWith("." + className, StringComparison.Ordinal)
+                || className.EndsWith("." + entry.Key, StringComparison.Ordinal))
+            .Select(entry => entry.Value)
+            .ToList();
 
-        return null;
+        return candidates.Count == 1 ? candidates[0] : null;
     }
 
     public bool IsEmpty => _byName.Count == 0;

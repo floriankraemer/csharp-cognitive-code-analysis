@@ -223,6 +223,16 @@ public class GitChurnCalculatorTests
     }
 
     [Test]
+    public void ClassCoverageIndex_AmbiguousSuffixMatchIsNotAvailable()
+    {
+        var index = new ClassCoverageIndex([ClassCoverage("A.Engine", 1, 2), ClassCoverage("B.Engine", 2, 2)]);
+
+        Assert.That(index.Rate("Engine"), Is.Null);
+        Assert.That(index.Rate("A.Engine"), Is.EqualTo(0.5), "exact names stay exact");
+        Assert.That(index.Rate("B.Engine"), Is.EqualTo(1));
+    }
+
+    [Test]
     public void ClassCoverageIndex_DoesNotMatchPartialNames()
     {
         var index = new ClassCoverageIndex([ClassCoverage("MyNs.SuperEngine", 1, 2)]);

@@ -57,7 +57,7 @@ The console shows the classes with a score and a churn above zero.
 | `--coverage-cobertura <file>` | none | Cobertura XML coverage report, see [Risk](#risk). |
 | `-h`, `--help` | | Show the help and exit. |
 
-An invalid date, an unknown VCS, an unknown report type or a report type without an output file (or the other way round) prints a message and exits with a non-zero status.
+An invalid date, a date in the future, an unknown VCS, an unknown report type or a report type without an output file (or the other way round) prints a message and exits with a non-zero status.
 
 ## Git
 
@@ -71,7 +71,8 @@ Git is started without a shell, once per source file, with the locale `LC_ALL=C`
 git -C <directory of the file> rev-list "--since=<date> 00:00:00" --no-merges --count HEAD -- <file>
 ```
 
-`--since` is the start of the given day in the time zone of the machine.
+`--since` is the start of the given day in the time zone of the machine, and it must not be in the future.
+File names are passed to git as literal paths, so names such as `C[1].cs` are not treated as glob patterns.
 A call that takes longer than 60 seconds is stopped and reported.
 The history of the current branch is used and it must be complete, so a shallow clone can report fewer changes than the project has.
 A file that git does not track has no changes and therefore no churn.
@@ -104,6 +105,8 @@ risk churn = times changed × score × (1 − coverage)
 ```
 
 The coverage is the line coverage of the class in the report, between 0.0 and 1.0.
+A class matches by its full name.
+If the report only knows a short name that fits several classes (the same name in two namespaces), the class has no coverage instead of a guess.
 The risk level is the first rule that matches.
 
 | Level | Churn | Coverage |
