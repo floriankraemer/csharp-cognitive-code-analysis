@@ -243,6 +243,21 @@ public class SortAndVersionEndToEndTests
     }
 
     [Test]
+    public void Debug_CountsTheFilesTheDiscoveryKept_NotTheOnesItExcluded()
+    {
+        File.WriteAllText(Path.Combine(_dir, "Skipped.cs"), "class Skipped { void M() { } }");
+        File.WriteAllText(P("exclude.json"), """{ "cognitive": { "excludeFilePatterns": ["Skipped\\.cs$"] } }""");
+
+        var (exitCode, output) = Run(_dir, "--debug", "-c", P("exclude.json"));
+        using (output)
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(output.StdErr, Does.Contain("Files found: 1\n"));
+            Assert.That(output.StdErr, Does.Contain("Files analysed: 1\n"));
+        }
+    }
+
+    [Test]
     public void WithoutDebug_NothingIsPrintedToStandardError()
     {
         var (_, output) = Run(_dir, "-c", P("ungrouped.json"));

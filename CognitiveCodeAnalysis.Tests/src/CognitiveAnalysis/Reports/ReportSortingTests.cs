@@ -112,6 +112,22 @@ public class ReportSortingTests
         Assert.That(snapshot.Methods.Select(m => m.MethodName), Is.EquivalentTo(new[] { "alpha", "beta", "gamma" }));
     }
 
+    [Test]
+    public void JUnit_WithoutSort_KeepsTheCollectionOrder()
+        => Assert.That(Order(Render(new JUnitReport(), Config(false, null)), @"<testcase [^>]*name=""(\w+)"""), Is.EqualTo(new[] { "alpha", "beta", "gamma" }));
+
+    [Test]
+    public void JUnit_WithSort_FollowsTheSort()
+        => Assert.That(Order(Render(new JUnitReport(), Config(false, "line")), @"<testcase [^>]*name=""(\w+)"""), Is.EqualTo(new[] { "gamma", "beta", "alpha" }));
+
+    [Test]
+    public void Checkstyle_WithoutSort_KeepsTheCollectionOrder()
+        => Assert.That(Order(Render(new CheckstyleReport(), Config(false, null)), @"<error line=""(\d+)"""), Is.EqualTo(new[] { "30", "20", "10" }));
+
+    [Test]
+    public void Checkstyle_WithSort_FollowsTheSort()
+        => Assert.That(Order(Render(new CheckstyleReport(), Config(false, "line")), @"<error line=""(\d+)"""), Is.EqualTo(new[] { "10", "20", "30" }));
+
     private static string[] MarkdownRows(string markdown) => Order(markdown, @"(?m)^\| L\d+ (alpha|beta|gamma)\b");
 
     private string[] CsvMethods(CognitiveConfiguration config) =>

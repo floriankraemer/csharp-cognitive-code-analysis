@@ -22,8 +22,7 @@ public sealed class AnalysisWorkflow(
         );
         var sorter = MetricsSorter.Create(request.SortBy, request.SortOrder);
         configuration.Sorter = request.SortBy is null ? null : sorter;
-        var sourcePath = request.SourcePath ?? Directory.GetCurrentDirectory();
-        var absoluteSourcePath = Path.GetFullPath(sourcePath);
+        var sourcePaths = SourceFileFinder.SplitPathList(request.SourcePath ?? Directory.GetCurrentDirectory());
         var reportType = request.ReportType;
         var outputFile = Path.GetFullPath(request.OutputFile ?? "cognitive-analysis-report");
         var isConsoleTextReport = string.Equals(reportType, "ConsoleText", StringComparison.OrdinalIgnoreCase);
@@ -31,7 +30,8 @@ public sealed class AnalysisWorkflow(
         return new PreparedAnalysis(
             Configuration: configuration,
             ConfigSource: configSource,
-            AbsoluteSourcePath: absoluteSourcePath,
+            AbsoluteSourcePath: string.Join(", ", sourcePaths),
+            SourcePaths: sourcePaths,
             ReportType: reportType,
             OutputFile: outputFile,
             BaselineFile: ToAbsolutePath(request.BaselineFile),
@@ -43,8 +43,12 @@ public sealed class AnalysisWorkflow(
     private static string? ToAbsolutePath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? path : Path.GetFullPath(path);
 
-    public List<string> FindSourceFiles(string absoluteSourcePath, IProgress<AnalysisProgress>? progress = null)
-        => cognitiveAnalysisFacade.FindSourceFiles(absoluteSourcePath, progress);
+    public List<string> FindSourceFiles(PreparedAnalysis prepared, IProgress<AnalysisProgress>? progress = null)
+        => cognitiveAnalysisFacade.FindSourceFiles(
+            [.. prepared.SourcePaths],
+            prepared.Configuration.ExcludeFilePatterns,
+            progress
+        );
 
     public CognitiveMetricsCollection AnalyseSourceFiles(
         List<string> files,

@@ -60,6 +60,8 @@ public class Program
         serviceCollection.AddSingleton<IReport, SarifReport>();
         serviceCollection.AddSingleton<IReport, GithubActionsReport>();
         serviceCollection.AddSingleton<IReport, GitlabCodeQualityReport>();
+        serviceCollection.AddSingleton<IReport, CheckstyleReport>();
+        serviceCollection.AddSingleton<IReport, JUnitReport>();
         serviceCollection.AddSingleton<IReport, CsvReport>();
         serviceCollection.AddSingleton<IReport, MarkdownReport>();
         serviceCollection.AddSingleton<IReport, JsonReport>();

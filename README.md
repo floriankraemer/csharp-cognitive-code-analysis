@@ -22,12 +22,17 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 
 **Arguments:**
 
-- `[searchPath]` — Optional. Directory to scan for `*.cs` files. Defaults to the current working directory.
+- `[searchPath]` — Optional. A `.cs` file, a directory, or a comma-separated list of both, such as `src,tools/Build.cs`.
+  Directories are searched recursively for `*.cs` files. Defaults to the current working directory.
+  The list is trimmed, duplicates are removed, and a path that exists as written stays one path even when it contains a comma.
+  `bin`, `obj` and directories whose name starts with a dot (`.git`, `.vs`) are not searched; use `excludeFilePatterns` to leave out anything else.
 
 **Options:**
 
 - `-c|--config <path>` — JSON config file (same `cognitive` section as the default settings file). Passed to `ConfigurationLoader.Load`.
-- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`. The type is matched case-insensitively, so `-r html` works.
+- `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Markdown`, `Json`, `Csv`, `Sarif`, `GithubActions`, `GitlabCodeQuality`, `Checkstyle`, or `JUnit`.
+  The type is matched case-insensitively, so `-r html` works.
+  The CI formats and their paths are described in [docs/CiReports.md](docs/CiReports.md).
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
 - `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values, console and Markdown show the same arrows as plain text or colored text).
 - `--coverage-cobertura <path>` — Optional coverage file (line/branch coverage and risk churn when matched).
@@ -56,6 +61,12 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
 All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.
 
+**What is analysed:** the methods and constructors of classes, structs, records, record structs and interfaces.
+Interface members count only when they have a body (default interface methods).
+Property and indexer accessors, operators, finalizers and primary constructors are not analysed; local functions and lambdas count as part of the method that contains them.
+To leave out a type or a member, put `@cca-ignore` into its XML doc comment or into any comment above it.
+See [Analysed methods](docs/Configuration.md#7-analysed-methods) for the details.
+
 **Examples:**
 
 ```powershell
@@ -64,6 +75,10 @@ CognitiveCodeAnalysis
 
 # Analyse a specific folder
 CognitiveCodeAnalysis .\src
+
+# Analyse one file, or a list of files and folders
+CognitiveCodeAnalysis .\src\Service.cs
+CognitiveCodeAnalysis .\src,.\tools\Build.cs
 
 # HTML report
 CognitiveCodeAnalysis .\src -r Html -o .\report.html

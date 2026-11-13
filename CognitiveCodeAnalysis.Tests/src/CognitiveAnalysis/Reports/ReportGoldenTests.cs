@@ -65,6 +65,48 @@ public class ReportGoldenTests
             Collection: ReportGoldenFixtures.StandardCollection,
             Config: ReportGoldenFixtures.StandardConfig,
             FixtureFile: "github.standard.txt"),
+        new(
+            Name: "CheckstyleReport_violations",
+            CreateReport: () => new CheckstyleReport(),
+            Collection: ReportGoldenFixtures.CiViolationsCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "checkstyle.violations.xml"),
+        new(
+            Name: "CheckstyleReport_none",
+            CreateReport: () => new CheckstyleReport(),
+            Collection: ReportGoldenFixtures.NoViolationsCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "checkstyle.none.xml"),
+        new(
+            Name: "CheckstyleReport_escaping",
+            CreateReport: () => new CheckstyleReport(),
+            Collection: ReportGoldenFixtures.EscapingCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "checkstyle.escaping.xml"),
+        new(
+            Name: "JUnitReport_violations",
+            CreateReport: () => new JUnitReport(),
+            Collection: ReportGoldenFixtures.CiViolationsCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "junit.violations.xml"),
+        new(
+            Name: "JUnitReport_none",
+            CreateReport: () => new JUnitReport(),
+            Collection: ReportGoldenFixtures.NoViolationsCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "junit.none.xml"),
+        new(
+            Name: "JUnitReport_escaping",
+            CreateReport: () => new JUnitReport(),
+            Collection: ReportGoldenFixtures.EscapingCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "junit.escaping.xml"),
+        new(
+            Name: "GithubActionsReport_escaping",
+            CreateReport: () => new GithubActionsReport(),
+            Collection: ReportGoldenFixtures.EscapingCollection,
+            Config: ReportGoldenFixtures.StandardConfig,
+            FixtureFile: "github.escaping.txt"),
     ];
 
     public static IEnumerable<TestCaseData> GoldenCaseSource()

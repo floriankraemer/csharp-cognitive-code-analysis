@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -85,6 +85,28 @@ public class ChurnCommandEndToEndTests
             Assert.That(score, Is.GreaterThan(0));
             Assert.That(churn, Is.EqualTo(Math.Round(score * 3, 3)).Within(0.0005));
             Assert.That(output.Text, Does.Not.Contain("Samples.Helper"));
+        }
+    }
+
+    [Test]
+    public void FileListAndExcludePatterns_SelectTheAnalysedCode()
+    {
+        _repo.WriteFile("Other.cs", Source.Replace("namespace Samples;", "namespace Others;"));
+        _repo.Commit("Other.cs", "2024-05-01T12:00:00+0000");
+        string config = Path.Combine(_repo.Directory, "settings.json");
+        File.WriteAllText(config, """{ "cognitive": { "excludePatterns": ["^Others\\.", "("] } }""");
+
+        var (exitCode, output) = Run(
+            "churn",
+            $"{Path.Combine(_repo.Directory, "Other.cs")} , {Path.Combine(_repo.Directory, "Sample.cs")}",
+            "-c",
+            config);
+        using (output)
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(AllOutput(output), Does.Contain("Invalid regular expression '(' in 'excludePatterns' is ignored"));
+            Assert.That(Row(output.Text, "Samples.Sample").Changes, Is.EqualTo(3));
+            Assert.That(output.Text, Does.Not.Contain("Others.Sample"));
         }
     }
 

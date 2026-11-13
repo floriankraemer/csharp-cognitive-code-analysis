@@ -202,6 +202,35 @@ internal static class ReportGoldenFixtures
         return BaselineComparer.Compare(FullCollection(), snapshot);
     }
 
+    /// <summary>
+    /// Violations at warning and error severity, a method exactly at the threshold (not a violation), an error exactly
+    /// at twice the threshold, and a method on line 0 that the formats report on line 1.
+    /// </summary>
+    internal static CognitiveMetricsCollection CiViolationsCollection() =>
+        new()
+        {
+            CreateMetric("Warn", "Ci", "src/Ci.cs", "void Warn()", 4, 6.0),
+            CreateMetric("Fail", "Ci", "src/Ci.cs", "void Fail()", 20, 10.0),
+            CreateMetric("Edge", "Ci", "src/Ci.cs", "void Edge()", 30, 5.0),
+            CreateMetric("Unlined", "Ci", "src/Lines.cs", "void Unlined()", 0, 7.4),
+        };
+
+    /// <summary>Every method at or below the threshold.</summary>
+    internal static CognitiveMetricsCollection NoViolationsCollection() =>
+        new()
+        {
+            CreateMetric("Quiet", "Ci", "src/Ci.cs", "void Quiet()", 4, 1.2),
+            CreateMetric("Calm", "Ci", "src/Ci.cs", "void Calm()", 9, 5.0),
+        };
+
+    /// <summary>File names and class names with markup, quotes and the separators of the workflow commands.</summary>
+    internal static CognitiveMetricsCollection EscapingCollection() =>
+        new()
+        {
+            CreateMetric("Run", "Ops&Co<T>", "src/a & \"b\" <c>.cs", "void Run()", 3, 12.0),
+            CreateMetric("Go", "Ops%Co", "src/x:y,z 100%.cs", "void Go()", 9, 6.0),
+        };
+
     private static CognitiveMetrics CreateMetric(
         string methodName,
         string className,

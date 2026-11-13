@@ -19,7 +19,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
         + "fieldAccessCountScore, ifCountScore, elseCountScore, nestingLevelsScore, loopCountScore, switchCountScore, "
         + "tryCatchCountScore";
 
-    [Description("Path to search for c# files. Defaults to current path.")]
+    [Description("C# file, directory, or comma-separated list of both to analyse. Directories are searched recursively. Defaults to the current path.")]
     [CommandArgument(0, "[searchPath]")]
     public string? SourcePath { get; init; }
 
@@ -31,7 +31,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("--generate-config [PATH]")]
     public required FlagValue<string?> GenerateConfig { get; init; }
 
-    [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Csv. Defaults to console.")]
+    [Description("Report type: ConsoleText, Html, Markdown, Json, Sarif, GithubActions, GitlabCodeQuality, Checkstyle, JUnit, Csv. Defaults to console.")]
     [CommandOption("-f|-r|--report-type|--report-format")]
     [DefaultValue("ConsoleText")]
     public string? ReportType { get; init; }
