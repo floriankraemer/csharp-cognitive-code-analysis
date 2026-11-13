@@ -18,8 +18,6 @@ public class CognitiveCiLocationTests
     [TestCase("src/My File #1.cs", "src/My File #1.cs")]
     [TestCase("/work/project/src/A.cs", "src/A.cs")]
     [TestCase("/work//project/./src/A.cs", "src/A.cs")]
-    [TestCase("src\\A.cs", "src/A.cs")]
-    [TestCase("\\work\\project\\src\\A.cs", "src/A.cs")]
     public void DisplayPath_FileBelowWorkingDirectory_IsRelativeWithSlashes(string file, string expected)
     {
         Assert.That(CognitiveCiLocation.DisplayPath(file, WorkingDirectory), Is.EqualTo(expected));
@@ -34,6 +32,65 @@ public class CognitiveCiLocationTests
     public void DisplayPath_FileOutsideWorkingDirectory_IsAbsoluteWithSlashes(string file, string expected)
     {
         Assert.That(CognitiveCiLocation.DisplayPath(file, WorkingDirectory), Is.EqualTo(expected));
+    }
+
+    [Test]
+    [Platform(Exclude = "Win")]
+    public void DisplayPath_BackslashInFileNameOnUnix_IsLiteral()
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath("src\\A.cs", WorkingDirectory), Is.EqualTo("src\\A.cs"));
+    }
+
+    [Test]
+    [Platform(Include = "Win")]
+    public void DisplayPath_BackslashOnWindows_IsSeparator()
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath("src\\A.cs", WorkingDirectory), Is.EqualTo("src/A.cs"));
+    }
+
+    [Test]
+    public void DisplayPath_WindowsStyleRootedInputOnAnyPlatform_IsSeparated()
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath("\\\\work\\project\\src\\A.cs", "\\\\work\\project"), Is.EqualTo("src/A.cs"));
+    }
+
+    [Test]
+    public void DisplayPath_DoubleSlashOnUnix_IsNotAUncPath()
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath("//work/project/src/A.cs", WorkingDirectory), Is.EqualTo("src/A.cs"));
+    }
+
+    [TestCase("\\\\server\\share\\proj\\src\\A.cs", "\\\\server\\share\\proj", "src/A.cs")]
+    [TestCase("\\\\server\\share\\proj\\A.cs", "\\\\server\\share\\proj", "A.cs")]
+    public void DisplayPath_UncFileBelowUncWorkingDirectory_IsRelative(string file, string workingDirectory, string expected)
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath(file, workingDirectory), Is.EqualTo(expected));
+    }
+
+    [TestCase("\\\\server\\share\\other\\A.cs", "//server/share/other/A.cs")]
+    [TestCase("\\\\server\\share\\A.cs", "//server/share/A.cs")]
+    public void DisplayPath_UncFileOutsideWorkingDirectory_KeepsTheUncPrefix(string file, string expected)
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath(file, "\\\\server\\share\\proj"), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void DisplayPath_UncFileOnAnotherShare_KeepsTheUncPrefixAgainstLocalWorkingDirectory()
+    {
+        Assert.That(CognitiveCiLocation.DisplayPath("\\\\other\\share\\A.cs", WorkingDirectory), Is.EqualTo("//other/share/A.cs"));
+    }
+
+    [TestCase("//server/share/My Dir/A.cs", "file://server/share/My%20Dir/A.cs")]
+    [TestCase("//server/share", "file://server/share")]
+    public void FileUri_UncPath_UsesTheHostFormOfFileUris(string absolute, string expected)
+    {
+        Assert.That(CognitiveCiLocation.FileUri(absolute), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void WorkingDirectoryUri_UncWorkingDirectory_IsAFileUriWithTrailingSlash()
+    {
+        Assert.That(CognitiveCiLocation.WorkingDirectoryUri("\\\\server\\share\\proj"), Is.EqualTo("file://server/share/proj/"));
     }
 
     [Test]

@@ -90,6 +90,16 @@ public class CiReportPathTests
     }
 
     [Test]
+    public void Sarif_UncFileOutsideWorkingDirectory_IsAFileUriWithTheHostAsAuthority()
+    {
+        JsonElement artifact = SarifResult(Metric("\\\\server\\share\\A.cs", 8))
+            .GetProperty("locations")[0].GetProperty("physicalLocation").GetProperty("artifactLocation");
+
+        Assert.That(artifact.GetProperty("uri").GetString(), Is.EqualTo("file://server/share/A.cs"));
+        Assert.That(artifact.TryGetProperty("uriBaseId", out _), Is.False);
+    }
+
+    [Test]
     public void Sarif_MethodOnLineZero_StartsAtLineOne()
     {
         JsonElement region = SarifResult(Metric(InsideFile, 8, line: 0))
