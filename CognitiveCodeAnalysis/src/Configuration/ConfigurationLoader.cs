@@ -13,7 +13,7 @@ public static class ConfigurationLoader
     /// <summary>
     /// <![CDATA[
     /// Loads configuration directly and returns the CognitiveConfiguration object.
-    /// Throws <see cref="ConfigurationException"/> when the metrics section names a metric that cannot be scored.
+    /// Unknown metric keys are dropped and reported in <see cref="CognitiveConfiguration.Warnings"/>.
     /// ]]>
     /// </summary>
     public static CognitiveConfiguration Load(string? configFilePath = null)
@@ -22,7 +22,7 @@ public static class ConfigurationLoader
 
         CognitiveConfiguration cognitiveConfig = CognitiveConfigurationDefaults.Create();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
-        cognitiveConfig.Warnings = MetricKeyValidator.NormalizeOrThrow(cognitiveConfig);
+        cognitiveConfig.Warnings = MetricKeyValidator.Normalize(cognitiveConfig);
 
         return cognitiveConfig;
     }

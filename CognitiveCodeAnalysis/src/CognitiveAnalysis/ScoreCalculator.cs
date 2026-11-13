@@ -53,9 +53,11 @@ public class ScoreCalculator
             return metrics;
         }
 
-        MetricAccessor accessor = Accessors.TryGetValue(keyValuePair.Key, out MetricAccessor? found)
-            ? found
-            : throw new ConfigurationException(MetricKeyValidator.UnknownKeyMessage([keyValuePair.Key]));
+        // Unknown keys are dropped (with a warning) when a configuration is loaded; programmatic ones are ignored here.
+        if (!Accessors.TryGetValue(keyValuePair.Key, out MetricAccessor? accessor))
+        {
+            return metrics;
+        }
 
         double score = CalculateLogWeight(
             value: accessor.Count(metrics),

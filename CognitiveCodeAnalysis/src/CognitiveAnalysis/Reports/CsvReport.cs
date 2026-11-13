@@ -62,7 +62,6 @@ public sealed class CsvReport : IReport
 
         AddMetricHeaders(headers, "TotalScore", includeDeltas);
         AddMetricHeaders(headers, "LinesOfCode", includeDeltas);
-        AddMetricHeaders(headers, "LinesOfCodeScore", includeDeltas);
         AddMetricHeaders(headers, "IfCount", includeDeltas);
         AddMetricHeaders(headers, "IfScore", includeDeltas);
         AddMetricHeaders(headers, "ElseCount", includeDeltas);
@@ -105,6 +104,9 @@ public sealed class CsvReport : IReport
             AddMetricHeaders(headers, "ChurnScore", includeDeltas);
         }
 
+        // Appended last so that readers of the earlier columns by position are not affected.
+        AddMetricHeaders(headers, "LinesOfCodeScore", includeDeltas);
+
         return headers;
     }
 
@@ -136,7 +138,6 @@ public sealed class CsvReport : IReport
 
         AddMetricValue(row, m.totalScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.TotalScore, "F3", includeDeltas);
         AddMetricValue(row, m.linesOfCode.ToString(CultureInfo.InvariantCulture), comparison?.LinesOfCode, "F0", includeDeltas);
-        AddMetricValue(row, m.linesOfCodeScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LinesOfCodeScore, "F3", includeDeltas);
         AddMetricValue(row, m.ifCount.ToString(CultureInfo.InvariantCulture), comparison?.IfCount, "F0", includeDeltas);
         AddMetricValue(row, m.ifScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.IfScore, "F3", includeDeltas);
         AddMetricValue(row, m.elseCount.ToString(CultureInfo.InvariantCulture), comparison?.ElseCount, "F0", includeDeltas);
@@ -183,6 +184,8 @@ public sealed class CsvReport : IReport
             AddMetricValue(row, FormatCoverage(m.branchCoveragePercentage), comparison?.BranchCoveragePercentage, "F1", includeDeltas);
             AddMetricValue(row, FormatChurn(m.churnScore), comparison?.ChurnScore, "F3", includeDeltas);
         }
+
+        AddMetricValue(row, m.linesOfCodeScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LinesOfCodeScore, "F3", includeDeltas);
 
         return row;
     }

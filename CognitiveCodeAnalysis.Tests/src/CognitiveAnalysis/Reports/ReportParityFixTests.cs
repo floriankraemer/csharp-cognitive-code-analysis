@@ -27,24 +27,28 @@ public class ReportParityFixTests
     }
 
     [Test]
-    public void Csv_HasLinesOfCodeScoreRightAfterLinesOfCode()
+    public void Csv_AppendsLinesOfCodeScoreAfterAllExistingColumns()
     {
         string[] lines = Render(new CsvReport(), grouped: false).Split('\n', StringSplitOptions.RemoveEmptyEntries);
         string[] header = SplitCsv(lines[0]);
         string[] alpha = SplitCsv(lines.Single(l => l.Contains(",Alpha,")));
 
-        int loc = Array.IndexOf(header, "LinesOfCode");
-        Assert.That(header[loc + 1], Is.EqualTo("LinesOfCodeScore"));
-        Assert.That(alpha[loc], Is.EqualTo("90"));
-        Assert.That(alpha[loc + 1], Is.EqualTo("0.250"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(header[^1], Is.EqualTo("LinesOfCodeScore"));
+            Assert.That(header[^2], Is.EqualTo("ChurnScore"));
+            Assert.That(alpha[^1], Is.EqualTo("0.250"));
+            Assert.That(header[Array.IndexOf(header, "LinesOfCode") + 1], Is.EqualTo("IfCount"));
+        }
     }
 
     [Test]
-    public void Csv_WithBaseline_AddsALinesOfCodeScoreDeltaColumn()
+    public void Csv_WithBaseline_AppendsTheScoreAndItsDeltaAtTheEnd()
     {
-        string header = Render(new CsvReport(), grouped: false, baseline: true).Split('\n')[0];
+        string[] header = SplitCsv(Render(new CsvReport(), grouped: false, baseline: true).Split('\n')[0]);
 
-        Assert.That(header, Does.Contain("LinesOfCode,LinesOfCodeDelta,LinesOfCodeScore,LinesOfCodeScoreDelta,IfCount"));
+        Assert.That(header[^2..], Is.EqualTo(new[] { "LinesOfCodeScore", "LinesOfCodeScoreDelta" }));
+        Assert.That(header[^3], Is.EqualTo("ChurnScoreDelta"));
     }
 
     [TestCase(true)]

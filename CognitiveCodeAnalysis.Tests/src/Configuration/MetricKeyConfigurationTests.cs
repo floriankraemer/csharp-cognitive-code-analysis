@@ -20,38 +20,43 @@ public class MetricKeyConfigurationTests
     private CognitiveConfiguration LoadMetrics(string metricsJson)
         => ConfigurationLoader.Load(_temp.CreateFileWithContent("config.json", $$"""{ "cognitive": { "metrics": { {{metricsJson}} } } }"""));
 
-    [Test]
-    public void Load_UnknownMetricKey_ThrowsNamingTheKeyAndListingTheValidOnes()
-    {
-        var ex = Assert.Throws<ConfigurationException>(
-            () => LoadMetrics("""  "ifCuont": { "threshold": 1, "scale": 1.0, "enabled": true } """));
+    private static string Unknown(string key)
+        => $"Unknown metric '{key}' in configuration is ignored. Valid metrics: {string.Join(", ", ScoreCalculator.SupportedMetricKeys)}.";
 
-        Assert.That(ex!.Message, Does.Contain("Unknown metric key 'ifCuont' in cognitive.metrics"));
-        foreach (string valid in ScoreCalculator.SupportedMetricKeys)
+    [Test]
+    public void Load_UnknownMetricKey_IsIgnoredWithAWarningNamingTheKeyAndTheValidOnes()
+    {
+        var configuration = LoadMetrics("""  "ifCuont": { "threshold": 1, "scale": 1.0, "enabled": true } """);
+
+        using (Assert.EnterMultipleScope())
         {
-            Assert.That(ex.Message, Does.Contain(valid));
+            Assert.That(configuration.Warnings, Is.EqualTo(new[] { Unknown("ifCuont") }));
+            Assert.That(configuration.Metrics.ContainsKey("ifCuont"), Is.False);
+            Assert.That(configuration.Metrics.Keys, Is.EquivalentTo(ScoreCalculator.SupportedMetricKeys));
         }
     }
 
     [Test]
-    public void Load_SeveralUnknownMetricKeys_AreAllNamed()
+    public void Load_SeveralUnknownMetricKeys_AreAllWarnedAbout()
     {
-        var ex = Assert.Throws<ConfigurationException>(
-            () => LoadMetrics("""  "foo": { "enabled": true }, "bar": { "enabled": false } """));
+        var configuration = LoadMetrics("""  "foo": { "enabled": true }, "bar": { "enabled": false } """);
 
-        Assert.That(ex!.Message, Does.Contain("Unknown metric keys 'bar', 'foo'"));
+        Assert.That(configuration.Warnings, Is.EqualTo(new[] { Unknown("bar"), Unknown("foo") }));
     }
 
     [TestCase("methodName")]
     [TestCase("MethodName")]
     [TestCase("methodSignature")]
     [TestCase("cyclomaticComplexity")]
-    public void Load_KeyOfANonScoredMetricsMember_IsRejectedInsteadOfCrashingTheScoring(string key)
+    public void Load_KeyOfANonScoredMetricsMember_IsIgnoredAndScoringStillWorks(string key)
     {
-        var ex = Assert.Throws<ConfigurationException>(
-            () => LoadMetrics($$"""  "{{key}}": { "threshold": 1, "scale": 1.0, "enabled": true } """));
+        var configuration = LoadMetrics($$"""  "{{key}}": { "threshold": 1, "scale": 1.0, "enabled": true } """);
+        var metrics = new CognitiveMetrics("M", "C", "f.cs", "M()", 1, ifCount: 9);
 
-        Assert.That(ex!.Message, Does.Contain($"'{key}'"));
+        Assert.DoesNotThrow(() => new ScoreCalculator().CalculateScores(metrics, configuration));
+
+        Assert.That(configuration.Warnings, Is.EqualTo(new[] { Unknown(key) }));
+        Assert.That(metrics.ifScore, Is.GreaterThan(0));
     }
 
     [Test]
@@ -103,12 +108,13 @@ public class MetricKeyConfigurationTests
     }
 
     [Test]
-    public void Load_DeprecatedAliasNextToAnUnknownKey_StillRejectsTheUnknownKey()
+    public void Load_DeprecatedAliasNextToAnUnknownKey_WarnsAboutBoth()
     {
-        var ex = Assert.Throws<ConfigurationException>(
-            () => LoadMetrics(""" "variableCount": { "enabled": true }, "nope": { "enabled": true } """));
+        var configuration = LoadMetrics(""" "variableCount": { "enabled": true }, "nope": { "enabled": true } """);
 
-        Assert.That(ex!.Message, Does.Contain("'nope'").And.Not.Contain("'variableCount'"));
+        Assert.That(configuration.Warnings, Has.Count.EqualTo(2));
+        Assert.That(configuration.Warnings, Does.Contain(Unknown("nope")));
+        Assert.That(configuration.Warnings.Single(w => w != Unknown("nope")), Does.Contain("'variableCount' is deprecated"));
     }
 
     [Test]

@@ -19,12 +19,11 @@ internal static class MetricKeyValidator
     };
 
     /// <summary>
-    /// Renames deprecated keys in place (recording a warning each) and rejects every other unknown key.
+    /// Renames deprecated keys in place and drops every other unknown key, recording a warning each. Nothing fails, so configurations that worked before keep working.
     /// </summary>
-    public static IReadOnlyList<string> NormalizeOrThrow(CognitiveConfiguration configuration)
+    public static IReadOnlyList<string> Normalize(CognitiveConfiguration configuration)
     {
         var warnings = new List<string>();
-        var unknown = new List<string>();
 
         // Alphabetical, because the configuration providers do not keep the order of the file.
         foreach (string key in configuration.Metrics.Keys.OrderBy(key => key, StringComparer.Ordinal).ToList())
@@ -37,24 +36,14 @@ internal static class MetricKeyValidator
             }
             else if (!ScoreCalculator.SupportedMetricKeys.Contains(key))
             {
-                unknown.Add(key);
+                configuration.Metrics.Remove(key);
+                warnings.Add(UnknownKeyMessage(key));
             }
-        }
-
-        if (unknown.Count > 0)
-        {
-            throw new ConfigurationException(UnknownKeyMessage(unknown));
         }
 
         return warnings;
     }
 
-    public static string UnknownKeyMessage(IReadOnlyList<string> unknownKeys)
-    {
-        string names = string.Join(", ", unknownKeys.Select(key => $"'{key}'"));
-        string noun = unknownKeys.Count == 1 ? "key" : "keys";
-
-        return $"Unknown metric {noun} {names} in cognitive.metrics. "
-            + $"Valid keys: {string.Join(", ", ScoreCalculator.SupportedMetricKeys)}.";
-    }
+    public static string UnknownKeyMessage(string key)
+        => $"Unknown metric '{key}' in configuration is ignored. Valid metrics: {string.Join(", ", ScoreCalculator.SupportedMetricKeys)}.";
 }

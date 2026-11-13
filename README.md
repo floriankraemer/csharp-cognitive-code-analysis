@@ -39,7 +39,7 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
 
-Unknown options and surplus arguments are errors: the tool prints the problem and exits with a non-zero exit code instead of ignoring them.
+Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
 All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.
 
 **Examples:**

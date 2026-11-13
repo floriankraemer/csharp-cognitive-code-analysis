@@ -66,12 +66,14 @@ public class PublishedBinaryCliTests
     }
 
     [Test]
-    public void UnknownOption_FailsWithANonZeroExitCodeAndNamesTheOption()
+    public void UnknownOption_IsIgnoredWithAWarning_AndTheExitCodeIsUnchanged()
     {
+        File.WriteAllText(Path.Combine(_workingDirectory, "Sample.cs"), "public class S { public void M() { } }");
+
         (int exitCode, string output) = RunExecutable(_workingDirectory, _workingDirectory, "--bogus");
 
-        Assert.That(exitCode, Is.Not.EqualTo(0));
-        Assert.That(output, Does.Contain("Unknown option 'bogus'"));
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output, Does.Contain("Ignored unknown arguments: --bogus"));
     }
 
     [Test]

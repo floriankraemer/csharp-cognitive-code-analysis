@@ -65,7 +65,7 @@ Use this structure:
   The CSV, JSON, SARIF and CI reports always carry every metric.
 - `metrics` (`Dictionary<string, MetricConfiguration>`): scoring rules per metric key.
   Every key must be one of the supported metric keys in section 5.
-  An unknown key stops the run with an error that names the key and lists the valid keys.
+  An unknown key is ignored with a warning that names the key and lists the valid keys.
 
 ## 4) Metric option fields
 
@@ -139,7 +139,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
 
-An unknown option or a surplus argument is an error with a non-zero exit code.
+An unknown option or a surplus argument is ignored with a warning that lists it; the exit code is not affected.
 
 CLI boolean flags use Spectre’s optional `bool?` binding: omit the option to keep the JSON value; pass `--show-halstead` / `--show-cyclomatic` to enable display for that run. To force `false` from the shell, rely on the config file or omit these flags.
 

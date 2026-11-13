@@ -40,10 +40,6 @@ The project follows [Semantic Versioning](https://semver.org/).
   `countElseAsNesting` and `countElseIfAsNesting` keep their meaning and now also apply to loops and other statements inside an `else`.
 - `foreach` iteration variables and `catch` variables are counted as local variables (`localVariableCount`).
   This only changes scores when `localVariableCount` is enabled.
-- Unknown options and surplus arguments on the command line are errors with a non-zero exit code.
-  Before, they were ignored silently and the tool ran with exit code 0.
-- Unknown keys in the `metrics` section of a configuration file stop the run with an error that names the key and lists the valid keys.
-  Before, a key that matched a non-numeric member of the metrics (for example `methodName`) crashed the scoring with a `FormatException`, and other unknown keys were ignored silently.
 - The built-in defaults, the file written by `--generate-config` and the shipped `cognitive-metrics-settings.json` are now one and the same.
   `--generate-config` used to write `localVariableCount` and `propertyAccessCount` as enabled and omit several metrics.
   Configuration files you generated earlier keep working unchanged.
@@ -60,7 +56,11 @@ The project follows [Semantic Versioning](https://semver.org/).
 ### Added
 
 - The console report has the columns Else, Loops, Switch and Try/Catch, like the other reports.
-- The CSV report has a `LinesOfCodeScore` column (and `LinesOfCodeScoreDelta` with a baseline) after `LinesOfCode`.
+- The CSV report has a `LinesOfCodeScore` column (and `LinesOfCodeScoreDelta` with a baseline), appended after all existing columns so that positional readers are not affected.
+- Unknown options and surplus arguments on the command line print a warning that lists them.
+  They are still ignored and the exit code is unchanged.
+- Unknown keys in the `metrics` section of a configuration file print a warning (`Unknown metric 'x' in configuration is ignored. Valid metrics: ...`) and are ignored, so configurations that worked before keep working.
+  Before, they were ignored silently, except a key that matched a non-numeric member of the metrics (for example `methodName`), which crashed the scoring with a `FormatException`.
 - The Markdown report shows baseline deltas (▲ and ▼) like the HTML report, and its Method column is left-aligned.
 - `showDetailedCognitiveMetrics` is bound and honoured: with `false`, the console, HTML and Markdown reports hide the detail columns.
 - The Cobertura reader reads reports that carry rates only (`line-rate`, `branch-rate`), which is what coverlet writes, next to reports with counts.

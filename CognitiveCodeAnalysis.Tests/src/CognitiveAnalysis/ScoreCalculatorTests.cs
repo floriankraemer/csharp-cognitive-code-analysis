@@ -306,14 +306,30 @@ public class Tests
     [TestCase("MethodName")]
     [TestCase("cyclomaticComplexity")]
     [TestCase("")]
-    public void CalculateScores_UnknownEnabledMetricName_ThrowsAConfigurationErrorNamingTheKey(string key)
+    public void CalculateScores_UnknownEnabledMetricName_IsIgnored(string key)
     {
         var metrics = Metrics(ifCount: 9);
 
-        var ex = Assert.Throws<ConfigurationException>(
-            () => new ScoreCalculator().CalculateScores(metrics, SingleMetric(key, 0, 1)));
+        Assert.DoesNotThrow(() => new ScoreCalculator().CalculateScores(metrics, SingleMetric(key, 0, 1)));
+        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+    }
 
-        Assert.That(ex!.Message, Does.Contain($"'{key}'").And.Contain("Valid keys: linesOfCode, ifCount"));
+    [Test]
+    public void CalculateScores_UnknownMetricNextToAKnownOne_StillScoresTheKnownOne()
+    {
+        var metrics = Metrics(ifCount: 4);
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new()
+            {
+                ["nope"] = new MetricConfiguration { Threshold = 0, Scale = 1, Enabled = true },
+                ["ifCount"] = new MetricConfiguration { Threshold = 1, Scale = 1, Enabled = true },
+            },
+        };
+
+        new ScoreCalculator().CalculateScores(metrics, configuration);
+
+        Assert.That(metrics.totalScore, Is.EqualTo(Math.Log(4.0)).Within(1e-12));
     }
 
     [Test]

@@ -85,35 +85,36 @@ public class CliBehaviourTests
     [TestCase("--bogus")]
     [TestCase("--show-halstad")]
     [TestCase("-x")]
-    public void UnknownOption_FailsWithANonZeroExitCodeAndNamesTheOption(string option)
+    public void UnknownOption_IsIgnoredWithAWarning_AndTheRunStillSucceeds(string option)
     {
         var (exitCode, output) = Run(_dir, option);
         using (output)
         {
-            // Spectre writes its parse error past the captured console; the published binary test checks the message.
-            Assert.That(exitCode, Is.Not.EqualTo(0), option);
-            Assert.That(output.Text, Does.Not.Contain("Summary:"), "no analysis runs after a parse error");
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(output.Text + output.StdOut, Does.Contain($"Warning: Ignored unknown arguments: {option}"));
+            Assert.That(output.Text, Does.Contain("Summary:"));
         }
     }
 
     [Test]
-    public void UnknownOption_NextToValidOnes_StillFails()
+    public void UnknownOption_NextToValidOnes_IsListedAndTheValidOnesStillApply()
     {
         var (exitCode, output) = Run(_dir, "-f", "Html", "-o", P("r.html"), "--no-such-option", "value");
         using (output)
         {
-            Assert.That(exitCode, Is.Not.EqualTo(0));
-            Assert.That(File.Exists(P("r.html")), Is.False);
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(File.Exists(P("r.html")), Is.True);
+            Assert.That(output.Text + output.StdOut, Does.Contain("Ignored unknown arguments: --no-such-option value"));
         }
     }
 
     [Test]
-    public void SurplusPositionalArgument_Fails()
+    public void SurplusPositionalArgument_KeepsItsExistingBehavior()
     {
         var (exitCode, output) = Run(_dir, P("other"));
         using (output)
         {
-            Assert.That(exitCode, Is.Not.EqualTo(0));
+            Assert.That(exitCode, Is.EqualTo(-1));
         }
     }
 
@@ -125,6 +126,7 @@ public class CliBehaviourTests
         {
             Assert.That(exitCode, Is.EqualTo(0));
             Assert.That(File.Exists(P("r.md")), Is.True);
+            Assert.That(output.Text + output.StdOut, Does.Not.Contain("Ignored unknown arguments"));
         }
     }
 
@@ -209,17 +211,17 @@ public class CliBehaviourTests
     // ---- configuration ----
 
     [Test]
-    public void UnknownMetricKey_InTheConfigFile_FailsNamingTheKeyAndListingTheValidOnes()
+    public void UnknownMetricKey_InTheConfigFile_WarnsNamingTheKeyAndListsTheValidOnes_AndTheRunSucceeds()
     {
-        string config = WriteConfig(""" "metrics": { "ifCuont": { "threshold": 1, "scale": 1.0, "enabled": true } } """);
+        string config = WriteConfig(""" "metrics": { "cyclomaticComplexity": { "threshold": 1, "scale": 1.0, "enabled": true } } """);
 
         var (exitCode, output) = Run(_dir, "-c", config);
         using (output)
         {
-            Assert.That(exitCode, Is.EqualTo(-1));
+            Assert.That(exitCode, Is.EqualTo(0));
             string text = output.Text + output.StdOut;
-            Assert.That(text, Does.Contain("Error: Unknown metric key 'ifCuont'").And.Contain("Valid keys: linesOfCode, ifCount"));
-            Assert.That(text, Does.Not.Contain("Summary:"));
+            Assert.That(text, Does.Contain("Warning: Unknown metric 'cyclomaticComplexity' in configuration is ignored. Valid metrics: linesOfCode, ifCount"));
+            Assert.That(text, Does.Contain("Summary:"));
         }
     }
 

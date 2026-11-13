@@ -60,11 +60,6 @@ public class Program
         // A type registrar is an adapter for a DI framework.
         var registrar = new TypeRegistrar(serviceCollection);
 
-        var app = new CommandApp<AnalyseCommand>(registrar);
-
-        // Unknown options and surplus arguments are errors instead of being ignored.
-        app.Configure(config => config.Settings.StrictParsing = true);
-
-        return app.Run(args);
+        return new CommandApp<AnalyseCommand>(registrar).Run(args);
     }
 }
