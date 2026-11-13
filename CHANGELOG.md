@@ -83,6 +83,10 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity or the count or score of any metric.
+  Without `--sort-by` every report keeps its order.
+- **`--debug`** prints an execution summary to stderr after the run: total time, time per phase and the counts of files and methods.
+- **`--version`** prints the version of the tool.
 - `@cca-ignore` in the XML doc comment or in any other comment of a type or member leaves it out of the analysis; a type leaves out its nested types too.
 - The search path accepts a single `.cs` file and a comma-separated list of files and directories (`src,tools/Build.cs`).
   A path that exists as written stays one path even when it contains a comma, so existing invocations keep their meaning.
@@ -126,6 +130,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `--generate-config gen.json` now writes the file `gen.json` instead of creating a directory with that name.
+  A path that ends in `.json` and is not an existing directory is the file to write; any other path is still the directory that receives `cognitive-metrics-settings.json`.
 - Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`) are no longer searched for source files.
   Before, generated files under `obj` (such as `AssemblyInfo.cs` and source generator output) were analysed and reported.
   A path passed on the command line is still searched even when it is such a directory.

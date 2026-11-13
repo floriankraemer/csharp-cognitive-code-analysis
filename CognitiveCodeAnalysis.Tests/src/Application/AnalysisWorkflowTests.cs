@@ -51,6 +51,45 @@ public class AnalysisWorkflowTests
         }
     }
 
+    private static AnalysisRequest SortRequest(string? sortBy, string sortOrder = "asc") => new(
+        SourcePath: ".",
+        ConfigFile: null,
+        ReportType: "Html",
+        BaselineFile: null,
+        OutputFile: null,
+        CoverageCobertura: null,
+        SortBy: sortBy,
+        SortOrder: sortOrder
+    );
+
+    [Test]
+    public void Prepare_WithoutSortBy_LeavesTheDefaultOrder()
+    {
+        Assert.That(CreateWorkflow().Prepare(SortRequest(null)).Configuration.Sorter, Is.Null);
+    }
+
+    [Test]
+    public void Prepare_WithSortBy_SetsTheSorterOnTheConfiguration()
+    {
+        var sorter = CreateWorkflow().Prepare(SortRequest("LINE", "DESC")).Configuration.Sorter;
+
+        Assert.That(sorter, Is.Not.Null);
+        var methods = new[]
+        {
+            new CognitiveMetrics("a", "C", "f.cs", "a()", 1),
+            new CognitiveMetrics("b", "C", "f.cs", "b()", 2),
+        };
+        Assert.That(sorter!.Sort(methods).Select(m => m.MethodName), Is.EqualTo(new[] { "b", "a" }));
+    }
+
+    [TestCase("bogus", "asc")]
+    [TestCase("score", "up")]
+    [TestCase(null, "up")]
+    public void Prepare_WithInvalidSort_Throws(string? sortBy, string sortOrder)
+    {
+        Assert.Throws<ArgumentException>(() => CreateWorkflow().Prepare(SortRequest(sortBy, sortOrder)));
+    }
+
     [Test]
     public void Prepare_ResolvesPathsAndDefaults()
     {

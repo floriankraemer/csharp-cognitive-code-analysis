@@ -3,6 +3,7 @@
 /// </copyright>
 
 using System.Collections.ObjectModel;
+using System.Reflection;
 using CognitiveCodeAnalysis.Application;
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
@@ -28,6 +29,13 @@ namespace CognitiveCodeAnalysisConsoleApp;
 /// </summary>
 public class Program
 {
+    /// <summary>
+    /// The informational version of the build without the <c>+sha</c> suffix the SDK appends.
+    /// </summary>
+    internal static string Version { get; } =
+        (typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0")
+        .Split('+')[0];
+
     public static int Main(string[] args) => Run(args, new SpectreConsoleEnvironment());
 
     /// <summary>
@@ -76,6 +84,7 @@ public class Program
         {
             // Spectre would otherwise keep the console of the first run for all later runs in the same process.
             configurator.ConfigureConsole(AnsiConsole.Console);
+            configurator.SetApplicationVersion(Version);
             configurator
                 .AddCommand<ChurnCommand>("churn")
                 .WithDescription("Calculates the churn (cognitive score times number of git changes) of classes.");
