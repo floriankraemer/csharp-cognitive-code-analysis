@@ -24,6 +24,8 @@ public class ReportContractTests
         new("Sarif", () => new SarifReport()),
         new("GitlabCodeQuality", () => new GitlabCodeQualityReport()),
         new("GithubActions", () => new GithubActionsReport()),
+        new("Checkstyle", () => new CheckstyleReport()),
+        new("JUnit", () => new JUnitReport()),
     ];
 
     public static IEnumerable<TestCaseData> Cases()

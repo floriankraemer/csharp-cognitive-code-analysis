@@ -124,3 +124,38 @@ public class CognitiveCiSeverityTests
         Assert.That(message, Does.Not.Contain("baseline"));
     }
 }
+
+public class CognitiveCiSeverityBoundaryTests
+{
+    private static CognitiveConfiguration Config() => new() { ScoreThreshold = 5.0 };
+
+    [TestCase(4.999, false)]
+    [TestCase(5.0, false)]
+    [TestCase(5.001, true)]
+    public void IsViolation_OnlyScoresAboveTheThresholdAreViolations(double score, bool expected)
+    {
+        var m = new CognitiveMetrics("Run", "Svc", "a.cs", "void Run()", 3) { totalScore = score };
+
+        Assert.That(CognitiveCiSeverity.IsViolation(m, Config()), Is.EqualTo(expected));
+    }
+
+    [TestCase(9.999, false)]
+    [TestCase(10.0, true)]
+    [TestCase(10.001, true)]
+    public void IsError_ScoresFromTwiceTheThresholdAreErrors(double score, bool expected)
+    {
+        var m = new CognitiveMetrics("Run", "Svc", "a.cs", "void Run()", 3) { totalScore = score };
+
+        Assert.That(CognitiveCiSeverity.IsError(m, Config()), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ComplexityMessage_NamesTheMethodAndBothScoresWithOneDecimal()
+    {
+        var m = new CognitiveMetrics("Run", "Svc", "a.cs", "void Run()", 3) { totalScore = 6.24 };
+
+        Assert.That(
+            CognitiveCiSeverity.ComplexityMessage(m, Config()),
+            Is.EqualTo("Method Run has cognitive complexity 6.2 (threshold: 5.0)"));
+    }
+}

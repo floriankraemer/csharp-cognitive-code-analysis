@@ -34,14 +34,14 @@ public sealed class GithubActionsReport : IReport
         foreach (var m in filtered)
         {
             var kind = CognitiveCiSeverity.GithubCommandKind(m, configuration);
-            var path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath);
+            var path = CognitiveCiEncoding.EncodeWorkflowProperty(CognitiveCiLocation.DisplayPath(m.FilePath));
             var title = string.Format(CultureInfo.InvariantCulture, "{0} score {1:F3}", CheckName, m.totalScore);
             var message = CognitiveCiEncoding.EncodeWorkflowCommandMessage(
                 CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison));
             sb.Append("::").Append(kind)
                 .Append(" file=").Append(path)
-                .Append(",line=").Append(m.methodLineNumber)
-                .Append(",title=").Append(CognitiveCiEncoding.EncodeWorkflowCommandMessage(title))
+                .Append(",line=").Append(CognitiveCiLocation.Line(m))
+                .Append(",title=").Append(CognitiveCiEncoding.EncodeWorkflowProperty(title))
                 .Append("::").Append(message).AppendLine();
             processedItems++;
             ReportProgress.ReportItem(progress, Name, totalItems, processedItems);

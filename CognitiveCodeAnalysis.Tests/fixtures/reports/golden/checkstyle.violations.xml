@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<checkstyle version="8.0">
+  <file name="src/Ci.cs">
+    <error line="4" column="1" severity="warning" message="Method Warn has cognitive complexity 6.0 (threshold: 5.0)" source="CognitiveComplexity" />
+    <error line="20" column="1" severity="error" message="Method Fail has cognitive complexity 10.0 (threshold: 5.0)" source="CognitiveComplexity" />
+  </file>
+  <file name="src/Lines.cs">
+    <error line="1" column="1" severity="warning" message="Method Unlined has cognitive complexity 7.4 (threshold: 5.0)" source="CognitiveComplexity" />
+  </file>
+</checkstyle>

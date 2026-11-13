@@ -101,6 +101,12 @@ The project follows [Semantic Versioning](https://semver.org/).
   A configuration that uses them now gets those thresholds applied: they never scored anything before, so scores can change.
   When a deprecated key and its current name are both configured, the current name wins and a warning says so (`Deprecated metric 'variableCount' ignored because 'localVariableCount' is also configured.`).
 
+- The `Checkstyle` report type (`-r Checkstyle`) writes Checkstyle XML with one `error` per method above `scoreThreshold`.
+  The severity is `error` from twice the threshold on and `warning` otherwise.
+- The `JUnit` report type (`-r JUnit`) writes JUnit XML with one test case per method.
+  A method above `scoreThreshold` is a failed test case.
+- `docs/CiReports.md` describes the CI formats, their paths and severities, and how to use them in GitHub Actions and GitLab CI.
+
 ### Fixed
 
 - Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`) are no longer searched for source files.
@@ -108,6 +114,14 @@ The project follows [Semantic Versioning](https://semver.org/).
   A path passed on the command line is still searched even when it is such a directory.
 - A symbolic link to a parent directory no longer makes the file search loop until the path gets too long, reporting the same files many times.
   Every real directory is now searched once.
+- The paths of the `Sarif`, `GitlabCodeQuality` and `GithubActions` reports, and of the new `Checkstyle` and `JUnit` reports, are relative to the working directory with `/` separators when the file is below it.
+  Before, they were the paths as found, so the same method had a different location on every machine.
+  Files outside the working directory keep their absolute path, which SARIF writes as a `file://` URI.
+- SARIF relative locations are URI references against `%SRCROOT%`, which `originalUriBaseIds` declares as the working directory, and each path segment is percent-encoded.
+- The GitLab Code Quality fingerprint hashes the relative path, so the fingerprints of all issues change once with this release.
+  Until the default branch has the new fingerprints, the merge request widget shows each issue as removed and as new.
+- The `GithubActions` report escapes `:` and `,` in the file name and `%`, carriage returns and line feeds in the title and the message, as the runner expects.
+- Line numbers below 1 are reported as line 1 in every CI format, because a method cannot start before the first line.
 - The console report no longer prints a false `ConsoleText report generated: <path>` line.
 - Console output no longer depends on the culture of the machine (decimal separator of the coverage, churn, summary and threshold numbers).
 - The report type is matched case-insensitively (`-r html`).

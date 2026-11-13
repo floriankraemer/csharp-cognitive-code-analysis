@@ -48,11 +48,11 @@ public sealed class GitlabCodeQualityReport : IReport
                 Description = CognitiveCiSeverity.BuildMessage(m, configuration, baselineComparison),
                 Categories = ["Complexity"],
                 Severity = CognitiveCiSeverity.GitlabSeverity(m, configuration),
-                Fingerprint = ComputeFingerprint(m.FilePath, m.methodLineNumber, m.MethodName),
+                Fingerprint = ComputeFingerprint(CognitiveCiLocation.DisplayPath(m.FilePath), CognitiveCiLocation.Line(m), m.MethodName),
                 Location = new CognitiveGitlabLocation
                 {
-                    Path = CognitiveCiEncoding.NormalizeFilePath(m.FilePath),
-                    Lines = new CognitiveGitlabLines { Begin = m.methodLineNumber, End = m.methodLineNumber },
+                    Path = CognitiveCiLocation.DisplayPath(m.FilePath),
+                    Lines = new CognitiveGitlabLines { Begin = CognitiveCiLocation.Line(m), End = CognitiveCiLocation.Line(m) },
                 },
             });
             processedItems++;
@@ -64,9 +64,10 @@ public sealed class GitlabCodeQualityReport : IReport
         ReportProgress.ReportComplete(progress, Name, totalItems);
     }
 
-    private static string ComputeFingerprint(string filePath, int line, string methodName)
+    /// <summary>Hashes the displayed path, so the fingerprint is the same on every machine that checks out the repository.</summary>
+    private static string ComputeFingerprint(string displayPath, int line, string methodName)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes("cognitive|" + filePath + "|" + line + "|" + methodName));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes("cognitive|" + displayPath + "|" + line + "|" + methodName));
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 }

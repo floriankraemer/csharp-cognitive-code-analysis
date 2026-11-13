@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites name="Cognitive Complexity" tests="2" failures="2" errors="0">
+  <testsuite name="Cognitive Complexity" tests="2" failures="2" errors="0">
+    <testcase classname="Ops&amp;Co&lt;T&gt;" name="Run" time="0">
+      <failure message="Method Run has cognitive complexity 12.0 (threshold: 5.0)" type="CognitiveComplexity" />
+    </testcase>
+    <testcase classname="Ops%Co" name="Go" time="0">
+      <failure message="Method Go has cognitive complexity 6.0 (threshold: 5.0)" type="CognitiveComplexity" />
+    </testcase>
+  </testsuite>
+</testsuites>
