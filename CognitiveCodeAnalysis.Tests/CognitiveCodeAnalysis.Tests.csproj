@@ -49,6 +49,7 @@
     <None Include="fixtures\reports\golden\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="fixtures\churn\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="fixtures\init\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="fixtures\clover\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

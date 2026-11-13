@@ -18,8 +18,8 @@ public interface ICustomCognitiveReporter
 /// <summary>What a custom analyse reporter gets: the analysed methods and the settings of the run.</summary>
 public sealed record CognitiveReportInput
 {
-    /// <summary>All analysed methods, in the order of <c>--sort-by</c>, otherwise by total score, highest first. Not filtered by the score threshold.</summary>
-    public IReadOnlyList<CognitiveMethodRow> Methods { get; init; } = [];
+    /// <summary>All analysed methods (a read-only collection), in the order of <c>--sort-by</c>, otherwise by total score, highest first. Not filtered by the score threshold.</summary>
+    public IReadOnlyList<CognitiveMethodRow> Methods { get; init; } = Array.AsReadOnly(Array.Empty<CognitiveMethodRow>());
 
     /// <summary>The effective settings of the run.</summary>
     public CognitiveReportSettings Settings { get; init; } = new();
@@ -54,9 +54,14 @@ public sealed record CognitiveReportSettings
 }
 
 /// <summary>The count of one kind of construct in a method and the score it adds.</summary>
-/// <param name="Count">How often the construct occurs.</param>
-/// <param name="Score">The score the occurrences add to the method.</param>
-public sealed record CountedMetric(double Count, double Score);
+public sealed record CountedMetric
+{
+    /// <summary>How often the construct occurs.</summary>
+    public double Count { get; init; }
+
+    /// <summary>The score the occurrences add to the method.</summary>
+    public double Score { get; init; }
+}
 
 /// <summary>One analysed method.</summary>
 public sealed record CognitiveMethodRow
@@ -80,40 +85,40 @@ public sealed record CognitiveMethodRow
     public double TotalScore { get; init; }
 
     /// <summary>Lines of code.</summary>
-    public CountedMetric LinesOfCode { get; init; } = new(0, 0);
+    public CountedMetric LinesOfCode { get; init; } = new();
 
     /// <summary>Parameters.</summary>
-    public CountedMetric Arguments { get; init; } = new(0, 0);
+    public CountedMetric Arguments { get; init; } = new();
 
     /// <summary>Return statements.</summary>
-    public CountedMetric Returns { get; init; } = new(0, 0);
+    public CountedMetric Returns { get; init; } = new();
 
     /// <summary>Local variables.</summary>
-    public CountedMetric LocalVariables { get; init; } = new(0, 0);
+    public CountedMetric LocalVariables { get; init; } = new();
 
     /// <summary>Property accesses.</summary>
-    public CountedMetric PropertyAccesses { get; init; } = new(0, 0);
+    public CountedMetric PropertyAccesses { get; init; } = new();
 
     /// <summary>Field accesses.</summary>
-    public CountedMetric FieldAccesses { get; init; } = new(0, 0);
+    public CountedMetric FieldAccesses { get; init; } = new();
 
     /// <summary>If statements.</summary>
-    public CountedMetric Ifs { get; init; } = new(0, 0);
+    public CountedMetric Ifs { get; init; } = new();
 
     /// <summary>Else branches.</summary>
-    public CountedMetric Elses { get; init; } = new(0, 0);
+    public CountedMetric Elses { get; init; } = new();
 
     /// <summary>Nesting levels.</summary>
-    public CountedMetric Nesting { get; init; } = new(0, 0);
+    public CountedMetric Nesting { get; init; } = new();
 
     /// <summary>Loops.</summary>
-    public CountedMetric Loops { get; init; } = new(0, 0);
+    public CountedMetric Loops { get; init; } = new();
 
     /// <summary>Switch statements and expressions.</summary>
-    public CountedMetric Switches { get; init; } = new(0, 0);
+    public CountedMetric Switches { get; init; } = new();
 
     /// <summary>Try/catch blocks.</summary>
-    public CountedMetric TryCatches { get; init; } = new(0, 0);
+    public CountedMetric TryCatches { get; init; } = new();
 
     /// <summary>The cyclomatic complexity.</summary>
     public double CyclomaticComplexity { get; init; }

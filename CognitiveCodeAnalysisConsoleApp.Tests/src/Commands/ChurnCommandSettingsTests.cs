@@ -76,12 +76,13 @@ public class ChurnCommandSettingsTests
     [TestCase("ConsoleText")]
     [TestCase("Sarif")]
     [TestCase("")]
-    public void Validate_LeavesUnknownReportTypesToTheCommand_BecauseTheyMayBeCustomReporters(string type)
+    public void Validate_RejectsUnknownReportTypesAndListsTheValidOnes(string type)
     {
-        var settings = new ChurnCommandSettings { ReportType = type, OutputFile = "out" };
+        var result = new ChurnCommandSettings { ReportType = type, OutputFile = "out" }.Validate();
 
-        Assert.That(settings.Validate().Successful, Is.True);
-        Assert.That(settings.ReportTypeValue, Is.Null);
+        Assert.That(result.Successful, Is.False);
+        Assert.That(result.Message, Is.EqualTo(
+            $"Invalid report type '{type}'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap."));
     }
 
     [Test]
@@ -94,5 +95,23 @@ public class ChurnCommandSettingsTests
         Assert.That(fileOnly.Successful, Is.False);
         Assert.That(typeOnly.Message, Is.EqualTo("--report-type and --output-file must be given together."));
         Assert.That(fileOnly.Message, Is.EqualTo(typeOnly.Message));
+    }
+
+    [Test]
+    public void Validate_RejectsBothCoverageFormats()
+    {
+        var result = new ChurnCommandSettings { CoverageCobertura = "a.xml", CoverageClover = "b.xml" }.Validate();
+
+        Assert.That(result.Successful, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Only one coverage format can be specified at a time."));
+    }
+
+    [TestCase("a.xml", null)]
+    [TestCase(null, "b.xml")]
+    [TestCase(null, null)]
+    [TestCase("a.xml", "")]
+    public void Validate_AcceptsOneOrNoCoverageFormat(string? cobertura, string? clover)
+    {
+        Assert.That(new ChurnCommandSettings { CoverageCobertura = cobertura, CoverageClover = clover }.Validate().Successful, Is.True);
     }
 }

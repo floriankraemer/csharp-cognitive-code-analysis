@@ -5,6 +5,7 @@
 using System.ComponentModel;
 using System.Globalization;
 
+using CognitiveCodeAnalysis.Application;
 using CognitiveCodeAnalysis.Churn;
 
 using Spectre.Console;
@@ -48,6 +49,10 @@ internal sealed class ChurnCommandSettings : CommandSettings
     [CommandOption("--coverage-cobertura")]
     public string? CoverageCobertura { get; init; }
 
+    [Description("Path to Clover coverage report file; adds risk churn, coverage and risk level")]
+    [CommandOption("--coverage-clover")]
+    public string? CoverageClover { get; init; }
+
     public DateOnly SinceDate => ParseSince(Since)!.Value;
 
     public ChurnReportType? ReportTypeValue =>
@@ -55,6 +60,11 @@ internal sealed class ChurnCommandSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
+        if (!CoverageOptions.AreExclusive(CoverageCobertura, CoverageClover))
+        {
+            return ValidationResult.Error(CoverageOptions.OnlyOneFormatMessage);
+        }
+
         if (ParseSince(Since) is null)
         {
             return ValidationResult.Error($"Invalid --since date '{Since}'. Expected format: {DateFormat}.");
@@ -65,7 +75,15 @@ internal sealed class ChurnCommandSettings : CommandSettings
             return ValidationResult.Error($"Unknown VCS '{Vcs}'. Supported: {SupportedVcs}.");
         }
 
-        // An unknown report type may be a custom reporter of the configuration; the command checks it there.
+        if (ReportType is not null && ReportTypeValue is null)
+        {
+            IReadOnlyCollection<string> customKeys = CustomReporterKeys();
+            if (!customKeys.Contains(ReportType))
+            {
+                return ValidationResult.Error(InvalidReportTypeMessage(ReportType, customKeys));
+            }
+        }
+
         if ((ReportType is null) != (OutputFile is null))
         {
             return ValidationResult.Error("--report-type and --output-file must be given together.");
@@ -73,6 +91,23 @@ internal sealed class ChurnCommandSettings : CommandSettings
 
         return ValidationResult.Success();
     }
+
+    /// <summary>The keys of the custom churn reporters of the configuration. A configuration that cannot be read has none; the command reports it later.</summary>
+    private IReadOnlyCollection<string> CustomReporterKeys()
+    {
+        try
+        {
+            return CognitiveConfigurationFactory.Load(ConfigFile).CustomReporters.Churn.Keys.ToList();
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    private static string InvalidReportTypeMessage(string type, IReadOnlyCollection<string> customKeys) =>
+        $"Invalid report type '{type}'. Expected one of: {ChurnReportTypes.Accepted}."
+        + (customKeys.Count == 0 ? "" : $" Custom report types: {string.Join(", ", customKeys.Order(StringComparer.Ordinal))}.");
 
     private static DateOnly? ParseSince(string value) =>
         DateOnly.TryParseExact(value, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly date)

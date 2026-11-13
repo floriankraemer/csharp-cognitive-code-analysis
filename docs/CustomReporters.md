@@ -55,8 +55,9 @@ Each `CognitiveMethodRow` has:
 | `Since` | The day the changes are counted from. |
 
 Each `ChurnRow` has `ClassName`, `FilePath` (as above), `Score`, `TimesChanged`, `Churn`, and, with coverage, `Coverage` (0.0 to 1.0), `RiskChurn` and `RiskLevel` (`CRITICAL`, `HIGH`, `MEDIUM` or `LOW`).
-The records are immutable.
-New members may be added in later releases, existing ones are not renamed or removed.
+The records are immutable: every property is init-only and the lists are read-only, also when cast to a mutable list type.
+No record has a positional constructor, so build one with an object initializer.
+New members may be added in later releases without breaking a plugin; existing ones are not renamed or removed.
 
 ## Example
 

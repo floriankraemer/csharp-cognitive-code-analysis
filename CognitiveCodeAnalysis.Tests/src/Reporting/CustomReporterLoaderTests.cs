@@ -319,4 +319,65 @@ public class CustomReporterLoaderTests
 
         Assert.That(exception.Message, Does.Contain("needs both \"type\" and \"assembly\""));
     }
+
+    [Test]
+    public void NativeDependencies_AreLoadedFromThePluginFolder_ListedInTheDepsJson()
+    {
+        string runtimeLibrary = Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "libSystem.Native.so");
+        if (!OperatingSystem.IsLinux() || !File.Exists(runtimeLibrary))
+        {
+            Assert.Ignore("Needs the libSystem.Native.so of the Linux runtime as the native library to load.");
+        }
+
+        PluginBuilder.Compile(_plugins, "Plugin", """
+            using System.Runtime.InteropServices;
+            using CognitiveCodeAnalysis.Reporting.Spi;
+            namespace Acme;
+            public class Native : ICustomCognitiveReporter
+            {
+                [DllImport("mynative")] private static extern int SystemNative_GetPid();
+                public string Render(CognitiveReportInput input) => SystemNative_GetPid().ToString();
+            }
+            """);
+        string rid = "linux-" + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+        Directory.CreateDirectory(Path.Combine(_plugins, "runtimes", rid, "native"));
+        File.Copy(runtimeLibrary, Path.Combine(_plugins, "runtimes", rid, "native", "libmynative.so"));
+        File.WriteAllText(Path.Combine(_plugins, "Plugin.deps.json"), $$"""
+            {
+              "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0/{{rid}}" },
+              "targets": {
+                ".NETCoreApp,Version=v8.0/{{rid}}": {
+                  "Plugin/1.0.0": {
+                    "runtime": { "Plugin.dll": {} },
+                    "runtimeTargets": { "runtimes/{{rid}}/native/libmynative.so": { "rid": "{{rid}}", "assetType": "native" } }
+                  }
+                }
+              },
+              "libraries": { "Plugin/1.0.0": { "type": "project", "serviceable": false, "sha512": "" } }
+            }
+            """);
+
+        RunCognitive(ConfigFor("k", "Acme.Native", "plugins/Plugin.dll"));
+
+        Assert.That(File.ReadAllText(Output), Is.EqualTo(Environment.ProcessId.ToString()));
+    }
+
+    [Test]
+    public void NativeDependencies_ThatAreNotListedFallBackToTheDefaultProbing()
+    {
+        PluginBuilder.Compile(_plugins, "Plugin", """
+            using System.Runtime.InteropServices;
+            using CognitiveCodeAnalysis.Reporting.Spi;
+            namespace Acme;
+            public class Native : ICustomCognitiveReporter
+            {
+                [DllImport("does-not-exist-anywhere")] private static extern int Nope();
+                public string Render(CognitiveReportInput input) => Nope().ToString();
+            }
+            """);
+
+        var exception = Fails(ConfigFor("k", "Acme.Native", "plugins/Plugin.dll"));
+
+        Assert.That(exception.Message, Does.Contain("DllNotFoundException"));
+    }
 }

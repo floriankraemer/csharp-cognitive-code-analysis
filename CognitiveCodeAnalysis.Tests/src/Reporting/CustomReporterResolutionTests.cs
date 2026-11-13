@@ -193,4 +193,22 @@ public class CustomReporterResolutionTests
         Assert.That(new CognitiveReportInput().Methods, Is.Empty);
         Assert.That(new ChurnReportInput().Classes, Is.Empty);
     }
+
+    [Test]
+    public void SpiCollections_CannotBeChangedByCastingThem()
+    {
+        CognitiveMetricsCollection metrics = [new CognitiveMetrics("M", "A", "A.cs", "void M()", 1)];
+        var cognitive = CustomReportInputFactory.Cognitive(metrics, new CognitiveConfiguration(), null);
+        var churn = CustomReportInputFactory.Churn([new CognitiveCodeAnalysis.Churn.ChurnMetrics("A", "A.cs", 1, 1, 1)], false, new DateOnly(2024, 1, 1));
+
+        foreach (var list in new System.Collections.IList[]
+        {
+            (System.Collections.IList)cognitive.Methods, (System.Collections.IList)churn.Classes,
+            (System.Collections.IList)new CognitiveReportInput().Methods, (System.Collections.IList)new ChurnReportInput().Classes,
+        })
+        {
+            Assert.That(list.IsReadOnly, Is.True);
+            Assert.Throws<NotSupportedException>(() => list.Clear());
+        }
+    }
 }

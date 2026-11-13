@@ -294,6 +294,7 @@ public class ChurnCommandEndToEndTests
 
     [TestCase("--since", "yesterday", "Invalid --since date 'yesterday'. Expected format: yyyy-MM-dd.")]
     [TestCase("--vcs", "svn", "Unknown VCS 'svn'. Supported: git.")]
+    [TestCase("-r", "Pdf", "Invalid report type 'Pdf'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap.")]
     [TestCase("-r", "Json", "--report-type and --output-file must be given together.")]
     [TestCase("-o", "x.json", "--report-type and --output-file must be given together.")]
     public void InvalidOptions_PrintAMessageAndExitNonZeroWithoutAnalysing(string option, string value, string message)
@@ -307,15 +308,18 @@ public class ChurnCommandEndToEndTests
         }
     }
 
-    [Test]
-    public void UnknownReportType_IsRejectedBeforeAnalysing()
+    [TestCase("-r", "Pdf")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf", "-c", "does-not-exist.json")]
+    [TestCase("-r", "Pdf", "-o", "x.pdf", "--coverage-cobertura", "does-not-exist.xml")]
+    public void InvalidReportType_IsReportedFirst_BeforePairingConfigAndCoverageErrors(params string[] options)
     {
-        var (exitCode, output) = Run("churn", _repo.Directory, "-r", "Pdf", "-o", Out("x.pdf"));
+        var (exitCode, output) = Run(["churn", _repo.Directory, .. options]);
         using (output)
         {
             Assert.That(exitCode, Is.Not.Zero);
             Assert.That(AllOutput(output), Does.Contain("Invalid report type 'Pdf'. Expected one of: Json, Csv, Html, Markdown, SvgTreemap."));
-            Assert.That(output.Text, Does.Not.Contain("Samples.Sample"));
+            Assert.That(AllOutput(output), Does.Not.Contain("must be given together").And.Not.Contain("not found"));
         }
     }
 
@@ -462,6 +466,116 @@ public class ChurnCommandEndToEndTests
         {
             Assert.That(consoleExit, Is.Zero);
             Assert.That(console.Text, Does.Contain("Class: Samples.Sample").And.Contain("Total Methods Processed"));
+        }
+    }
+
+    private string WriteClover(string name = "clover.xml", string content = "") 
+    {
+        string file = Path.Combine(_repo.Directory, name);
+        File.WriteAllText(file, content.Length > 0 ? content : $"""
+            <coverage><project><file name="{Path.Combine(_repo.Directory, "Sample.cs")}">
+              <class name="Sample" namespace="Samples"><metrics statements="4" coveredstatements="1" conditionals="2" coveredconditionals="1"/></class>
+              <line num="9" type="method" name="Run" count="1"/>
+              <line num="10" type="stmt" count="1"/><line num="11" type="stmt" count="0"/>
+              <line num="12" type="cond" truecount="1" falsecount="0"/>
+            </file></project></coverage>
+            """);
+        return file;
+    }
+
+    [Test]
+    public void Churn_CoverageClover_AddsRiskChurnAndCoverage()
+    {
+        var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-clover", WriteClover());
+        using (output)
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(output.Text, Does.Match(@"│ Samples\.Sample\s+│\s+\S+\s+│\s+\S+\s+│\s+\S+\s+│\s+3\s+│\s+25\.00%\s+│ (LOW|MEDIUM|HIGH|CRITICAL)"));
+            Assert.That(AllOutput(output), Does.Contain("Warning: 1 of 2 classes are not in the coverage report"));
+        }
+    }
+
+    [Test]
+    public void Churn_BothCoverageFormats_AreRejected()
+    {
+        var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-clover", WriteClover(), "--coverage-cobertura", WriteCobertura(1, 4));
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain("Only one coverage format can be specified at a time."));
+        }
+    }
+
+    [Test]
+    public void Churn_CoverageCloverMissingFile_Fails()
+    {
+        string missing = Path.Combine(_repo.Directory, "none.xml");
+
+        var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-clover", missing);
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain($"Coverage file not found: {missing}"));
+        }
+    }
+
+    [Test]
+    public void Churn_CoverageCloverMalformed_FailsWithFileAndReason()
+    {
+        string bad = WriteClover("bad.xml", "<coverage><project>");
+
+        var (exitCode, output) = Run("churn", _repo.Directory, "--coverage-clover", bad);
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain($"Invalid coverage file {bad}: "));
+        }
+    }
+
+    [Test]
+    public void Analyse_CoverageClover_AddsCoverageColumnsAndWarnsAboutUnmatchedClasses()
+    {
+        string report = Out("clover.md");
+
+        var (exitCode, output) = Run(_repo.Directory, "-f", "Markdown", "-o", report, "--coverage-clover", WriteClover());
+        using (output)
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(AllOutput(output), Does.Contain("matched 1 of 2 analysed classes."));
+        }
+
+        string markdown = File.ReadAllText(report);
+        Assert.That(markdown, Does.Contain("| Churn | Line Coverage | Branch Coverage |"));
+        Assert.That(markdown, Does.Contain("| 50.0% | 50.0% |"));
+    }
+
+    [Test]
+    public void Analyse_BothCoverageFormats_AreRejected()
+    {
+        var (exitCode, output) = Run(_repo.Directory, "-f", "Markdown", "-o", Out("both.md"), "--coverage-clover", WriteClover(), "--coverage-cobertura", WriteCobertura(1, 4));
+        using (output)
+        {
+            Assert.That(exitCode, Is.Not.Zero);
+            Assert.That(AllOutput(output), Does.Contain("Only one coverage format can be specified at a time."));
+            Assert.That(File.Exists(Out("both.md")), Is.False);
+        }
+    }
+
+    [Test]
+    public void Analyse_CoverageCoberturaStillAutoDetectsCoberturaAndVisualStudio()
+    {
+        string vs = Path.Combine(_repo.Directory, "vs.xml");
+        File.WriteAllText(vs, $"""<results><modules><module><source_files><source_file id="1" path="{Path.Combine(_repo.Directory, "Sample.cs")}"/></source_files><functions><function><ranges><range source_id="1" start_line="8" end_line="8" covered="yes"/></ranges></function></functions></module></modules></results>""");
+
+        foreach ((string name, string coverage) in new[] { ("cobertura.md", WriteCobertura(covered: 1, total: 4)), ("vs.md", vs) })
+        {
+            var (exitCode, output) = Run(_repo.Directory, "-f", "Markdown", "-o", Out(name), "--coverage-cobertura", coverage);
+            using (output)
+            {
+                Assert.That(exitCode, Is.Zero, name);
+            }
+
+            Assert.That(File.ReadAllText(Out(name)), Does.Contain("| Method | Score |").And.Contain("| Churn | Line Coverage | Branch Coverage |"), name);
         }
     }
 

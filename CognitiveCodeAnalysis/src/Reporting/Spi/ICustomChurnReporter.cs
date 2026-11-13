@@ -19,7 +19,7 @@ public interface ICustomChurnReporter
 public sealed record ChurnReportInput
 {
     /// <summary>One row per class, the highest churn first.</summary>
-    public IReadOnlyList<ChurnRow> Classes { get; init; } = [];
+    public IReadOnlyList<ChurnRow> Classes { get; init; } = Array.AsReadOnly(Array.Empty<ChurnRow>());
 
     /// <summary>Whether a coverage report was given, so the coverage columns are meaningful even when empty.</summary>
     public bool CoverageProvided { get; init; }

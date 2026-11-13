@@ -20,7 +20,7 @@ internal static class CustomReportInputFactory
         CognitiveBaselineComparison? baseline) =>
         new()
         {
-            Methods = ReportMetricsFilter.OrderRows(metrics, configuration).Select(m => Row(m, baseline)).ToList(),
+            Methods = ReportMetricsFilter.OrderRows(metrics, configuration).Select(m => Row(m, baseline)).ToList().AsReadOnly(),
             HasBaseline = baseline is not null,
             Settings = new CognitiveReportSettings
             {
@@ -49,8 +49,10 @@ internal static class CustomReportInputFactory
                 Coverage = c.Coverage,
                 RiskChurn = c.RiskChurn,
                 RiskLevel = c.RiskLevel?.ToString().ToUpperInvariant(),
-            }).ToList(),
+            }).ToList().AsReadOnly(),
         };
+
+    private static CountedMetric Counted(double count, double score) => new() { Count = count, Score = score };
 
     private static CognitiveMethodRow Row(CognitiveMetrics m, CognitiveBaselineComparison? baseline)
     {
@@ -65,18 +67,18 @@ internal static class CustomReportInputFactory
             MethodSignature = m.methodSignature,
             Line = m.methodLineNumber,
             TotalScore = m.totalScore,
-            LinesOfCode = new(m.linesOfCode, m.linesOfCodeScore),
-            Arguments = new(m.argumentCount, m.argumentScore),
-            Returns = new(m.returnCount, m.returnScore),
-            LocalVariables = new(m.localVariableCount, m.localVariableScore),
-            PropertyAccesses = new(m.propertyAccessCount, m.propertyAccessScore),
-            FieldAccesses = new(m.fieldAccessCount, m.fieldAccessScore),
-            Ifs = new(m.ifCount, m.ifScore),
-            Elses = new(m.elseCount, m.elseScore),
-            Nesting = new(m.nestingLevels, m.nestingScore),
-            Loops = new(m.loopCount, m.loopScore),
-            Switches = new(m.switchCount, m.switchScore),
-            TryCatches = new(m.tryCatchCount, m.tryCatchScore),
+            LinesOfCode = Counted(m.linesOfCode, m.linesOfCodeScore),
+            Arguments = Counted(m.argumentCount, m.argumentScore),
+            Returns = Counted(m.returnCount, m.returnScore),
+            LocalVariables = Counted(m.localVariableCount, m.localVariableScore),
+            PropertyAccesses = Counted(m.propertyAccessCount, m.propertyAccessScore),
+            FieldAccesses = Counted(m.fieldAccessCount, m.fieldAccessScore),
+            Ifs = Counted(m.ifCount, m.ifScore),
+            Elses = Counted(m.elseCount, m.elseScore),
+            Nesting = Counted(m.nestingLevels, m.nestingScore),
+            Loops = Counted(m.loopCount, m.loopScore),
+            Switches = Counted(m.switchCount, m.switchScore),
+            TryCatches = Counted(m.tryCatchCount, m.tryCatchScore),
             CyclomaticComplexity = m.cyclomaticComplexity,
             HalsteadVolume = m.Halstead?.Volume,
             HalsteadDifficulty = m.Halstead?.Difficulty,
