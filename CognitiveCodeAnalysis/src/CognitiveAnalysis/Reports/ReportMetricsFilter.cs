@@ -23,4 +23,13 @@ public static class ReportMetricsFilter
 
         return metricsCollection.OnlyMetricsExceedingScoreThreshold(configuration.ScoreThreshold);
     }
+
+    /// <summary>
+    /// Orders report rows by <c>--sort-by</c>, or by total score, highest first, when none was requested.
+    /// </summary>
+    public static IReadOnlyList<CognitiveMetrics> OrderRows(
+        IEnumerable<CognitiveMetrics> metrics,
+        CognitiveConfiguration configuration
+    ) => configuration.Sorter?.Sort(metrics)
+        ?? metrics.OrderByDescending(m => m.totalScore).ToList();
 }

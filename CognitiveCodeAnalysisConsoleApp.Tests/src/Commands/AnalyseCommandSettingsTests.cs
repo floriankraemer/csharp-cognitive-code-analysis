@@ -4,6 +4,7 @@
 
 using CognitiveCodeAnalysis.Application;
 using CognitiveCodeAnalysisConsoleApp.Application;
+using CognitiveCodeAnalysisConsoleApp.Commands;
 using CognitiveCodeAnalysisConsoleApp.DependencyInjection;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,36 @@ public class AnalyseCommandSettingsTests
 
         Assert.That(CliParseProbeCommand.Parsed, Is.Not.Null);
         Assert.That(CliParseProbeCommand.Parsed!.ReportType, Is.EqualTo(reportType));
+    }
+
+    [Test]
+    public void ParseSortAndDebugOptions_BindsThem()
+    {
+        Parse(".\\src --sort-by line --sort-order desc --debug");
+
+        var parsed = CliParseProbeCommand.Parsed!;
+        Assert.That(parsed.SortBy, Is.EqualTo("line"));
+        Assert.That(parsed.SortOrder, Is.EqualTo("desc"));
+        Assert.That(parsed.Debug, Is.True);
+    }
+
+    [Test]
+    public void ParseWithoutSortAndDebugOptions_UsesTheDefaults()
+    {
+        Parse(".\\src");
+
+        var parsed = CliParseProbeCommand.Parsed!;
+        Assert.That(parsed.SortBy, Is.Null);
+        Assert.That(parsed.SortOrder, Is.EqualTo("asc"));
+        Assert.That(parsed.Debug, Is.False);
+    }
+
+    [Test]
+    public void SortFieldsHelp_ListsExactlyTheFieldsTheSorterAccepts()
+    {
+        Assert.That(
+            AnalyseCommandSettings.SortFields.Split(", "),
+            Is.EqualTo(CognitiveCodeAnalysis.CognitiveAnalysis.MetricsSorter.FieldNames));
     }
 
     [TestCase("-o", ".\\report.html")]

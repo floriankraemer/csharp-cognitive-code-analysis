@@ -66,7 +66,7 @@ public sealed class MarkdownReport : IReport
 
         foreach (var classGroup in groupedByClass)
         {
-            List<CognitiveMetrics> classMetrics = classGroup.OrderByDescending(m => m.totalScore).ToList();
+            List<CognitiveMetrics> classMetrics = ReportMetricsFilter.OrderRows(classGroup, configuration).ToList();
             CognitiveMetrics firstMetric = classMetrics[0];
 
             md.AppendLine($"### Class: {firstMetric.ClassName}");
@@ -97,7 +97,7 @@ public sealed class MarkdownReport : IReport
     {
         bool hasCoverageData = metricsCollection.HasCoverageData();
 
-        foreach (CognitiveMetrics metrics in metricsCollection.OrderByDescending(m => m.totalScore))
+        foreach (CognitiveMetrics metrics in ReportMetricsFilter.OrderRows(metricsCollection, configuration))
         {
             md.AppendLine($"### Class: {metrics.ClassName}");
             md.AppendLine();

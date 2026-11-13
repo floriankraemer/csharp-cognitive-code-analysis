@@ -10,6 +10,15 @@ namespace CognitiveCodeAnalysisConsoleApp.Commands;
 
 internal sealed class AnalyseCommandSettings : CommandSettings
 {
+    // An attribute argument must be a constant; a test keeps this list equal to MetricsSorter.FieldNames.
+    internal const string SortFields =
+        "score, class, method, file, line, halstead, cyclomatic, "
+        + "linesOfCode, argumentCount, returnCount, localVariableCount, propertyAccessCount, fieldAccessCount, "
+        + "ifCount, elseCount, nestingLevels, loopCount, switchCount, tryCatchCount, "
+        + "linesOfCodeScore, argumentCountScore, returnCountScore, localVariableCountScore, propertyAccessCountScore, "
+        + "fieldAccessCountScore, ifCountScore, elseCountScore, nestingLevelsScore, loopCountScore, switchCountScore, "
+        + "tryCatchCountScore";
+
     [Description("Path to search for c# files. Defaults to current path.")]
     [CommandArgument(0, "[searchPath]")]
     public string? SourcePath { get; init; }
@@ -50,6 +59,19 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [Description("Show class coupling metrics in reports (overrides config when set)")]
     [CommandOption("--show-coupling")]
     public bool? ShowCoupling { get; init; }
+
+    [Description("Sort the rows of the reports by a field. Without it every report keeps its default order. Fields: " + SortFields + ".")]
+    [CommandOption("--sort-by <FIELD>")]
+    public string? SortBy { get; init; }
+
+    [Description("Sort order for --sort-by: asc or desc")]
+    [CommandOption("--sort-order <ORDER>")]
+    [DefaultValue("asc")]
+    public string SortOrder { get; init; } = "asc";
+
+    [Description("Print the total time, the time of each phase and statistics to stderr after the run")]
+    [CommandOption("--debug")]
+    public bool Debug { get; init; }
 
     [Description("Emit timestamped diagnostic logs to stderr for each analysis phase")]
     [CommandOption("-v|--verbose")]

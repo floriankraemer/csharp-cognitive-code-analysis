@@ -13,9 +13,23 @@ namespace CognitiveCodeAnalysisConsoleApp.Application;
 internal sealed class AnalyseApplicationService(
     AnalysisWorkflow analysisWorkflow,
     IReportGenerationService reportGenerationService,
-    IConsoleNotifier consoleNotifier
+    IConsoleNotifier consoleNotifier,
+    TimeProvider? timeProvider = null
 ) {
     public AnalyseResult Run(AnalysisRequest request)
+    {
+        ExecutionSummary? summary = request.Debug ? new ExecutionSummary(timeProvider ?? TimeProvider.System) : null;
+        try
+        {
+            return Run(request, summary);
+        }
+        finally
+        {
+            summary?.WriteTo(Console.Error);
+        }
+    }
+
+    private AnalyseResult Run(AnalysisRequest request, ExecutionSummary? summary)
     {
         IAnalysisTracer tracer = request.Verbose
             ? new TimestampedConsoleTracer()
@@ -41,13 +55,18 @@ internal sealed class AnalyseApplicationService(
 
         SpectreProgressSession.Run((reporter, progress) =>
         {
-            IProgress<AnalysisProgress> effectiveProgress = request.Verbose
-                ? new TracingProgress(progress, tracer)
-                : progress;
+            IProgress<AnalysisProgress> effectiveProgress = Observe(
+                request.Verbose ? new TracingProgress(progress, tracer) : progress,
+                summary);
 
             List<string> files = tracer.TraceStep(
                 "Finding source files",
                 () => analysisWorkflow.FindSourceFiles(prepared.AbsoluteSourcePath, effectiveProgress));
+
+            if (summary != null)
+            {
+                summary.FilesFound = files.Count;
+            }
 
             if (files.Count == 0)
             {
@@ -63,6 +82,11 @@ internal sealed class AnalyseApplicationService(
                     prepared.Configuration,
                     effectiveProgress
                 ));
+
+            if (summary != null)
+            {
+                summary.MethodsAnalysed = metricsCollection.Count;
+            }
 
             if (prepared.IsConsoleTextReport)
             {
@@ -105,8 +129,8 @@ internal sealed class AnalyseApplicationService(
 
         if (prepared.IsConsoleTextReport)
         {
-            IProgress<AnalysisProgress>? consoleProgress = request.Verbose
-                ? new TracingProgress(NullProgress.Instance, tracer)
+            IProgress<AnalysisProgress>? consoleProgress = request.Verbose || summary != null
+                ? Observe(request.Verbose ? new TracingProgress(NullProgress.Instance, tracer) : NullProgress.Instance, summary)
                 : null;
 
             if (!TryApplyCoverage(prepared, metricsCollection!, consoleProgress, out _))
@@ -129,6 +153,9 @@ internal sealed class AnalyseApplicationService(
 
         return new AnalyseResult(AnalyseOutcome.Success);
     }
+
+    private static IProgress<AnalysisProgress> Observe(IProgress<AnalysisProgress> progress, ExecutionSummary? summary)
+        => summary?.Observe(progress) ?? progress;
 
     private bool TryApplyCoverage(
         PreparedAnalysis prepared,

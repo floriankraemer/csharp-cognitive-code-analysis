@@ -56,6 +56,10 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown and JSON reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity or the count or score of any metric.
+  Without `--sort-by` every report keeps its order.
+- **`--debug`** prints an execution summary to stderr after the run: total time, time per phase and the counts of files and methods.
+- **`--version`** prints the version of the tool.
 - The `init` command creates a `cognitive-metrics-settings.json` with the built-in defaults.
   In an interactive console it asks for `scoreThreshold` and for the `show*` settings and `groupByClass`, and an empty answer keeps the default.
   `--silent`, a console that is not interactive, or redirected standard input writes the defaults without asking.

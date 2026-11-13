@@ -20,6 +20,8 @@ public sealed class AnalysisWorkflow(
             request.ConfigFile,
             request.DisplayOverrides
         );
+        var sorter = MetricsSorter.Create(request.SortBy, request.SortOrder);
+        configuration.Sorter = request.SortBy is null ? null : sorter;
         var sourcePath = request.SourcePath ?? Directory.GetCurrentDirectory();
         var absoluteSourcePath = Path.GetFullPath(sourcePath);
         var reportType = request.ReportType;
