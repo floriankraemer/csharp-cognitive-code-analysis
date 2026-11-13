@@ -1,0 +1,59 @@
+{
+  "createdAt": "2023-10-01 12:00:00",
+  "classes": {
+    "a.Critical": {
+      "file": "a.Critical.cs",
+      "score": 5,
+      "timesChanged": 8,
+      "churn": 40,
+      "coverage": 0.25,
+      "riskChurn": 30,
+      "riskLevel": "CRITICAL"
+    },
+    "a.High": {
+      "file": "a.High.cs",
+      "score": 5,
+      "timesChanged": 5,
+      "churn": 25,
+      "coverage": 0.6,
+      "riskChurn": 10,
+      "riskLevel": "HIGH"
+    },
+    "a.Medium": {
+      "file": "a.Medium.cs",
+      "score": 5,
+      "timesChanged": 3,
+      "churn": 15,
+      "coverage": 0.75,
+      "riskChurn": 3.75,
+      "riskLevel": "MEDIUM"
+    },
+    "a.Low": {
+      "file": "a.Low.cs",
+      "score": 5,
+      "timesChanged": 2,
+      "churn": 10,
+      "coverage": 1,
+      "riskChurn": 0,
+      "riskLevel": "LOW"
+    },
+    "a.Unknown": {
+      "file": "a.Unknown.cs",
+      "score": 0.5,
+      "timesChanged": 1,
+      "churn": 0.5,
+      "coverage": 0,
+      "riskChurn": 0.5,
+      "riskLevel": "LOW"
+    },
+    "a.NotInReport": {
+      "file": "a.NotInReport.cs",
+      "score": 1,
+      "timesChanged": 1,
+      "churn": 1,
+      "coverage": null,
+      "riskChurn": null,
+      "riskLevel": null
+    }
+  }
+}

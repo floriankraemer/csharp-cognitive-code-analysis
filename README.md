@@ -30,7 +30,7 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `-r|--report-type <type>` — `ConsoleText` (default), `Html`, `Json`, `Csv`, `Sarif`, `GithubActions`, or `GitlabCodeQuality`.
 - `-o|--output-file <path>` — Output path (default: `cognitive-analysis-report`; extension depends on report type).
 - `-b|--baseline <path>` — JSON baseline snapshot from a prior `-r Json` run. When set, all reports include deltas versus that baseline (HTML shows red ▲ / green ▼ suffixes after values).
-- `--coverage-cobertura <path>` — Optional Cobertura coverage file (line/branch coverage and churn when matched).
+- `--coverage-cobertura <path>` — Optional Cobertura coverage file (line/branch coverage and risk churn when matched).
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
@@ -59,6 +59,27 @@ CognitiveCodeAnalysis .\src -r Json -o .\baseline.json
 # Compare against baseline (HTML shows colored deltas)
 CognitiveCodeAnalysis .\src -b .\baseline.json -r Html -o .\report.html
 ```
+
+## Churn: complex code that changes often
+
+The `churn` command multiplies the cognitive score of each class with the number of git commits that changed its file.
+Classes that are both complex and edited all the time come first.
+
+```powershell
+# Console table, changes since the start of 2024
+CognitiveCodeAnalysis churn .\src --since 2024-01-01
+
+# Treemap as SVG
+CognitiveCodeAnalysis churn .\src -r SvgTreemap -o .\churn.svg
+
+# Add coverage: risk churn, coverage and a risk level per class
+CognitiveCodeAnalysis churn .\src --coverage-cobertura .\coverage.cobertura.xml -r Json -o .\churn.json
+```
+
+Reports: `Json`, `Csv`, `Html`, `Markdown`, `SvgTreemap`.
+`CognitiveCodeAnalysis <path> ...` without a command still runs the analysis.
+Do not confuse this git churn with the `Churn` column of the analysis reports, which is the score weighted with the missing coverage (called risk churn in the `churn` command).
+See [docs/Churn.md](docs/Churn.md) for all options, the git details and the risk levels.
 
 ## Resources 🔗
 

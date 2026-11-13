@@ -1,0 +1,4 @@
+Class,File,Score,Churn,Times Changed,Risk Churn,Coverage,Risk Level
+"a.B<T>|""x""&'y'",f<1>.cs,1,2,2,1,0.5,LOW
+a.NoChurn,g.cs,0,0,0,,,
+a.NoScore,h.cs,0,0,4,,,

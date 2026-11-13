@@ -47,6 +47,7 @@
 
   <ItemGroup>
     <None Include="fixtures\reports\golden\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="fixtures\churn\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
