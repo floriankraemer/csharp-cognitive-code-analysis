@@ -33,7 +33,9 @@
       "fieldAccessScore": 0,
       "propertyAccessCount": 0,
       "propertyAccessScore": 0,
-      "cyclomaticComplexity": 1
+      "cyclomaticComplexity": 1,
+      "understandability": 0,
+      "understandabilityRiskLevel": "low"
     },
     {
       "filePath": "src/Repo.cs",
@@ -68,7 +70,9 @@
       "propertyAccessScore": 0,
       "cyclomaticComplexity": 1,
       "branchCoveragePercentage": 12.25,
-      "churnScore": 0.1
+      "churnScore": 0.1,
+      "understandability": 0,
+      "understandabilityRiskLevel": "low"
     },
     {
       "filePath": "src/Svc.cs",
@@ -103,7 +107,9 @@
       "propertyAccessScore": 0,
       "cyclomaticComplexity": 2,
       "lineCoveragePercentage": 100,
-      "churnScore": 0.5
+      "churnScore": 0.5,
+      "understandability": 7,
+      "understandabilityRiskLevel": "medium"
     },
     {
       "filePath": "src/Svc.cs",
@@ -142,7 +148,9 @@
       "halsteadEffort": 1746.6,
       "lineCoveragePercentage": 80.5,
       "branchCoveragePercentage": 60,
-      "churnScore": 0.9
+      "churnScore": 0.9,
+      "understandability": 16,
+      "understandabilityRiskLevel": "very_high"
     }
   ],
   "classCoupling": [

@@ -122,6 +122,7 @@ public sealed class MetricsSorter
         Number("line", m => m.methodLineNumber);
         Number("halstead", m => m.Halstead?.Volume ?? 0);
         Number("cyclomatic", m => m.cyclomaticComplexity);
+        Number("understandability", m => m.Understandability.Total);
 
         Number("linesOfCode", m => m.linesOfCode);
         Number("argumentCount", m => m.argumentCount);

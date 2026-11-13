@@ -76,6 +76,12 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Understandability: the cognitive complexity as specified by SonarSource (G. Ann Campbell's white paper), measured for every method and constructor.**
+  It counts structural increments with a nesting penalty (`if`, `?:`, `switch`, loops, `catch`), `else` and `else if`, sequences of `&&` and `||`, `goto` and recursion, with the C# choices of SonarC#.
+  It does not enter the score.
+  `showUnderstandability` (default `false`) or `--show-understandability` appends an `Understandability` column such as `7 (medium)` to the console, HTML and Markdown reports and the columns `Understandability` and `UnderstandabilityRiskLevel` to the end of the CSV report.
+  The JSON report and baseline files always carry the fields `understandability` and `understandabilityRiskLevel`; older baseline files without them still load.
+  See [Understandability](docs/Understandability.md).
 - **`--coverage-clover <file>` for `analyse` and `churn`.**
   The Clover reader takes the class figures from the statement and conditional metrics and the method figures from the `method` and `stmt` lines, and it understands the `signature` attribute of OpenClover.
   The option cannot be combined with `--coverage-cobertura` (`Only one coverage format can be specified at a time.`).
@@ -85,7 +91,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 - All coverage readers skip a `DOCTYPE` without loading DTDs or external entities and without expanding entities, so a report cannot read local files or run an entity bomb.
   A coverage file that is not well-formed is reported as `Invalid coverage file <file>: <reason>` and the command exits with a non-zero code.
 - See [docs/Coverage.md](docs/Coverage.md).
-- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity or the count or score of any metric.
+- **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity, understandability or the count or score of any metric.
   Without `--sort-by` every report keeps its order.
 - **`--debug`** prints an execution summary to stderr after the run: total time, time per phase and the counts of files and methods.
 - **`--version`** prints the version of the tool.

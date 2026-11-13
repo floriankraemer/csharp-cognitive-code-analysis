@@ -7,5 +7,6 @@ namespace CognitiveCodeAnalysis.Application;
 public sealed record AnalysisDisplayOverrides(
     bool? ShowHalstead = null,
     bool? ShowCyclomatic = null,
-    bool? ShowCoupling = null
+    bool? ShowCoupling = null,
+    bool? ShowUnderstandability = null
 );

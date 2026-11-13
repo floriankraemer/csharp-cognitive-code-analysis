@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
+using CognitiveCodeAnalysis.UnderstandabilityAnalysis;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -354,7 +355,8 @@ public class CognitiveCodeAnalyser
                 localVariableCount: counts.LocalVariableCount,
                 fieldAccessCount: fieldAccessCount,
                 propertyAccessCount: propertyAccessCount,
-                halstead: halstead
+                halstead: halstead,
+                understandability: UnderstandabilityWalker.Measure(methodNode, typeNode.Identifier.ValueText)
             ));
         }
     }

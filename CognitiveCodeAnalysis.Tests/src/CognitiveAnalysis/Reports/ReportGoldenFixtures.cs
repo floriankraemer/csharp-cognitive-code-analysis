@@ -7,6 +7,7 @@ using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.CouplingAnalysis;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
+using CognitiveCodeAnalysis.UnderstandabilityAnalysis;
 
 namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis.Reports;
 
@@ -122,7 +123,7 @@ internal static class ReportGoldenFixtures
     }
 
 
-    /// <summary>All optional columns on: Halstead, cyclomatic, coupling, coverage and churn.</summary>
+    /// <summary>All optional columns on: Halstead, cyclomatic, coupling, coverage, churn and understandability.</summary>
     internal static CognitiveConfiguration FullConfig(bool groupByClass) =>
         new()
         {
@@ -132,6 +133,7 @@ internal static class ReportGoldenFixtures
             ShowCouplingMetrics = true,
             ShowHalsteadComplexity = true,
             ShowCyclomaticComplexity = true,
+            ShowUnderstandability = true,
         };
 
     /// <summary>
@@ -153,6 +155,7 @@ internal static class ReportGoldenFixtures
         alpha.lineCoveragePercentage = 80.5;
         alpha.branchCoveragePercentage = 60;
         alpha.churnScore = 0.9;
+        alpha.Understandability = new Understandability(Structural: 5, Hybrid: 2, Fundamental: 3, Nesting: 6, Recursion: 1);
 
         var beta = CreateMetric("Beta", "Svc", "src/Svc.cs", "List<string> Beta<T>()", 42, betaScore);
         beta.loopCount = 2;
@@ -160,6 +163,7 @@ internal static class ReportGoldenFixtures
         beta.cyclomaticComplexity = 2;
         beta.lineCoveragePercentage = 100;
         beta.churnScore = 0.5;
+        beta.Understandability = new Understandability(Structural: 3, Hybrid: 1, Fundamental: 1, Nesting: 2, Recursion: 0);
 
         var gamma = CreateMetric("Gamma", "Repo", "src/Repo.cs", "void Gamma()", 5, gammaScore);
         gamma.churnScore = 0.1;

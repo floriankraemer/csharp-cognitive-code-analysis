@@ -24,6 +24,7 @@ Use this structure:
     "showOnlyMethodsExceedingThreshold": true,
     "showHalsteadComplexity": false,
     "showCyclomaticComplexity": false,
+    "showUnderstandability": false,
     "showCouplingMetrics": false,
     "showDetailedCognitiveMetrics": true,
     "groupByClass": true,
@@ -73,6 +74,9 @@ Use this structure:
   `for (...) { for (...) { for (...) { } } }` has a nesting depth of 3.
 - `showHalsteadComplexity` (`bool`): when `true`, console and HTML reports include Halstead volume, difficulty, and effort columns (metrics are always computed during analysis).
 - `showCyclomaticComplexity` (`bool`): when `true`, console and HTML reports include cyclomatic complexity (computed during analysis).
+- `showUnderstandability` (`bool`, default `false`): when `true`, the console, HTML and Markdown reports end with an `Understandability` column (`7 (medium)`) and the CSV report ends with the columns `Understandability` and `UnderstandabilityRiskLevel`.
+  Understandability is the SonarSource cognitive complexity; see [Understandability.md](Understandability.md).
+  It is always computed and always in the JSON report.
 - `showCouplingMetrics` (`bool`): when `true` and `groupByClass` is `true`, console and HTML reports show class coupling (incoming, outgoing, stability) in each class header. Coupling is always computed during analysis.
 - `showDetailedCognitiveMetrics` (`bool`, default `true`): shows the detail columns (Lines, Ifs, Else, Loops, Switch, Try/Catch, Arguments, Nesting, Returns, Locals, Fields, Props) in the console, HTML and Markdown reports.
   With `false`, those reports keep only Method, Score and the optional Halstead, Cyclomatic Complexity and Churn columns.
@@ -163,7 +167,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
   Methods without branches show no branch coverage, and their churn uses the line coverage.
   A coverage file that loads but matches no method produces a warning, and so does one that matches only some of the analysed classes.
 - `--sort-by <field>`: sort the rows of the report by a field instead of by total score.
-  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, `understandability`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are case-insensitive; the score column names of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
   Numbers compare numerically, text ignores the letter case, and equal values keep the order of class, method, file and line.
   With `groupByClass` the classes keep their order and the rows inside each class table are sorted.
@@ -178,6 +182,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).
+- `--show-understandability`: force `showUnderstandability` on for this run (overrides config).
 
 An unknown option or a surplus argument is ignored with a warning that lists it; the exit code is not affected.
 
