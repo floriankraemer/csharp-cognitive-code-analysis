@@ -10,6 +10,39 @@ namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis.Reports;
 
 public class ReportCoordinatorSuccessTests
 {
+    [TestCase("html")]
+    [TestCase("HTML")]
+    [TestCase("hTmL")]
+    public void GenerateReport_ReportTypeIsMatchedCaseInsensitively_AndAnnouncedWithTheCanonicalName(string requested)
+    {
+        var coordinator = new ReportCoordinator(new IReport[] { new CsvReport(), new HtmlReport() });
+        string? seenType = null;
+        coordinator.ReportGenerated += (_, e) => seenType = e.ReportType;
+        var path = Path.Combine(Path.GetTempPath(), "coord-" + Guid.NewGuid() + ".html");
+        try
+        {
+            coordinator.GenerateReport(requested, path, new CognitiveConfiguration(), new CognitiveMetricsCollection());
+
+            Assert.That(seenType, Is.EqualTo("Html"));
+            Assert.That(File.ReadAllText(path), Does.Contain("<html"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Test]
+    public void GenerateReport_UnknownReportType_StillThrowsAndListsTheSupportedOnes()
+    {
+        var coordinator = new ReportCoordinator(new IReport[] { new CsvReport(), new HtmlReport() });
+
+        var ex = Assert.Throws<InvalidOperationException>(() => coordinator.GenerateReport(
+            "htm", "ignored", new CognitiveConfiguration(), new CognitiveMetricsCollection()));
+
+        Assert.That(ex!.Message, Does.Contain("Unknown report type 'htm'").And.Contain("Csv, Html"));
+    }
+
     [Test]
     public void GenerateReport_Html_RaisesReportGenerated()
     {

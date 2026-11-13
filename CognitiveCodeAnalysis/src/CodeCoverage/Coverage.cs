@@ -40,9 +40,17 @@ public class Coverage
     public int LinesTotal { get; set; }
 
     /// <summary>
-    /// Line coverage percentage (0-100).
+    /// Line coverage as a fraction (0-1) for reports that carry only a rate and no line counts.
+    /// Ignored when <see cref="LinesTotal"/> is positive.
     /// </summary>
-    public double LineCoveragePercentage => LinesTotal > 0 ? (LinesCovered / (double)LinesTotal) * 100 : 0;
+    public double? LineRate { get; set; }
+
+    /// <summary>
+    /// Line coverage percentage (0-100). Computed from the counts when present, otherwise from <see cref="LineRate"/>.
+    /// </summary>
+    public double LineCoveragePercentage => LinesTotal > 0
+        ? (LinesCovered / (double)LinesTotal) * 100
+        : (LineRate ?? 0) * 100;
 
     /// <summary>
     /// Number of branches covered by tests.
@@ -55,9 +63,19 @@ public class Coverage
     public int BranchesTotal { get; set; }
 
     /// <summary>
-    /// Branch coverage percentage (0-100).
+    /// Branch coverage as a fraction (0-1) for reports that carry only a rate and no branch counts.
+    /// Stays null when the report has no branch data, which includes methods without branches.
+    /// Ignored when <see cref="BranchesTotal"/> is positive.
     /// </summary>
-    public double BranchCoveragePercentage => BranchesTotal > 0 ? (BranchesCovered / (double)BranchesTotal) * 100 : 0;
+    public double? BranchRate { get; set; }
+
+    /// <summary>
+    /// Branch coverage percentage (0-100), or null when there is no branch data
+    /// (for example a method without branches).
+    /// </summary>
+    public double? BranchCoveragePercentage => BranchesTotal > 0
+        ? (BranchesCovered / (double)BranchesTotal) * 100
+        : BranchRate * 100;
 
     /// <summary>
     /// Cyclomatic complexity of the method or class.

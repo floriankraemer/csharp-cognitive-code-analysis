@@ -29,6 +29,20 @@ public static class CognitiveReportDeltaFormatter
             : $"<span class=\"delta-down\">▼{formatted}</span>";
     }
 
+    /// <summary>
+    /// Plain-text delta for Markdown tables: no colour, only the arrow and the absolute change.
+    /// </summary>
+    public static string FormatMarkdownValue(string formattedValue, MetricDelta? delta, string deltaFormat)
+    {
+        if (delta?.Delta is not { } value || value == 0)
+        {
+            return formattedValue;
+        }
+
+        string formatted = Math.Abs(value).ToString(deltaFormat, CultureInfo.InvariantCulture);
+        return $"{formattedValue} {(value > 0 ? "▲" : "▼")}{formatted}";
+    }
+
     public static string FormatConsoleValue(string formattedValue, MetricDelta? delta, string deltaFormat)
     {
         string suffix = FormatConsoleDeltaSuffix(delta, deltaFormat);
@@ -77,6 +91,16 @@ public static class CognitiveReportDeltaFormatter
         return FormatHtmlValue(countText, countDelta, "F0")
             + " ("
             + FormatHtmlValue(scoreText, scoreDelta, "F3")
+            + ")";
+    }
+
+    public static string FormatCountWithScoreMarkdown(int count, double score, MetricDelta? countDelta, MetricDelta? scoreDelta)
+    {
+        string countText = count.ToString(CultureInfo.InvariantCulture);
+        string scoreText = score.ToString("F3", CultureInfo.InvariantCulture);
+        return FormatMarkdownValue(countText, countDelta, "F0")
+            + " ("
+            + FormatMarkdownValue(scoreText, scoreDelta, "F3")
             + ")";
     }
 

@@ -52,6 +52,16 @@ public class DependencyInjectionTests
     }
 
     [Test]
+    public void TypeRegistrar_RegisterLazy_RejectsANullFactoryNamingTheParameter()
+    {
+        var registrar = new TypeRegistrar(new ServiceCollection());
+
+        var ex = Assert.Throws<ArgumentNullException>(() => registrar.RegisterLazy(typeof(string), null!));
+
+        Assert.That(ex!.ParamName, Is.EqualTo("func"));
+    }
+
+    [Test]
     public void TypeRegistrar_RegistersTypesInstancesAndLazyFactories()
     {
         var registrar = new TypeRegistrar(new ServiceCollection());

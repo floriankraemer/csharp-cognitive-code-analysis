@@ -14,6 +14,7 @@ namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis.Reports;
 public class CognitiveReportTableFormatTests
 {
     private const int BaseColumns = 14;
+    private const int NonDetailColumns = 2;
 
     private static CognitiveMetrics Metric() => new("Run", "Svc", "a.cs", "void Run()", 12, ifCount: 2, linesOfCode: 7)
     {
@@ -30,6 +31,47 @@ public class CognitiveReportTableFormatTests
         Assert.That(headers, Has.Count.EqualTo(BaseColumns));
         Assert.That(headers[0], Is.EqualTo("Method"));
         Assert.That(headers[^1], Is.EqualTo("Props"));
+    }
+
+    [Test]
+    public void BuildColumnHeaders_DetailColumns_IncludeElseLoopsSwitchTryCatch()
+    {
+        var headers = CognitiveReportTableFormat.BuildColumnHeaders(new CognitiveConfiguration(), hasCoverageData: false);
+
+        Assert.That(headers, Is.EqualTo(new[]
+        {
+            "Method", "Score", "Lines", "Ifs", "Else", "Loops", "Switch", "Try/Catch",
+            "Arguments", "Nesting", "Returns", "Locals", "Fields", "Props",
+        }));
+    }
+
+    [Test]
+    public void BuildColumnHeaders_DetailedMetricsOff_KeepsMethodScoreAndOptionalExtras()
+    {
+        var config = new CognitiveConfiguration
+        {
+            ShowDetailedCognitiveMetrics = false,
+            ShowHalsteadComplexity = true,
+            ShowCyclomaticComplexity = true,
+        };
+
+        var headers = CognitiveReportTableFormat.BuildColumnHeaders(config, hasCoverageData: true);
+
+        Assert.That(headers, Is.EqualTo(new[]
+        {
+            "Method", "Score", "Halstead Volume", "Halstead Difficulty", "Halstead Effort", "Cyclomatic Complexity", "Churn",
+        }));
+    }
+
+    [Test]
+    public void BuildRowValues_DetailedMetricsOff_MatchesHeaderCount()
+    {
+        var config = new CognitiveConfiguration { ShowDetailedCognitiveMetrics = false };
+
+        var row = CognitiveReportTableFormat.BuildRowValues(Metric(), config, hasCoverageData: false);
+
+        Assert.That(row, Is.EqualTo(new[] { "L12 Run", "1.235" }));
+        Assert.That(row, Has.Count.EqualTo(NonDetailColumns));
     }
 
     [Test]

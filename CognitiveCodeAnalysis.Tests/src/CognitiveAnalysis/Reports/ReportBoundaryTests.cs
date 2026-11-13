@@ -29,13 +29,26 @@ public class ReportBoundaryTests
         new(name, cls, file, $"void {name}()", 1) { totalScore = score };
 
     [TestCase(0.49, "score-green")]
-    [TestCase(0.5, "score-yellow")]
-    [TestCase(0.84, "score-yellow")]
-    [TestCase(0.85, "score-red")]
+    [TestCase(0.5, "score-green")]
+    [TestCase(0.51, "score-yellow")]
+    [TestCase(1.0, "score-yellow")]
+    [TestCase(1.01, "score-red")]
     [TestCase(3.0, "score-red")]
-    public void Html_ScoreColourBands(double score, string expectedClass)
+    public void Html_ScoreColourBands_FollowTheScoreThreshold(double score, string expectedClass)
     {
-        var html = Html([Metric("C", "M", score)]);
+        var html = Html([Metric("C", "M", score)], new CognitiveConfiguration { ScoreThreshold = 0.5, ShowOnlyMethodsExceedingThreshold = false });
+
+        Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{score.ToString("F3", CultureInfo.InvariantCulture)}</span>"));
+    }
+
+    [TestCase(1.99, "score-green")]
+    [TestCase(2.0, "score-green")]
+    [TestCase(2.01, "score-yellow")]
+    [TestCase(4.0, "score-yellow")]
+    [TestCase(4.01, "score-red")]
+    public void Html_ScoreColourBands_MoveWithAHigherThreshold(double score, string expectedClass)
+    {
+        var html = Html([Metric("C", "M", score)], new CognitiveConfiguration { ScoreThreshold = 2.0, ShowOnlyMethodsExceedingThreshold = false });
 
         Assert.That(html, Does.Contain($"<span class=\"{expectedClass}\">{score.ToString("F3", CultureInfo.InvariantCulture)}</span>"));
     }

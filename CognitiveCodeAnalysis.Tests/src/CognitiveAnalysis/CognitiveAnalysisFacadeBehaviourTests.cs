@@ -88,7 +88,7 @@ public class CognitiveAnalysisFacadeBehaviourTests
         var with = Facade().AnalyseSourceFiles([file], ScoringConfig(coupling: true));
 
         Assert.That(without.TryGetClassCoupling("Many", out _), Is.False);
-        Assert.That(with.TryGetClassCoupling("<global namespace>.Many", out ClassCouplingMetrics? coupling), Is.True);
+        Assert.That(with.TryGetClassCoupling("Many", out ClassCouplingMetrics? coupling), Is.True);
         Assert.That(coupling!.OutgoingCoupling, Is.EqualTo(1));
     }
 
@@ -169,6 +169,7 @@ public class CognitiveAnalysisFacadeBehaviourTests
         var result = facade.LoadCoverageData(other, metrics);
 
         Assert.That(result.Success, Is.True);
+        Assert.That(result.WarningMessage, Does.Contain("Loaded 1 coverage entries").And.Contain("none matched"));
         Assert.That(metrics.Single().HasCoverageData, Is.False);
         Assert.That(metrics.Single().churnScore, Is.Null);
     }
@@ -196,6 +197,7 @@ public class CognitiveAnalysisFacadeBehaviourTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
+            Assert.That(result.WarningMessage, Is.Null);
             Assert.That(m.lineCoveragePercentage, Is.EqualTo(75.0));
             Assert.That(m.branchCoveragePercentage, Is.EqualTo(50.0));
             Assert.That(m.churnScore, Is.EqualTo(m.totalScore * 0.5).Within(1e-12));
@@ -204,10 +206,8 @@ public class CognitiveAnalysisFacadeBehaviourTests
     }
 
     [Test]
-    public void LoadCoverageData_MethodWithoutBranches_IsTreatedAsZeroPercentBranchCoverage()
+    public void LoadCoverageData_MethodWithoutBranches_HasNoBranchCoverageAndChurnUsesLineCoverage()
     {
-        // Known defect (tracked for the bug-fix PR): a method with no branches should have no branch coverage at all,
-        // but Coverage reports 0%, so churn falls back to "completely untested" even for fully covered code.
         var (facade, metrics, source) = AnalysedMethod();
         var coverage = _temp.CreateFileWithContent("cov.xml", $"""
             <coverage><sources><source>{Path.GetDirectoryName(source)}</source></sources><packages><package name="N"><classes>
@@ -220,8 +220,76 @@ public class CognitiveAnalysisFacadeBehaviourTests
         facade.LoadCoverageData(coverage, metrics);
 
         var m = metrics.Single();
-        Assert.That(m.lineCoveragePercentage, Is.EqualTo(100.0));
-        Assert.That(m.branchCoveragePercentage, Is.EqualTo(0.0));
-        Assert.That(m.churnScore, Is.EqualTo(m.totalScore));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(m.lineCoveragePercentage, Is.EqualTo(100.0));
+            Assert.That(m.branchCoveragePercentage, Is.Null);
+            Assert.That(m.HasCoverageData, Is.True);
+            Assert.That(m.churnScore, Is.EqualTo(0.0));
+        }
+    }
+
+    [Test]
+    public void LoadCoverageData_MethodWithoutBranchesAndPartialLines_ChurnFollowsLineCoverage()
+    {
+        var (facade, metrics, source) = AnalysedMethod();
+        var coverage = _temp.CreateFileWithContent("cov.xml", $"""
+            <coverage><sources><source>{Path.GetDirectoryName(source)}</source></sources><packages><package name="N"><classes>
+              <class name="Calc" filename="Calc.cs" lines-covered="1" lines-valid="4">
+                <methods><method name="Run" lines-covered="1" lines-valid="4"><lines><line number="4" hits="1"/></lines></method></methods>
+              </class>
+            </classes></package></packages></coverage>
+            """);
+
+        facade.LoadCoverageData(coverage, metrics);
+
+        var m = metrics.Single();
+        Assert.That(m.branchCoveragePercentage, Is.Null);
+        Assert.That(m.churnScore, Is.EqualTo(m.totalScore * 0.75).Within(1e-12));
+    }
+
+    [Test]
+    public void LoadCoverageData_CoverletStyleRates_MatchByFirstCoveredLineWithinTheMethod()
+    {
+        var (facade, metrics, source) = AnalysedMethod();
+        // Run spans lines 4-8; coverlet reports the first executable line (6), not the declaration line.
+        var coverage = _temp.CreateFileWithContent("cov.xml", $"""
+            <coverage line-rate="0.5" branch-rate="0.5"><sources><source>{Path.GetDirectoryName(source)}</source></sources><packages><package name="N"><classes>
+              <class name="N.Calc" filename="Calc.cs" line-rate="0.1" branch-rate="0.1">
+                <methods><method name="Run" line-rate="0.5" branch-rate="0.5"><lines>
+                  <line number="6" hits="1" branch="True" condition-coverage="50% (1/2)"/>
+                  <line number="7" hits="0" branch="False"/>
+                </lines></method></methods>
+              </class>
+            </classes></package></packages></coverage>
+            """);
+
+        var result = facade.LoadCoverageData(coverage, metrics);
+
+        var m = metrics.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.WarningMessage, Is.Null);
+            Assert.That(m.lineCoveragePercentage, Is.EqualTo(50.0));
+            Assert.That(m.branchCoveragePercentage, Is.EqualTo(50.0));
+        }
+    }
+
+    [Test]
+    public void LoadCoverageData_MethodNameMatchesButFirstLineIsOutsideTheMethod_DoesNotMatchTheMethod()
+    {
+        var (facade, metrics, source) = AnalysedMethod();
+        var coverage = _temp.CreateFileWithContent("cov.xml", $"""
+            <coverage><sources><source>{Path.GetDirectoryName(source)}</source></sources><packages><package name="N"><classes>
+              <class name="Other" filename="Calc.cs" lines-covered="1" lines-valid="1">
+                <methods><method name="Run" lines-covered="1" lines-valid="1"><lines><line number="40" hits="1"/></lines></method></methods>
+              </class>
+            </classes></package></packages></coverage>
+            """);
+
+        facade.LoadCoverageData(coverage, metrics);
+
+        // The class-level fallback does not match "Other" either, so the file-level aggregate decides: none exists.
+        Assert.That(metrics.Single().HasCoverageData, Is.False);
     }
 }

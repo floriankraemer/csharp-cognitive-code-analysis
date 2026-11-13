@@ -73,7 +73,7 @@ public sealed class AnalysisWorkflow(
 
         return new CoverageApplicationResult(
             Success: result.Success,
-            WarningMessage: result.Success ? null : result.ErrorMessage
+            WarningMessage: result.Success ? result.WarningMessage : result.ErrorMessage
         );
     }
 

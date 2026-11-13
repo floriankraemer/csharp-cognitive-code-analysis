@@ -12,7 +12,7 @@ public static class ConfigFileGenerator
     {
         Directory.CreateDirectory(targetDirectory);
         string outputPath = Path.Combine(targetDirectory, ConfigurationResolver.DefaultFileName);
-        File.WriteAllText(outputPath, ConfigurationLoader.DefaultCognitiveMetricsSettingsJson);
+        File.WriteAllText(outputPath, CognitiveConfigurationDefaults.SettingsJson);
         return outputPath;
     }
 }

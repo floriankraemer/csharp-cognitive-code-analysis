@@ -13,6 +13,7 @@ public static class ConfigurationLoader
     /// <summary>
     /// <![CDATA[
     /// Loads configuration directly and returns the CognitiveConfiguration object.
+    /// Throws <see cref="ConfigurationException"/> when the metrics section names a metric that cannot be scored.
     /// ]]>
     /// </summary>
     public static CognitiveConfiguration Load(string? configFilePath = null)
@@ -21,6 +22,7 @@ public static class ConfigurationLoader
 
         CognitiveConfiguration cognitiveConfig = CognitiveConfigurationDefaults.Create();
         configuration.GetSection("cognitive").Bind(cognitiveConfig);
+        cognitiveConfig.Warnings = MetricKeyValidator.NormalizeOrThrow(cognitiveConfig);
 
         return cognitiveConfig;
     }
@@ -48,36 +50,4 @@ public static class ConfigurationLoader
                     .AddJsonFile("cognitive-metrics-settings.json", optional: true, reloadOnChange: false)
                     .Build();
     }
-
-    /// <summary>
-    /// Default cognitive settings (same defaults as bundled cognitive-metrics-settings.json).
-    /// Kept embedded so analyzer hosts that do not set AppContext.BaseDirectory to the CLI output still get CLI parity.
-    /// </summary>
-    public const string DefaultCognitiveMetricsSettingsJson =
-        """
-{
-    "cognitive": {
-        "excludeFilePatterns": [],
-        "excludePatterns": [],
-        "scoreThreshold": 0.5,
-        "showOnlyMethodsExceedingThreshold": true,
-        "showHalsteadComplexity": false,
-        "showCyclomaticComplexity": false,
-        "showDetailedCognitiveMetrics": true,
-        "groupByClass": true,
-        "countElseAsNesting": false,
-        "countElseIfAsNesting": false,
-        "metrics": {
-            "linesOfCode": { "threshold": 60, "scale": 25.0, "enabled": true },
-            "argumentCount": { "threshold": 4, "scale": 1.0, "enabled": true },
-            "returnCount": { "threshold": 2, "scale": 5.0, "enabled": true },
-            "localVariableCount": { "threshold": 4, "scale": 5.0, "enabled": true },
-            "propertyAccessCount": { "threshold": 4, "scale": 15.0, "enabled": true },
-            "ifCount": { "threshold": 3, "scale": 1.0, "enabled": true },
-            "nestingLevels": { "threshold": 1, "scale": 1.0, "enabled": true },
-            "elseCount": { "threshold": 1, "scale": 1.0, "enabled": true }
-        }
-    }
-}
-""";
 }

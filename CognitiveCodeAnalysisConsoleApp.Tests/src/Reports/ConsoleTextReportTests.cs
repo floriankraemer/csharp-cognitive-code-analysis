@@ -249,6 +249,99 @@ public class ConsoleTextReportTests
         Assert.That(reports.Last().Phase, Is.EqualTo(AnalysisProgressPhase.ReportCompleted));
     }
 
+    [TestCase(0.5, 0.0, "green")]
+    [TestCase(0.5, 0.5, "green")]
+    [TestCase(0.5, 0.51, "yellow")]
+    [TestCase(0.5, 1.0, "yellow")]
+    [TestCase(0.5, 1.01, "red")]
+    [TestCase(5.0, 5.0, "green")]
+    [TestCase(5.0, 9.99, "yellow")]
+    [TestCase(5.0, 10.01, "red")]
+    [TestCase(0.0, 0.0, "green")]
+    [TestCase(0.0, 0.01, "red")]
+    public void ScoreColour_FollowsTheScoreThreshold(double threshold, double score, string colour)
+    {
+        string scoreText = score.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.That(ConsoleTextReport.ColorizeScore(score, threshold), Is.EqualTo($"[{colour}]{scoreText}[/]"));
+    }
+
+    [Test]
+    public void Columns_ContainElseLoopsSwitchAndTryCatch_InTheSameOrderAsTheOtherReports()
+    {
+        var m = Metric("C", "M", 1, 1.0);
+        m.elseCount = 2;
+        m.loopCount = 3;
+        m.switchCount = 4;
+        m.tryCatchCount = 5;
+
+        string text = Render(new CognitiveMetricsCollection { m }, Config(grouped: true, full: false));
+
+        string header = text.Split('\n').First(l => l.Contains("Method"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                System.Text.RegularExpressions.Regex.Matches(header, "[A-Za-z/]+").Select(x => x.Value),
+                Is.EqualTo(new[] { "Method", "Score", "Lines", "Ifs", "Else", "Loops", "Switch", "Try/Catch", "Arguments", "Nesting", "Returns", "Locals", "Fields", "Props" }));
+            Assert.That(text, Does.Contain("2 (0.000)").And.Contain("3 (0.000)").And.Contain("4 (0.000)").And.Contain("5 (0.000)"));
+        }
+    }
+
+    [Test]
+    public void DetailedMetricsOff_KeepsOnlyMethodScoreAndOptionalColumns()
+    {
+        var config = Config(grouped: true);
+        config.ShowDetailedCognitiveMetrics = false;
+
+        string text = Render(Collection(), config);
+
+        string header = text.Split('\n').First(l => l.Contains("Method"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(header, Does.Not.Contain("Lines").And.Not.Contain("Arguments").And.Not.Contain("Props"));
+            Assert.That(header, Does.Contain("Score").And.Contain("Halstead Vol").And.Contain("Cyclomatic").And.Contain("Coverage").And.Contain("Churn"));
+            Assert.That(text, Does.Contain("L10 Alpha").And.Contain("8.500").And.Contain("120.46"));
+            Assert.That(text, Does.Not.Contain("4 (1.500)"));
+        }
+    }
+
+    [Test]
+    public void Ungrouped_ListsTheMostComplexMethodsFirst_AndKeepsTheInputOrderForTies()
+    {
+        var low = Metric("C", "Low", 1, 1.0);
+        var tieA = Metric("C", "TieA", 2, 2.0);
+        var tieB = Metric("C", "TieB", 3, 2.0);
+        var high = Metric("C", "High", 4, 3.0);
+
+        string text = Render(new CognitiveMetricsCollection { low, tieA, tieB, high }, Config(grouped: false, full: false));
+
+        var order = new[] { "L4 High", "L2 TieA", "L3 TieB", "L1 Low" }.Select(s => text.IndexOf(s, StringComparison.Ordinal)).ToArray();
+        Assert.That(order, Is.Ordered.And.All.GreaterThanOrEqualTo(0));
+    }
+
+    [Test]
+    public void Numbers_UnderGermanCulture_KeepTheInvariantFormat()
+    {
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+
+            string text = Render(Collection(), Config(grouped: true));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(text, Does.Contain("8.500").And.Contain("Line: 80.0%").And.Contain("Branch: 49.9%").And.Contain("0.900"));
+                Assert.That(text, Does.Contain("(25.0%)").And.Contain("Threshold: 5.000"));
+                Assert.That(text, Does.Not.Match(@"\d,\d"));
+            }
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+    }
+
     private sealed class SyncProgress(List<AnalysisProgress> sink) : IProgress<AnalysisProgress>
     {
         public void Report(AnalysisProgress value) => sink.Add(value);

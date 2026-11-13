@@ -87,6 +87,54 @@ public class VsCoverageReaderDetailTests
         Assert.That(a.LinesCovered, Is.EqualTo(1));
     }
 
+    [TestCase("abc")]
+    [TestCase("")]
+    [TestCase("1.5")]
+    public void ReadCoverage_UnparsableEndLine_KeepsTheRangeAsASingleLine(string endLine)
+    {
+        var list = Read($$"""
+            <results><module>
+              <range source_id="1" start_line="5" end_line="{{endLine}}" covered="yes"/>
+              <range source_id="1" start_line="6" end_line="{{endLine}}" covered="no"/>
+              <source_file id="1" path="/src/A.cs"/>
+            </module></results>
+            """);
+
+        var a = list.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(a.LinesTotal, Is.EqualTo(2));
+            Assert.That(a.LinesCovered, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public void ReadCoverage_EndLineBeforeStartLine_KeepsTheRangeAsASingleLine()
+    {
+        var list = Read("""
+            <results><module>
+              <range source_id="1" start_line="5" end_line="2" covered="yes"/>
+              <source_file id="1" path="/src/A.cs"/>
+            </module></results>
+            """);
+
+        Assert.That(list.Single().LinesTotal, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ReadCoverage_ValidEndLine_StillSpansTheWholeRange()
+    {
+        var list = Read("""
+            <results><module>
+              <range source_id="1" start_line="5" end_line="8" covered="yes"/>
+              <source_file id="1" path="/src/A.cs"/>
+            </module></results>
+            """);
+
+        var a = list.Single();
+        Assert.That((a.LinesTotal, a.LinesCovered), Is.EqualTo((4, 4)));
+    }
+
     [Test]
     public void ReadCoverage_EmptyModuleAndNoRanges_ReturnsEmpty()
     {

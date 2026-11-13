@@ -301,37 +301,42 @@ public class Tests
         Assert.That(metrics.totalScore, Is.EqualTo(12 * Math.Log(2)).Within(1e-12));
     }
 
-    [Test]
-    public void CalculateScores_UnknownMetricName_IsIgnored()
+    [TestCase("doesNotExist")]
+    [TestCase("methodLineNumber")]
+    [TestCase("MethodName")]
+    [TestCase("cyclomaticComplexity")]
+    [TestCase("")]
+    public void CalculateScores_UnknownEnabledMetricName_ThrowsAConfigurationErrorNamingTheKey(string key)
     {
         var metrics = Metrics(ifCount: 9);
 
-        new ScoreCalculator().CalculateScores(metrics, SingleMetric("doesNotExist", 0, 1));
+        var ex = Assert.Throws<ConfigurationException>(
+            () => new ScoreCalculator().CalculateScores(metrics, SingleMetric(key, 0, 1)));
 
+        Assert.That(ex!.Message, Does.Contain($"'{key}'").And.Contain("Valid keys: linesOfCode, ifCount"));
+    }
+
+    [Test]
+    public void CalculateScores_UnknownButDisabledMetricName_IsNotTouched()
+    {
+        var metrics = Metrics(ifCount: 9);
+        var configuration = new CognitiveConfiguration
+        {
+            Metrics = new() { ["doesNotExist"] = new MetricConfiguration { Threshold = 0, Scale = 1, Enabled = false } },
+        };
+
+        Assert.DoesNotThrow(() => new ScoreCalculator().CalculateScores(metrics, configuration));
         Assert.That(metrics.totalScore, Is.EqualTo(0.0));
     }
 
     [Test]
-    public void CalculateScores_PublicFieldWithoutScoreField_IsReadViaReflectionButNotStored()
+    public void SupportedMetricKeys_AreTheTwelveScoredMetrics()
     {
-        // methodLineNumber is a public int field: readable by name, but has no matching score slot.
-        var metrics = Metrics();
-        metrics.methodLineNumber = 50;
-
-        new ScoreCalculator().CalculateScores(metrics, SingleMetric("methodLineNumber", 10, 1));
-
-        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
-    }
-
-    [Test]
-    public void CalculateScores_CyclomaticComplexity_IsReadButContributesNoScore()
-    {
-        var metrics = Metrics();
-        metrics.cyclomaticComplexity = 20;
-
-        new ScoreCalculator().CalculateScores(metrics, SingleMetric("cyclomaticComplexity", 5, 1));
-
-        Assert.That(metrics.totalScore, Is.EqualTo(0.0));
+        Assert.That(ScoreCalculator.SupportedMetricKeys, Is.EquivalentTo(new[]
+        {
+            "linesOfCode", "ifCount", "elseCount", "loopCount", "switchCount", "tryCatchCount", "returnCount",
+            "argumentCount", "nestingLevels", "localVariableCount", "fieldAccessCount", "propertyAccessCount",
+        }));
     }
 
     [Test]

@@ -96,7 +96,7 @@ public class CoberturaReaderDetailTests
                 Assert.That(c.MethodName, Is.Empty);
                 Assert.That(c.LinesTotal, Is.EqualTo(0));
                 Assert.That(c.LineCoveragePercentage, Is.EqualTo(0.0));
-                Assert.That(c.BranchCoveragePercentage, Is.EqualTo(0.0));
+                Assert.That(c.BranchCoveragePercentage, Is.Null);
             }
         }
     }

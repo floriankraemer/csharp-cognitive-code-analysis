@@ -170,7 +170,12 @@ public class CognitiveAnalysisFacade(
 
             if (coverageList.Count > 0)
             {
-                return new CoverageLoadingResult { Success = true };
+                return new CoverageLoadingResult
+                {
+                    Success = true,
+                    WarningMessage = $"Loaded {coverageList.Count} coverage entries from {coverageFilePath} but none matched an analysed method. "
+                        + "Check that the coverage report was produced for the analysed sources and that its file paths resolve to them.",
+                };
             }
 
             return new CoverageLoadingResult { Success = false, ErrorMessage = "No coverage data found" };
@@ -189,5 +194,10 @@ public class CognitiveAnalysisFacade(
     {
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Set when loading succeeded but the result is probably not what the caller expects.
+        /// </summary>
+        public string? WarningMessage { get; set; }
     }
 }

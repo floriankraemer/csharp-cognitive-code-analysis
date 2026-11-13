@@ -66,6 +66,15 @@ public class PublishedBinaryCliTests
     }
 
     [Test]
+    public void UnknownOption_FailsWithANonZeroExitCodeAndNamesTheOption()
+    {
+        (int exitCode, string output) = RunExecutable(_workingDirectory, _workingDirectory, "--bogus");
+
+        Assert.That(exitCode, Is.Not.EqualTo(0));
+        Assert.That(output, Does.Contain("Unknown option 'bogus'"));
+    }
+
+    [Test]
     public void GenerateConfig_WithoutPath_WritesFileToWorkingDirectory()
     {
         (int exitCode, _) = RunExecutable(_workingDirectory, "--generate-config");

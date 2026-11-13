@@ -2,40 +2,43 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Reflection;
+using System.Text;
+
+using Microsoft.Extensions.Configuration;
+
 namespace CognitiveCodeAnalysis.Configuration;
 
+/// <summary>
+/// The built-in defaults. The shipped <c>cognitive-metrics-settings.json</c> is the only source:
+/// it is embedded in the assembly, parsed here, and written out unchanged by <c>--generate-config</c>.
+/// </summary>
 public static class CognitiveConfigurationDefaults
 {
-    public static CognitiveConfiguration Create() =>
-        new()
-        {
-            ExcludeFilePatterns = [],
-            ExcludePatterns = [],
-            ScoreThreshold = 0.5,
-            ShowOnlyMethodsExceedingThreshold = true,
-            ShowHalsteadComplexity = false,
-            ShowCyclomaticComplexity = false,
-            ShowCouplingMetrics = false,
-            GroupByClass = true,
-            CountElseAsNesting = false,
-            CountElseIfAsNesting = false,
-            Metrics = CreateDefaultMetrics(),
-        };
+    private const string ResourceName = "cognitive-metrics-settings.json";
 
-    private static Dictionary<string, MetricConfiguration> CreateDefaultMetrics() =>
-        new(StringComparer.Ordinal)
-        {
-            ["linesOfCode"] = new MetricConfiguration { Threshold = 60, Scale = 25.0, Enabled = true },
-            ["argumentCount"] = new MetricConfiguration { Threshold = 4, Scale = 1.0, Enabled = true },
-            ["returnCount"] = new MetricConfiguration { Threshold = 2, Scale = 5.0, Enabled = true },
-            ["variableCount"] = new MetricConfiguration { Threshold = 4, Scale = 5.0, Enabled = false },
-            ["propertyCallCount"] = new MetricConfiguration { Threshold = 4, Scale = 15.0, Enabled = false },
-            ["fieldAccessCount"] = new MetricConfiguration { Threshold = 4, Scale = 15.0, Enabled = false },
-            ["ifCount"] = new MetricConfiguration { Threshold = 3, Scale = 1.0, Enabled = true },
-            ["nestingLevels"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = true },
-            ["elseCount"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = true },
-            ["loopCount"] = new MetricConfiguration { Threshold = 2, Scale = 1.0, Enabled = false },
-            ["switchCount"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = false },
-            ["tryCatchCount"] = new MetricConfiguration { Threshold = 1, Scale = 1.0, Enabled = false },
-        };
+    /// <summary>
+    /// The text of the shipped settings file.
+    /// </summary>
+    public static string SettingsJson { get; } = ReadSettingsJson();
+
+    public static CognitiveConfiguration Create()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(SettingsJson));
+        IConfigurationRoot root = new ConfigurationBuilder().AddJsonStream(stream).Build();
+
+        var configuration = new CognitiveConfiguration();
+        root.GetSection("cognitive").Bind(configuration);
+
+        return configuration;
+    }
+
+    private static string ReadSettingsJson()
+    {
+        using Stream stream = typeof(CognitiveConfigurationDefaults).Assembly.GetManifestResourceStream(ResourceName)
+            ?? throw new InvalidOperationException($"Embedded resource '{ResourceName}' is missing.");
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        return reader.ReadToEnd();
+    }
 }

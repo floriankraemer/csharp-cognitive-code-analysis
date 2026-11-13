@@ -60,8 +60,8 @@ public class CognitiveCodeAnalyserDetailTests
             Assert.That(m.tryCatchCount, Is.EqualTo(1));
             Assert.That(m.returnCount, Is.EqualTo(1));
             Assert.That(m.argumentCount, Is.EqualTo(2));
-            // x, y, i, t (a foreach iteration variable is not a declarator and is not counted)
-            Assert.That(m.localVariableCount, Is.EqualTo(4));
+            // x, y, i, the foreach variable z, t
+            Assert.That(m.localVariableCount, Is.EqualTo(5));
             // 1 + if + 4 loops + 3 switch sections + 2 catches + ternary + (&& and ||)
             Assert.That(m.cyclomaticComplexity, Is.EqualTo(1 + 1 + 4 + 3 + 2 + 1 + 2));
         }
@@ -242,13 +242,71 @@ public class CognitiveCodeAnalyserDetailTests
     }
 
     [Test]
-    public void Nesting_StructuredStatementInsideBlockAndIf_AddsOnlyFromIfLevels()
+    public void Nesting_StructuredStatements_AccumulateLikeIfs()
     {
-        // Known defect (tracked for the bug-fix PR): loops, switches and try blocks raise the maximum by one
-        // but do not raise the depth passed to their children, so nested loops are not accumulated.
-        Assert.That(Method("for (;;) { for (;;) { for (;;) { } } }").nestingLevels, Is.EqualTo(1));
+        Assert.That(Method("for (;;) { for (;;) { for (;;) { } } }").nestingLevels, Is.EqualTo(3));
         Assert.That(Method("if (a > 0) { for (;;) { } }").nestingLevels, Is.EqualTo(2));
-        Assert.That(Method("for (;;) { if (a > 0) { } }").nestingLevels, Is.EqualTo(1));
+        Assert.That(Method("for (;;) { if (a > 0) { } }").nestingLevels, Is.EqualTo(2));
+    }
+
+    [TestCase("while (a > 0) { while (b > 0) { if (a > b) { } } }", 3)]
+    [TestCase("foreach (var x in new[] { 1 }) { do { switch (a) { case 1: break; } } while (a > 0); }", 3)]
+    [TestCase("try { lock (this) { using (var d = new System.IO.MemoryStream()) { } } } catch { }", 3)]
+    [TestCase("switch (a) { case 1: if (b > 0) { } break; }", 2)]
+    [TestCase("for (;;) { } for (;;) { }", 1)]
+    [TestCase("for (;;) { } if (a > 0) { }", 1)]
+    public void Nesting_MixedStructures_UsesDeepestPath(string body, int expected)
+    {
+        Assert.That(Method(body).nestingLevels, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void Nesting_CatchAndFinallyBodies_ShareTheTryLevel()
+    {
+        Assert.That(Method("try { } catch { for (;;) { } }").nestingLevels, Is.EqualTo(2));
+        Assert.That(Method("try { } finally { for (;;) { } }").nestingLevels, Is.EqualTo(2));
+        Assert.That(Method("try { } catch { }").nestingLevels, Is.EqualTo(1));
+        Assert.That(Method("try { for (;;) { } } catch { }").nestingLevels, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Nesting_ElseFlags_ApplyToLoopsInsideElse()
+    {
+        const string body = "if (a > 0) { } else { for (;;) { } }";
+
+        Assert.That(Method(body).nestingLevels, Is.EqualTo(2));
+        Assert.That(Method(body, new CognitiveConfiguration { CountElseAsNesting = true }).nestingLevels, Is.EqualTo(3));
+        Assert.That(Method(body, new CognitiveConfiguration { CountElseIfAsNesting = true }).nestingLevels, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Nesting_ElseIfWithLoop_HonoursCountElseIfAsNesting()
+    {
+        const string body = "if (a > 0) { } else if (b > 0) { for (;;) { } }";
+
+        Assert.That(Method(body).nestingLevels, Is.EqualTo(2));
+        Assert.That(Method(body, new CognitiveConfiguration { CountElseIfAsNesting = true }).nestingLevels, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void LocalVariables_ForeachAndCatchVariables_AreCounted()
+    {
+        var m = Method("""
+                    foreach (var item in new[] { 1, 2 }) { }
+                    try { } catch (Exception ex) { }
+                    try { } catch (Exception) { }
+                    try { } catch { }
+            """);
+
+        Assert.That(m.localVariableCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void LocalVariables_ForLoopAndDeclarations_AreNotCountedTwice()
+    {
+        var m = Method("for (int i = 0; i < 3; i++) { } int x = 0;");
+
+        Assert.That(m.localVariableCount, Is.EqualTo(2));
     }
 
     [Test]
@@ -272,6 +330,26 @@ public class CognitiveCodeAnalyserDetailTests
         var result = new CognitiveCodeAnalyser().AnalyseFiles([f1, f2], new CognitiveConfiguration());
 
         Assert.That(result.Select(m => m.MethodName).OrderBy(n => n), Is.EqualTo(new[] { "A", "B", "C" }));
+    }
+
+    [Test]
+    public void AnalyseFiles_ResultOrder_IsByFilePathThenLine_RegardlessOfParallelism()
+    {
+        var files = Enumerable.Range(0, 24)
+            .Select(i => _temp.CreateFileWithContent($"F{i:D2}.cs", $"public class C{i} {{ public void B() {{ }}\npublic void A() {{ }} }}"))
+            .Reverse()
+            .ToList();
+
+        for (int run = 0; run < 5; run++)
+        {
+            var result = new CognitiveCodeAnalyser().AnalyseFiles(files, new CognitiveConfiguration());
+
+            Assert.That(
+                result.Select(m => (m.FilePath, m.methodLineNumber)),
+                Is.Ordered.Using<(string Path, int Line)>((x, y) =>
+                    x.Path == y.Path ? x.Line.CompareTo(y.Line) : string.CompareOrdinal(x.Path, y.Path)));
+            Assert.That(result.Select(m => m.MethodName).Take(2), Is.EqualTo(new[] { "B", "A" }));
+        }
     }
 
     [Test]

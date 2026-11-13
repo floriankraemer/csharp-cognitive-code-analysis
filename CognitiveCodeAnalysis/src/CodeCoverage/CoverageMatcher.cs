@@ -14,7 +14,9 @@ public static class CoverageMatcher
     /// <summary>
     /// <![CDATA[
     /// Matches coverage data to metrics collection.
-    /// Primary match: method name + line number + file path (O(1) lookup)
+    /// Primary match: method name + file path, where the first coverage line of the method lies within the
+    /// method's source lines (the declaration line up to its last line). Coverage writers report the first
+    /// executable line, not the line of the declaration, so exact line equality would miss real reports.
     /// Fallback match: class name + file path (O(1) lookup)
     /// Tertiary match: file path only — file-level aggregate (O(1) lookup)
     ///
@@ -98,8 +100,8 @@ public static class CoverageMatcher
     /// </summary>
     private sealed class CoverageIndex
     {
-        // key: "normalizedPath|methodName|lineNumber"
-        private readonly Dictionary<string, Coverage> _methodLevel;
+        // key: "normalizedPath|methodName"; overloads share a key and are told apart by their first line
+        private readonly Dictionary<string, List<Coverage>> _methodLevel;
 
         // key: "normalizedPath|fullyQualifiedClassName"  (class-level entries only)
         private readonly Dictionary<string, Coverage> _classLevel;
@@ -108,7 +110,7 @@ public static class CoverageMatcher
         private readonly Dictionary<string, Coverage> _fileLevel;
 
         private CoverageIndex(
-            Dictionary<string, Coverage> methodLevel,
+            Dictionary<string, List<Coverage>> methodLevel,
             Dictionary<string, Coverage> classLevel,
             Dictionary<string, Coverage> fileLevel
         ) {
@@ -119,7 +121,7 @@ public static class CoverageMatcher
 
         internal static CoverageIndex Build(List<Coverage> coverageList)
         {
-            var methodLevel = new Dictionary<string, Coverage>(StringComparer.OrdinalIgnoreCase);
+            var methodLevel = new Dictionary<string, List<Coverage>>(StringComparer.OrdinalIgnoreCase);
             var classLevel = new Dictionary<string, Coverage>(StringComparer.OrdinalIgnoreCase);
             var fileLevel = new Dictionary<string, Coverage>(StringComparer.OrdinalIgnoreCase);
 
@@ -129,9 +131,15 @@ public static class CoverageMatcher
 
                 if (c.IsMethodLevel)
                 {
-                    // Primary: method name + line + file
-                    string key = MethodKey(normalizedPath, c.MethodName, c.MethodLineNumber);
-                    methodLevel.TryAdd(key, c);
+                    // Primary: method name + file, the line is checked on lookup
+                    string key = MethodKey(normalizedPath, c.MethodName);
+                    if (!methodLevel.TryGetValue(key, out List<Coverage>? candidates))
+                    {
+                        candidates = [];
+                        methodLevel[key] = candidates;
+                    }
+
+                    candidates.Add(c);
                 }
                 else if (string.IsNullOrEmpty(c.FullyQualifiedClassName))
                 {
@@ -153,9 +161,9 @@ public static class CoverageMatcher
         {
             string normalizedPath = NormalizePath(metrics.FilePath);
 
-            // 1. Method-level exact match
-            string methodKey = MethodKey(normalizedPath, metrics.MethodName, metrics.methodLineNumber);
-            if (_methodLevel.TryGetValue(methodKey, out Coverage? methodMatch))
+            // 1. Method-level match: same name and first coverage line inside the method's lines
+            Coverage? methodMatch = FindMethodLevelMatch(normalizedPath, metrics);
+            if (methodMatch != null)
             {
                 return methodMatch;
             }
@@ -170,6 +178,19 @@ public static class CoverageMatcher
 
             // 3. File-level aggregate
             return _fileLevel.TryGetValue(normalizedPath, out Coverage? fileMatch) ? fileMatch : null;
+        }
+
+        private Coverage? FindMethodLevelMatch(string normalizedPath, CognitiveMetrics metrics)
+        {
+            if (!_methodLevel.TryGetValue(MethodKey(normalizedPath, metrics.MethodName), out List<Coverage>? candidates))
+            {
+                return null;
+            }
+
+            int firstLine = metrics.methodLineNumber;
+            int endLine = firstLine + Math.Max(metrics.linesOfCode, 1);
+
+            return candidates.FirstOrDefault(c => c.MethodLineNumber >= firstLine && c.MethodLineNumber < endLine);
         }
 
         private Coverage? FindClassLevelMatch(string normalizedPath, string metricsClassName)
@@ -203,8 +224,8 @@ public static class CoverageMatcher
             return null;
         }
 
-        private static string MethodKey(string normalizedPath, string methodName, int lineNumber)
-            => $"{normalizedPath}|{methodName}|{lineNumber}";
+        private static string MethodKey(string normalizedPath, string methodName)
+            => $"{normalizedPath}|{methodName}";
 
         private static string ClassKey(string normalizedPath, string fqcn)
             => $"{normalizedPath}|{fqcn}";

@@ -2,6 +2,7 @@
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
+using System.Globalization;
 using System.Xml;
 
 namespace CognitiveCodeAnalysis.CodeCoverage;
@@ -184,16 +185,15 @@ public sealed class VsCoverageReader : ICoverageReader
             return;
         }
 
-        if (!int.TryParse(startLineStr, out int startLine))
+        if (!int.TryParse(startLineStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out int startLine))
         {
             return;
         }
 
-        int endLine = startLine;
-        if (endLineStr is not null)
-        {
-            int.TryParse(endLineStr, out endLine);
-        }
+        // A missing, unparsable or inverted end_line leaves the range a single line instead of dropping it.
+        int endLine = int.TryParse(endLineStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedEnd)
+            ? Math.Max(parsedEnd, startLine)
+            : startLine;
 
         bool isCovered = coveredStr.Equals("yes", StringComparison.OrdinalIgnoreCase);
 

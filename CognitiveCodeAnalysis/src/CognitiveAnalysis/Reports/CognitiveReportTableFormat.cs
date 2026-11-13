@@ -4,6 +4,7 @@
 
 using System.Globalization;
 
+using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis.Reports;
@@ -15,23 +16,26 @@ internal static class CognitiveReportTableFormat
         bool hasCoverageData
     )
     {
-        var headers = new List<string>
+        var headers = new List<string> { "Method", "Score" };
+
+        if (configuration.ShowDetailedCognitiveMetrics)
         {
-            "Method",
-            "Score",
-            "Lines",
-            "Ifs",
-            "Else",
-            "Loops",
-            "Switch",
-            "Try/Catch",
-            "Arguments",
-            "Nesting",
-            "Returns",
-            "Locals",
-            "Fields",
-            "Props",
-        };
+            headers.AddRange(
+            [
+                "Lines",
+                "Ifs",
+                "Else",
+                "Loops",
+                "Switch",
+                "Try/Catch",
+                "Arguments",
+                "Nesting",
+                "Returns",
+                "Locals",
+                "Fields",
+                "Props",
+            ]);
+        }
 
         if (configuration.ShowHalsteadComplexity)
         {
@@ -56,50 +60,64 @@ internal static class CognitiveReportTableFormat
     internal static IReadOnlyList<string> BuildRowValues(
         CognitiveMetrics metrics,
         CognitiveConfiguration configuration,
-        bool hasCoverageData
+        bool hasCoverageData,
+        MethodMetricsComparison? comparison = null
     )
     {
         var row = new List<string>
         {
             $"L{metrics.methodLineNumber} {metrics.MethodName}",
-            FormatInvariant(metrics.totalScore, "F3"),
-            metrics.linesOfCode.ToString(CultureInfo.InvariantCulture),
-            FormatCountWithScore(metrics.ifCount, metrics.ifScore),
-            FormatCountWithScore(metrics.elseCount, metrics.elseScore),
-            FormatCountWithScore(metrics.loopCount, metrics.loopScore),
-            FormatCountWithScore(metrics.switchCount, metrics.switchScore),
-            FormatCountWithScore(metrics.tryCatchCount, metrics.tryCatchScore),
-            FormatCountWithScore(metrics.argumentCount, metrics.argumentScore),
-            FormatCountWithScore(metrics.nestingLevels, metrics.nestingScore),
-            FormatCountWithScore(metrics.returnCount, metrics.returnScore),
-            FormatCountWithScore(metrics.localVariableCount, metrics.localVariableScore),
-            FormatCountWithScore(metrics.fieldAccessCount, metrics.fieldAccessScore),
-            FormatCountWithScore(metrics.propertyAccessCount, metrics.propertyAccessScore),
+            DeltaValue(metrics.totalScore, comparison?.TotalScore, "F3"),
         };
+
+        if (configuration.ShowDetailedCognitiveMetrics)
+        {
+            row.AddRange(
+            [
+                CognitiveReportDeltaFormatter.FormatMarkdownValue(metrics.linesOfCode.ToString(CultureInfo.InvariantCulture), comparison?.LinesOfCode, "F0"),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.ifCount, metrics.ifScore, comparison?.IfCount, comparison?.IfScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.elseCount, metrics.elseScore, comparison?.ElseCount, comparison?.ElseScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.loopCount, metrics.loopScore, comparison?.LoopCount, comparison?.LoopScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.switchCount, metrics.switchScore, comparison?.SwitchCount, comparison?.SwitchScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.tryCatchCount, metrics.tryCatchScore, comparison?.TryCatchCount, comparison?.TryCatchScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.argumentCount, metrics.argumentScore, comparison?.ArgumentCount, comparison?.ArgumentScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.nestingLevels, metrics.nestingScore, comparison?.NestingLevels, comparison?.NestingScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.returnCount, metrics.returnScore, comparison?.ReturnCount, comparison?.ReturnScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.localVariableCount, metrics.localVariableScore, comparison?.LocalVariableCount, comparison?.LocalVariableScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.fieldAccessCount, metrics.fieldAccessScore, comparison?.FieldAccessCount, comparison?.FieldAccessScore),
+                CognitiveReportDeltaFormatter.FormatCountWithScoreMarkdown(metrics.propertyAccessCount, metrics.propertyAccessScore, comparison?.PropertyAccessCount, comparison?.PropertyAccessScore),
+            ]);
+        }
 
         if (configuration.ShowHalsteadComplexity)
         {
-            row.Add(FormatHalsteadDouble(metrics.Halstead?.Volume));
-            row.Add(FormatHalsteadDouble(metrics.Halstead?.Difficulty));
-            row.Add(FormatHalsteadDouble(metrics.Halstead?.Effort));
+            row.Add(HalsteadValue(metrics.Halstead?.Volume, comparison?.HalsteadVolume));
+            row.Add(HalsteadValue(metrics.Halstead?.Difficulty, comparison?.HalsteadDifficulty));
+            row.Add(HalsteadValue(metrics.Halstead?.Effort, comparison?.HalsteadEffort));
         }
 
         if (configuration.ShowCyclomaticComplexity)
         {
-            row.Add(FormatInvariant(metrics.cyclomaticComplexity, "F1"));
+            row.Add(DeltaValue(metrics.cyclomaticComplexity, comparison?.CyclomaticComplexity, "F1"));
         }
 
         if (hasCoverageData)
         {
             row.Add(
                 metrics.churnScore.HasValue
-                    ? FormatInvariant(metrics.churnScore.Value, "F3")
+                    ? DeltaValue(metrics.churnScore.Value, comparison?.ChurnScore, "F3")
                     : "n/a"
             );
         }
 
         return row;
     }
+
+    private static string DeltaValue(double value, MetricDelta? delta, string format)
+        => CognitiveReportDeltaFormatter.FormatMarkdownValue(FormatInvariant(value, format), delta, format);
+
+    private static string HalsteadValue(double? value, MetricDelta? delta)
+        => value.HasValue ? DeltaValue(value.Value, delta, "F2") : "n/a";
 
     internal static string FormatCountWithScore(int count, double score)
         => $"{count} ({FormatInvariant(score, "F3")})";

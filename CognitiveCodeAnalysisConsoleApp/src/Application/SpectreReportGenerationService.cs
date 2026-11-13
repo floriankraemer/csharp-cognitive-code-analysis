@@ -24,11 +24,10 @@ internal sealed class SpectreReportGenerationService(
         IProgress<AnalysisProgress>? progress = null,
         SpectreAnalysisProgressReporter? progressReporter = null
     ) {
-        if (progressReporter == null)
-        {
-            reportCoordinator.ReportGenerated += OnReportGenerated;
-        }
+        ReportGeneratedEventArgs? generated = null;
+        void OnReportGenerated(object? sender, ReportGeneratedEventArgs eventArgs) => generated = eventArgs;
 
+        reportCoordinator.ReportGenerated += OnReportGenerated;
         try
         {
             analysisWorkflow.GenerateReport(
@@ -39,24 +38,24 @@ internal sealed class SpectreReportGenerationService(
                 baselineComparison: baselineComparison,
                 progress: progress
             );
-
-            if (progressReporter != null)
-            {
-                progressReporter.DeferReportGeneratedMessage(
-                    prepared.ReportType,
-                    Path.GetFullPath(prepared.OutputFile)
-                );
-            }
         }
         finally
         {
-            if (progressReporter == null)
-            {
-                reportCoordinator.ReportGenerated -= OnReportGenerated;
-            }
+            reportCoordinator.ReportGenerated -= OnReportGenerated;
         }
-    }
 
-    private void OnReportGenerated(object? sender, ReportGeneratedEventArgs eventArgs)
-        => consoleNotifier.WriteReportGenerated(eventArgs.ReportType, eventArgs.FullPath);
+        // The console report prints to the terminal and writes no file, so there is nothing to announce.
+        if (generated == null || prepared.IsConsoleTextReport)
+        {
+            return;
+        }
+
+        if (progressReporter != null)
+        {
+            progressReporter.DeferReportGeneratedMessage(generated.ReportType, generated.FullPath);
+            return;
+        }
+
+        consoleNotifier.WriteReportGenerated(generated.ReportType, generated.FullPath);
+    }
 }

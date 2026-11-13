@@ -23,6 +23,8 @@
     <Content Include="cognitive-metrics-settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- The shipped file is also the single source of the built-in defaults. -->
+    <EmbeddedResource Include="cognitive-metrics-settings.json" LogicalName="cognitive-metrics-settings.json" />
   </ItemGroup>
 
   <ItemGroup>
