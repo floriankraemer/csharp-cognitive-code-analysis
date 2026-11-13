@@ -23,6 +23,12 @@ public class CognitiveAnalysisFacade(
     public List<string> FindSourceFiles(string[] sourcePaths, IProgress<AnalysisProgress>? progress)
         => sourceFileFinder.FindSourceFiles(sourcePaths, progress);
 
+    public List<string> FindSourceFiles(
+        string[] sourcePaths,
+        IReadOnlyCollection<string> excludeFilePatterns,
+        IProgress<AnalysisProgress>? progress
+    ) => sourceFileFinder.FindSourceFiles(sourcePaths, excludeFilePatterns, progress);
+
     public List<string> FindSourceFiles(string sourcePath)
         => sourceFileFinder.FindSourceFiles([sourcePath]);
 

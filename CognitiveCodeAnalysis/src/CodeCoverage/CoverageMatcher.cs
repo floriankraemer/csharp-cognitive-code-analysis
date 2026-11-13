@@ -179,7 +179,7 @@ public static class CoverageMatcher
             }
 
             // The class-level figures say nothing about an async, iterator or closure body, so report no data instead.
-            if (_generatedMethods.Contains(MethodKey(normalizedPath, metrics.MethodName)))
+            if (_generatedMethods.Contains(MethodKey(normalizedPath, CoverageMethodName(metrics))))
             {
                 return null;
             }
@@ -198,7 +198,7 @@ public static class CoverageMatcher
 
         private Coverage? FindMethodLevelMatch(string normalizedPath, CognitiveMetrics metrics)
         {
-            if (!_methodLevel.TryGetValue(MethodKey(normalizedPath, metrics.MethodName), out List<Coverage>? candidates))
+            if (!_methodLevel.TryGetValue(MethodKey(normalizedPath, CoverageMethodName(metrics)), out List<Coverage>? candidates))
             {
                 return null;
             }
@@ -238,6 +238,21 @@ public static class CoverageMatcher
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Coverage writers name constructors after their runtime names, <c>.ctor</c> and <c>.cctor</c> for the static one.
+        /// C# forbids a member named like its enclosing type, so a method named like its class is a constructor.
+        /// </summary>
+        private static string CoverageMethodName(CognitiveMetrics metrics)
+        {
+            string typeName = metrics.ClassName[(metrics.ClassName.LastIndexOf('.') + 1)..];
+            if (metrics.MethodName != typeName)
+            {
+                return metrics.MethodName;
+            }
+
+            return metrics.methodSignature.Split(' ').Contains("static") ? ".cctor" : ".ctor";
         }
 
         private static string MethodKey(string normalizedPath, string methodName)

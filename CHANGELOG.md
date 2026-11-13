@@ -8,6 +8,16 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **More declarations are analysed: the methods of structs, records and record structs, interface methods with a body, and constructors.**
+  Before, only the methods of `class` declarations were analysed.
+  This adds rows to every report, the summary counts and baselines; existing rows keep their names, signatures and metrics.
+  A constructor is named after its type (`MyApp.Order::Order`), a static constructor too, with the signature `static Order()`.
+  Property accessors, operators and finalizers are still not analysed, as in the Java port.
+  See [Analysed methods](docs/Configuration.md#7-analysed-methods).
+- A class nested in a struct, record or interface is named through that type (`MyApp.Shape.Builder`).
+  Before, such a containing type was left out of the name (`MyApp.Builder`), so two nested classes of the same name could collide.
+  A baseline written earlier reports these methods as new on the next comparison.
+
 - **Nesting depth now accumulates through loops, `switch`, `try`, `lock`, `using`, `fixed`, `checked` and `unsafe` statements.**
   Before, only nested `if` statements added up.
   A loop, `switch` or `try` raised the maximum by one but passed its old depth on to its children, so a statement nested inside it was measured as if the loop were not there.
@@ -65,6 +75,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 - All coverage readers skip a `DOCTYPE` without loading DTDs or external entities and without expanding entities, so a report cannot read local files or run an entity bomb.
   A coverage file that is not well-formed is reported as `Invalid coverage file <file>: <reason>` and the command exits with a non-zero code.
 - See [docs/Coverage.md](docs/Coverage.md).
+
+- `@cca-ignore` in the XML doc comment or in any other comment of a type or member leaves it out of the analysis; a type leaves out its nested types too.
+- The search path accepts a single `.cs` file and a comma-separated list of files and directories (`src,tools/Build.cs`).
+  A path that exists as written stays one path even when it contains a comma, so existing invocations keep their meaning.
+  The `churn` command accepts the same forms.
+- `excludeFilePatterns` (regular expressions on the absolute path, with `/` separators) and `excludePatterns` (regular expressions on `Namespace.Class::Method`) are applied.
+  Before, they were read but had no effect.
+  An invalid pattern is ignored with a warning that names it, so an old configuration with such a pattern keeps working.
+- A constructor is matched to the `.ctor` (or `.cctor`) entry of a coverage report.
 - The `init` command creates a `cognitive-metrics-settings.json` with the built-in defaults.
   In an interactive console it asks for `scoreThreshold` and for the `show*` settings and `groupByClass`, and an empty answer keeps the default.
   `--silent`, a console that is not interactive, or redirected standard input writes the defaults without asking.
@@ -100,6 +119,11 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Directories named `bin` or `obj` and directories whose name starts with a dot (`.git`, `.vs`) are no longer searched for source files.
+  Before, generated files under `obj` (such as `AssemblyInfo.cs` and source generator output) were analysed and reported.
+  A path passed on the command line is still searched even when it is such a directory.
+- A symbolic link to a parent directory no longer makes the file search loop until the path gets too long, reporting the same files many times.
+  Every real directory is now searched once.
 - The paths of the `Sarif`, `GitlabCodeQuality` and `GithubActions` reports, and of the new `Checkstyle` and `JUnit` reports, are relative to the working directory with `/` separators when the file is below it.
   Before, they were the paths as found, so the same method had a different location on every machine.
   Files outside the working directory keep their absolute path, which SARIF writes as a `file://` URI.

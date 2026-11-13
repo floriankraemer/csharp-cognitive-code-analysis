@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -10,6 +10,7 @@ public sealed record PreparedAnalysis(
     CognitiveConfiguration Configuration,
     ConfigSource ConfigSource,
     string AbsoluteSourcePath,
+    IReadOnlyList<string> SourcePaths,
     string ReportType,
     string OutputFile,
     string? BaselineFile,

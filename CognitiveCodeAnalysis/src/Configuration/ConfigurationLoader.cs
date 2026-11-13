@@ -13,7 +13,7 @@ public static class ConfigurationLoader
     /// <summary>
     /// <![CDATA[
     /// Loads configuration directly and returns the CognitiveConfiguration object.
-    /// Unknown metric keys are dropped and reported in <see cref="CognitiveConfiguration.Warnings"/>.
+    /// Unknown metric keys and invalid exclude patterns are dropped and reported in <see cref="CognitiveConfiguration.Warnings"/>.
     /// ]]>
     /// </summary>
     public static CognitiveConfiguration Load(string? configFilePath = null)
@@ -25,7 +25,10 @@ public static class ConfigurationLoader
         var configuredKeys = configuration.GetSection("cognitive:metrics").GetChildren()
             .Select(child => child.Key)
             .ToHashSet(StringComparer.Ordinal);
-        cognitiveConfig.Warnings = MetricKeyValidator.Normalize(cognitiveConfig, configuredKeys);
+        var warnings = new List<string>(MetricKeyValidator.Normalize(cognitiveConfig, configuredKeys));
+        cognitiveConfig.ExcludeFilePatterns = RegexPatterns.KeepValid(cognitiveConfig.ExcludeFilePatterns, "excludeFilePatterns", warnings);
+        cognitiveConfig.ExcludePatterns = RegexPatterns.KeepValid(cognitiveConfig.ExcludePatterns, "excludePatterns", warnings);
+        cognitiveConfig.Warnings = warnings;
 
         return cognitiveConfig;
     }

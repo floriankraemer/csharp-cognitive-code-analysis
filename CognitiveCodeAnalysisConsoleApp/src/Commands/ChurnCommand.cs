@@ -1,4 +1,4 @@
-/// <copyright company="Florian Krämer">
+﻿/// <copyright company="Florian Krämer">
 ///     Licensed under the MIT license. See LICENSE file in the project root for full license information.
 /// </copyright>
 
@@ -55,13 +55,17 @@ internal sealed class ChurnCommand(
 
     private int Run(ChurnCommandSettings settings)
     {
-        string sourcePath = Path.GetFullPath(settings.SourcePath ?? Directory.GetCurrentDirectory());
+        string[] sourcePaths = SourceFileFinder.SplitPathList(settings.SourcePath ?? Directory.GetCurrentDirectory());
         CognitiveConfiguration configuration = CognitiveConfigurationFactory.Load(settings.ConfigFile);
+        foreach (string warning in configuration.Warnings)
+        {
+            consoleNotifier.WriteWarning(warning);
+        }
 
-        List<string> files = facade.FindSourceFiles(sourcePath);
+        List<string> files = facade.FindSourceFiles(sourcePaths, configuration.ExcludeFilePatterns, progress: null);
         if (files.Count == 0)
         {
-            consoleNotifier.WriteNoSourceFilesFound(sourcePath);
+            consoleNotifier.WriteNoSourceFilesFound(string.Join(", ", sourcePaths));
             return Error;
         }
 

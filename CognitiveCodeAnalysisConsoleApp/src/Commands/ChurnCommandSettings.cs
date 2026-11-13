@@ -18,7 +18,7 @@ internal sealed class ChurnCommandSettings : CommandSettings
     public const string SupportedVcs = "git";
     private const string DateFormat = "yyyy-MM-dd";
 
-    [Description("Path to search for c# files. Defaults to current path.")]
+    [Description("C# file, directory, or comma-separated list of both to analyse. Directories are searched recursively. Defaults to the current path.")]
     [CommandArgument(0, "[path]")]
     public string? SourcePath { get; init; }
 

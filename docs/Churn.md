@@ -48,7 +48,7 @@ The console shows the classes with a score and a churn above zero.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `[path]` | current directory | Directory that is searched recursively for `*.cs` files. |
+| `[path]` | current directory | A `.cs` file, a directory, or a comma-separated list of both, as for the analysis; directories are searched recursively for `*.cs` files, without `bin`, `obj` and dot directories. `excludeFilePatterns` and `excludePatterns` of the configuration apply. |
 | `-s`, `--since <date>` | `2000-01-01` | Count the changes since the start of this day, in the format `yyyy-MM-dd`. |
 | `--vcs <type>` | `git` | Version control system. Only `git` is supported. |
 | `-r`, `--report-type <type>` | console table | `Json`, `Csv`, `Html`, `Markdown` or `SvgTreemap`, in any letter case. `svg` and `svg-treemap` are aliases of `SvgTreemap`. Requires `--output-file`. |

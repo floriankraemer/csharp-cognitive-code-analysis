@@ -14,7 +14,7 @@ namespace CognitiveCodeAnalysis.HalsteadAnalysis;
 /// </summary>
 public static class HalsteadSyntaxCollector
 {
-    public static HalsteadMetrics CollectForMethod(MethodDeclarationSyntax methodNode, string identifier)
+    public static HalsteadMetrics CollectForMethod(BaseMethodDeclarationSyntax methodNode, string identifier)
     {
         var operators = new List<string>();
         var operands = new List<string>();
