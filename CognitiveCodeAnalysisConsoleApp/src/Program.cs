@@ -71,6 +71,9 @@ public class Program
             configurator
                 .AddCommand<ChurnCommand>("churn")
                 .WithDescription("Calculates the churn (cognitive score times number of git changes) of classes.");
+            configurator
+                .AddCommand<InitCommand>("init")
+                .WithDescription("Creates a cognitive-metrics-settings.json, asking for the main settings unless --silent.");
         });
 
         return app.Run(args);

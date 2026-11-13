@@ -101,6 +101,40 @@ public class PublishedBinaryCliTests
     }
 
     [Test]
+    public void Help_ListsTheInitCommand()
+    {
+        (int exitCode, string output) = RunExecutable(_workingDirectory, "--help");
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output, Does.Contain("init"));
+    }
+
+    [Test]
+    public void Init_Silent_WritesTheDefaultsToThePath()
+    {
+        string path = Path.Combine(_workingDirectory, "config", ConfigurationResolver.DefaultFileName);
+
+        (int exitCode, string output) = RunExecutable(_workingDirectory, "init", "--silent", "-p", path);
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output, Does.Contain("Created config at: "));
+        Assert.That(File.ReadAllText(path), Does.Contain("\"scoreThreshold\": 0.5"));
+    }
+
+    [Test]
+    public void Init_ExistingFileWithoutForce_ExitsWithAnErrorAndKeepsTheFile()
+    {
+        string path = Path.Combine(_workingDirectory, ConfigurationResolver.DefaultFileName);
+        File.WriteAllText(path, "old");
+
+        (int exitCode, string output) = RunExecutable(_workingDirectory, "init", "--silent", "-p", path);
+
+        Assert.That(exitCode, Is.Not.EqualTo(0));
+        Assert.That(output, Does.Contain("Use --force to overwrite."));
+        Assert.That(File.ReadAllText(path), Is.EqualTo("old"));
+    }
+
+    [Test]
     public void Analyze_WithoutConfig_PrintsDefaultConfigSource()
     {
         File.WriteAllText(
