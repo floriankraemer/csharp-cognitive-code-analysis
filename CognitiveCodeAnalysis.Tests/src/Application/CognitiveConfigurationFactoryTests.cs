@@ -158,4 +158,22 @@ public class CognitiveConfigurationFactoryTests
         Assert.That(configuration.ScoreThreshold, Is.EqualTo(4.56));
         Assert.That(configuration.ShowCouplingMetrics, Is.True);
     }
+
+    [TestCase(null, false)]
+    [TestCase(true, true)]
+    [TestCase(false, false)]
+    public void Load_WithoutConfigFile_CacheFollowsTheOverride(bool? cache, bool expected)
+    {
+        Assert.That(CognitiveConfigurationFactory.Load(configFile: null, cache: cache).Cache.Enabled, Is.EqualTo(expected));
+    }
+
+    [TestCase(null, true)]
+    [TestCase(true, true)]
+    [TestCase(false, false)]
+    public void Load_ConfigEnablesCache_OverrideWins(bool? cache, bool expected)
+    {
+        File.WriteAllText("cfg.json", """{ "cognitive": { "cache": { "enabled": true } } }""");
+
+        Assert.That(CognitiveConfigurationFactory.Load("cfg.json", cache: cache).Cache.Enabled, Is.EqualTo(expected));
+    }
 }

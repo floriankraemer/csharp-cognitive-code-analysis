@@ -64,6 +64,8 @@ internal sealed class AnalyseApplicationService(
         var filesNotFound = false;
         var coverageFailed = false;
         CognitiveBaselineComparison? baselineComparison = null;
+        // Collected during the live progress display and written after it, so the warning does not garble the display.
+        var cacheWarnings = new System.Collections.Concurrent.ConcurrentQueue<string>();
 
         SpectreProgressSession.Run((reporter, progress) =>
         {
@@ -92,7 +94,8 @@ internal sealed class AnalyseApplicationService(
                 () => analysisWorkflow.AnalyseSourceFiles(
                     files,
                     prepared.Configuration,
-                    effectiveProgress
+                    effectiveProgress,
+                    cacheWarnings.Enqueue
                 ));
 
             if (summary != null)
@@ -131,6 +134,11 @@ internal sealed class AnalyseApplicationService(
                     );
                 });
         });
+
+        foreach (string warning in cacheWarnings)
+        {
+            consoleNotifier.WriteWarning(warning);
+        }
 
         if (filesNotFound || coverageFailed)
         {

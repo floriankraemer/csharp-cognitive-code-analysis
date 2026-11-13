@@ -20,7 +20,8 @@ public sealed class AnalysisWorkflow(
     {
         var (configuration, configSource) = CognitiveConfigurationFactory.LoadWithSource(
             request.ConfigFile,
-            request.DisplayOverrides
+            request.DisplayOverrides,
+            request.Cache
         );
         var sorter = MetricsSorter.Create(request.SortBy, request.SortOrder);
         configuration.Sorter = request.SortBy is null ? null : sorter;
@@ -69,8 +70,9 @@ public sealed class AnalysisWorkflow(
     public CognitiveMetricsCollection AnalyseSourceFiles(
         List<string> files,
         CognitiveConfiguration configuration,
-        IProgress<AnalysisProgress>? progress = null
-    ) => cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress);
+        IProgress<AnalysisProgress>? progress = null,
+        Action<string>? warn = null
+    ) => cognitiveAnalysisFacade.AnalyseSourceFiles(files, configuration, progress, warn);
 
     public CoverageApplicationResult ApplyCoverageIfRequested(
         string? coverageFilePath,

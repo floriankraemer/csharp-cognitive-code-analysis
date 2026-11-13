@@ -12,6 +12,10 @@
         "groupByClass": true,
         "countElseAsNesting": false,
         "countElseIfAsNesting": false,
+        "cache": {
+            "enabled": false,
+            "directory": ".cca/cache"
+        },
         "metrics": {
             "linesOfCode": {
                 "threshold": 60,

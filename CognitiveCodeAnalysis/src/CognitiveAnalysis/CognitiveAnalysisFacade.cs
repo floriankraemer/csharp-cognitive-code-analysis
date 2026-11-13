@@ -46,18 +46,20 @@ public class CognitiveAnalysisFacade(
     public CognitiveMetricsCollection AnalyseSourceFiles(
         List<string> files,
         CognitiveConfiguration configuration,
-        IProgress<AnalysisProgress>? progress
-    ) => AnalyseSourceFilesAsync(files, configuration, progress).GetAwaiter().GetResult();
+        IProgress<AnalysisProgress>? progress,
+        Action<string>? warn = null
+    ) => AnalyseSourceFilesAsync(files, configuration, progress, warn).GetAwaiter().GetResult();
 
     private async Task<CognitiveMetricsCollection> AnalyseSourceFilesAsync(
         List<string> files,
         CognitiveConfiguration configuration,
-        IProgress<AnalysisProgress>? progress
+        IProgress<AnalysisProgress>? progress,
+        Action<string>? warn
     ) {
         CompiledSourceSet sources = await CompiledSourceSet.BuildAsync(files, progress);
 
         Task<CognitiveMetricsCollection> cognitiveTask = Task.Run(
-            () => analyser.AnalyseCompiled(sources, configuration, progress)
+            () => analyser.AnalyseCompiled(sources, configuration, progress, warn: warn)
         );
 
         Task<IReadOnlyList<ClassCouplingMetrics>>? couplingTask = null;

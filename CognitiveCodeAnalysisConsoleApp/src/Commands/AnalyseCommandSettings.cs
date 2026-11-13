@@ -82,6 +82,14 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [DefaultValue("asc")]
     public string SortOrder { get; init; } = "asc";
 
+    [Description("Cache the metrics of each file in the cache directory, overriding the config")]
+    [CommandOption("--cache")]
+    public bool Cache { get; init; }
+
+    [Description("Do not use the analysis cache, overriding the config")]
+    [CommandOption("--no-cache")]
+    public bool NoCache { get; init; }
+
     [Description("Print the total time, the time of each phase and statistics to stderr after the run")]
     [CommandOption("--debug")]
     public bool Debug { get; init; }
@@ -90,8 +98,18 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [CommandOption("-v|--verbose")]
     public bool Verbose { get; init; }
 
-    public override ValidationResult Validate() =>
-        CoverageOptions.AreExclusive(CoverageCobertura, CoverageClover)
+    /// <summary>The cache choice of the command line; null leaves it to the configuration.</summary>
+    public bool? CacheOverride => Cache ? true : NoCache ? false : null;
+
+    public override ValidationResult Validate()
+    {
+        if (Cache && NoCache)
+        {
+            return ValidationResult.Error("--cache and --no-cache cannot be used together.");
+        }
+
+        return CoverageOptions.AreExclusive(CoverageCobertura, CoverageClover)
             ? ValidationResult.Success()
             : ValidationResult.Error(CoverageOptions.OnlyOneFormatMessage);
+    }
 }

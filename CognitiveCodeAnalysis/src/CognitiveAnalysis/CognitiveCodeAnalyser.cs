@@ -5,6 +5,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
+using CognitiveCodeAnalysis.Cache;
 using CognitiveCodeAnalysis.Common;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
@@ -71,8 +72,11 @@ public class CognitiveCodeAnalyser
         CompiledSourceSet sources,
         CognitiveConfiguration configuration,
         IProgress<AnalysisProgress>? progress,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        Action<string>? warn = null
     ) {
+        MetricsCache.Run? cache = new MetricsCache(configuration.Cache, Directory.GetCurrentDirectory(), warn)
+            .Begin(sources, configuration);
         int totalFiles = sources.SyntaxTrees.Count;
         int processedFiles = 0;
 
@@ -88,13 +92,18 @@ public class CognitiveCodeAnalyser
             {
                 try
                 {
-                    SyntaxNode root = tree.GetRoot(cancellationToken);
-                    SemanticModel semanticModel = sources.Compilation.GetSemanticModel(tree);
+                    List<CognitiveMetrics>? cached = cache?.TryLoad(tree);
+                    if (cached is null)
+                    {
+                        SyntaxNode root = tree.GetRoot(cancellationToken);
+                        SemanticModel semanticModel = sources.Compilation.GetSemanticModel(tree);
+                        var localCollection = new CognitiveMetricsCollection();
+                        AnalyseClasses(configuration, root, localCollection, tree.FilePath, semanticModel, excludePatterns);
+                        cached = [.. localCollection];
+                        cache?.Store(tree, cached);
+                    }
 
-                    var localCollection = new CognitiveMetricsCollection();
-                    AnalyseClasses(configuration, root, localCollection, tree.FilePath, semanticModel, excludePatterns);
-
-                    foreach (CognitiveMetrics metric in localCollection)
+                    foreach (CognitiveMetrics metric in cached)
                     {
                         allMetrics.Add(metric);
                     }

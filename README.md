@@ -65,6 +65,8 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
 - `--show-understandability` — Turn on the understandability column (SonarSource cognitive complexity) for this run (overrides config).
   See [docs/Understandability.md](docs/Understandability.md).
+- `--cache` / `--no-cache` — Turn the analysis cache on or off for this run (overrides config).
+  The cache is off by default, see [docs/Configuration.md](docs/Configuration.md#8-analysis-cache).
 
 Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
 All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.
