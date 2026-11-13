@@ -36,7 +36,7 @@ public sealed class CheckstyleReport : IReport
 
         var root = new XElement("checkstyle", new XAttribute("version", Version));
         var fileElements = new Dictionary<string, XElement>(StringComparer.Ordinal);
-        foreach (var m in filtered)
+        foreach (var m in ReportMetricsFilter.SortIfRequested(filtered, configuration))
         {
             if (CognitiveCiSeverity.IsViolation(m, configuration))
             {

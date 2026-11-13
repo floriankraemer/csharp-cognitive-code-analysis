@@ -12,5 +12,8 @@ public sealed record AnalysisRequest(
     string? OutputFile,
     string? CoverageCobertura,
     AnalysisDisplayOverrides? DisplayOverrides = null,
-    bool Verbose = false
+    bool Verbose = false,
+    string? SortBy = null,
+    string SortOrder = "asc",
+    bool Debug = false
 );

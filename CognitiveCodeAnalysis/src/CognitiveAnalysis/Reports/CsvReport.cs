@@ -35,7 +35,7 @@ public sealed class CsvReport : IReport
         var headers = BuildHeaders(hasCoverageData, configuration, includeDeltas);
         sb.AppendLine(string.Join(",", headers.Select(EscapeCsvField)));
 
-        foreach (var m in filtered.OrderByDescending(m => m.totalScore))
+        foreach (var m in ReportMetricsFilter.OrderRows(filtered, configuration))
         {
             MethodMetricsComparison? comparison = null;
             baselineComparison?.TryGetMethodComparison(m, out comparison);

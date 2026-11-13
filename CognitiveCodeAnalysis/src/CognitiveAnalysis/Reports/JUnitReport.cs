@@ -36,7 +36,7 @@ public sealed class JUnitReport : IReport
 
         var testCases = new List<XElement>();
         int failures = 0;
-        foreach (var m in filtered)
+        foreach (var m in ReportMetricsFilter.SortIfRequested(filtered, configuration))
         {
             testCases.Add(TestCaseElement(m, configuration));
             if (CognitiveCiSeverity.IsViolation(m, configuration))
