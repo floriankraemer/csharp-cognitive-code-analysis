@@ -32,6 +32,18 @@ internal sealed class SpectreConsoleNotifier : IConsoleNotifier
             $"{reportType} report generated: {fullPath}"
         );
 
+    public void WriteBaselineAutoDetected(string fileName)
+        => WriteLine(
+            $"[grey]Auto-detected latest baseline file: {Markup.Escape(fileName)}[/]",
+            $"Auto-detected latest baseline file: {fileName}"
+        );
+
+    public void WriteBaselineGenerated(string path)
+        => WriteLine(
+            $"[green]Baseline file generated:[/] {Markup.Escape(path)}",
+            $"Baseline file generated: {path}"
+        );
+
     public void WriteConfigUsed(string configSourceDisplay)
         => WriteLine(
             $"[grey]Config: {Markup.Escape(configSourceDisplay)}[/]",

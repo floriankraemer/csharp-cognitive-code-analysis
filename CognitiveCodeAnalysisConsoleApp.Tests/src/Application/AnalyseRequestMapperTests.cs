@@ -26,6 +26,7 @@ public class AnalyseRequestMapperTests
         ShowCoupling = coupling,
         ShowUnderstandability = understandability,
         Verbose = true,
+        GenerateBaseline = true,
         SortBy = "line",
         SortOrder = "desc",
         Debug = true,
@@ -45,6 +46,7 @@ public class AnalyseRequestMapperTests
             Assert.That(request.OutputFile, Is.EqualTo("out.html"));
             Assert.That(request.CoverageCobertura, Is.EqualTo("cov.xml"));
             Assert.That(request.Verbose, Is.True);
+            Assert.That(request.GenerateBaseline, Is.True);
             Assert.That(request.SortBy, Is.EqualTo("line"));
             Assert.That(request.SortOrder, Is.EqualTo("desc"));
             Assert.That(request.Debug, Is.True);

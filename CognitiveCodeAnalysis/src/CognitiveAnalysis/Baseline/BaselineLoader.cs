@@ -30,17 +30,48 @@ public static class BaselineLoader
         }
 
         var json = File.ReadAllText(filePath);
-        var snapshot = JsonSerializer.Deserialize<CognitiveBaselineSnapshot>(json, JsonOptions)
-            ?? throw new InvalidOperationException($"Baseline file '{filePath}' is empty or invalid JSON.");
+        using JsonDocument document = Parse(json, filePath);
+        JsonElement root = document.RootElement;
 
-        if (snapshot.SchemaVersion != CognitiveBaselineSnapshot.CurrentSchemaVersion)
+        if (root.ValueKind == JsonValueKind.Null)
         {
-            throw new InvalidOperationException(
-                $"Unsupported baseline schema version {snapshot.SchemaVersion}. "
-                + $"Expected version {CognitiveBaselineSnapshot.CurrentSchemaVersion}.");
+            throw new InvalidOperationException($"Baseline file '{filePath}' is empty or invalid JSON.");
         }
 
+        // A newer layout is reported as such instead of as a list of unknown fields.
+        if (root.ValueKind == JsonValueKind.Object
+            && root.EnumerateObject().FirstOrDefault(p => string.Equals(p.Name, "schemaVersion", StringComparison.OrdinalIgnoreCase))
+                is { Value.ValueKind: JsonValueKind.Number } versionProperty
+            && versionProperty.Value.TryGetInt32(out int version)
+            && version != CognitiveBaselineSnapshot.CurrentSchemaVersion)
+        {
+            throw UnsupportedVersion(version);
+        }
+
+        List<string> errors = BaselineValidator.Validate(root);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException($"Invalid baseline file format in {filePath}: {string.Join(", ", errors)}");
+        }
+
+        var snapshot = root.Deserialize<CognitiveBaselineSnapshot>(JsonOptions)!;
+
         return snapshot;
+    }
+
+    private static InvalidOperationException UnsupportedVersion(int version) =>
+        new($"Unsupported baseline schema version {version}. Expected version {CognitiveBaselineSnapshot.CurrentSchemaVersion}.");
+
+    private static JsonDocument Parse(string json, string filePath)
+    {
+        try
+        {
+            return JsonDocument.Parse(json);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException($"Invalid baseline file format in {filePath}: {exception.Message}", exception);
+        }
     }
 
     public static string Serialize(CognitiveBaselineSnapshot snapshot) =>

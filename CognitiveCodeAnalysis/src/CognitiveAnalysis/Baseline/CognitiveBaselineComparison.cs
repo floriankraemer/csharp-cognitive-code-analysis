@@ -11,14 +11,19 @@ public sealed class CognitiveBaselineComparison
 
     internal CognitiveBaselineComparison(
         Dictionary<string, MethodMetricsComparison> methodsByKey,
-        Dictionary<string, ClassCouplingComparison> classCouplingByName
+        Dictionary<string, ClassCouplingComparison> classCouplingByName,
+        string? baselineConfigHash = null
     )
     {
+        BaselineConfigHash = baselineConfigHash;
         _methodsByKey = methodsByKey;
         _classCouplingByName = classCouplingByName;
     }
 
     public bool HasBaseline => true;
+
+    /// <summary>The hash of the metric settings the baseline was generated with, null for baselines without one.</summary>
+    public string? BaselineConfigHash { get; }
 
     public bool TryGetMethodComparison(CognitiveMetrics metrics, out MethodMetricsComparison? comparison)
     {

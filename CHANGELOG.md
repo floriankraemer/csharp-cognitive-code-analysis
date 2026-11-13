@@ -8,16 +8,30 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Baselines: `--generate-baseline` (`-g`), automatic use of the newest baseline, and a configuration check.**
+  `-g` writes the analysis to `.cca/baseline/baseline-<UTC yyyy-MM-dd_HH-mm-ss>[-N].json` and prints `Baseline file generated: <path>`.
+  A file is never overwritten; when the name is taken, `-1`, `-2` and so on are appended.
+  Without `-b`, `analyse` uses the newest file of `.cca/baseline` and prints `Auto-detected latest baseline file: <name>`.
+  Nothing changes for a project that has no `.cca/baseline` directory.
+  A generated baseline stores the SHA-256 of the metric settings as `configHash`.
+  When it differs from the current settings, `analyse` warns that the comparison may not be accurate; baselines without a hash never warn.
+  See [Baseline](docs/Baseline.md).
 - **Custom reporters.**
   A class in your own assembly can render the `analyse` or `churn` result in any format.
   Register it under `cognitive.customReporters` in the configuration file and select it with `-r <key>`.
   The plugin interface (`ICustomCognitiveReporter`, `ICustomChurnReporter` and their immutable input records) is in the namespace `CognitiveCodeAnalysis.Reporting.Spi`.
   Built-in report types win over custom keys, and a custom key with the name of a built-in type is an error when that type is requested.
-  `churn` now checks an unknown `-r` value after reading the configuration, because it may be a custom key; the message for an unknown type is unchanged when no custom reporters are configured.
+  An unknown `-r` value is reported with the same message and in the same order as before; when custom reporters are configured, the message also lists their keys.
   See [Custom reporters](docs/CustomReporters.md).
 
 ### Changed
 
+- **Baselines match methods by their path relative to the working directory**, so a baseline also works in another checkout of the project.
+  A baseline with absolute paths, such as every one written by `-r Json` so far, still works: when the exact key is not found, the method is matched by class and signature when that is unique among the entries that are left.
+  A nested class that gained a containing type through the change below is matched to its old name when exactly one containing type was added and that is unambiguous.
+- **A baseline file is validated when it is read.**
+  Wrong types, negative numbers and numbers that are not finite are rejected, and all problems are reported together as `Invalid baseline file format in <path>: ...`.
+  Only the fields that are read are checked, so unknown fields and older files with missing fields still load.
 - **More declarations are analysed: the methods of structs, records and record structs, interface methods with a body, and constructors.**
   Before, only the methods of `class` declarations were analysed.
   This adds rows to every report, the summary counts and baselines; existing rows keep their names, signatures and metrics.
@@ -26,7 +40,7 @@ The project follows [Semantic Versioning](https://semver.org/).
   See [Analysed methods](docs/Configuration.md#7-analysed-methods).
 - A class nested in a struct, record or interface is named through that type (`MyApp.Shape.Builder`).
   Before, such a containing type was left out of the name (`MyApp.Builder`), so two nested classes of the same name could collide.
-  A baseline written earlier reports these methods as new on the next comparison.
+  A baseline written earlier still matches these methods under their old name, as long as that is unambiguous.
 
 - **Nesting depth now accumulates through loops, `switch`, `try`, `lock`, `using`, `fixed`, `checked` and `unsafe` statements.**
   Before, only nested `if` statements added up.
