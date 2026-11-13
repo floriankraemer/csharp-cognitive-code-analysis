@@ -190,15 +190,38 @@ public class MetricsCacheTests
     }
 
     [Test]
-    public void Hit_WhenOnlyScoringOrDisplaySettingsChange()
+    public void Miss_WhenAnyOtherSettingChanges_SoNoFutureSettingCanGiveAStaleHit()
     {
         Analyse(Config());
         Tamper("\"MethodName\":\"Work\"", "\"MethodName\":\"FromCache\"");
-        CognitiveConfiguration changed = Config();
-        changed.ShowHalsteadComplexity = true;
-        changed.ScoreThreshold = 9;
+        CognitiveConfiguration threshold = Config();
+        threshold.ScoreThreshold = 9;
+        CognitiveConfiguration display = Config();
+        display.ShowHalsteadComplexity = true;
+        CognitiveConfiguration metric = Config();
+        metric.Metrics["ifCount"] = new MetricConfiguration { Threshold = 7 };
 
-        Assert.That(Analyse(changed).Select(m => m.MethodName), Does.Contain("FromCache"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Analyse(threshold).Select(m => m.MethodName), Does.Not.Contain("FromCache"));
+            Assert.That(Analyse(display).Select(m => m.MethodName), Does.Not.Contain("FromCache"));
+            Assert.That(Analyse(metric).Select(m => m.MethodName), Does.Not.Contain("FromCache"));
+        }
+    }
+
+    [Test]
+    public void Hit_WhenOnlyTheOrderOfTheMetricsDiffers()
+    {
+        CognitiveConfiguration a = Config();
+        a.Metrics["ifCount"] = new MetricConfiguration { Threshold = 1 };
+        a.Metrics["elseCount"] = new MetricConfiguration { Threshold = 2 };
+        Analyse(a);
+        Tamper("\"MethodName\":\"Work\"", "\"MethodName\":\"FromCache\"");
+        CognitiveConfiguration b = Config();
+        b.Metrics["elseCount"] = new MetricConfiguration { Threshold = 2 };
+        b.Metrics["ifCount"] = new MetricConfiguration { Threshold = 1 };
+
+        Assert.That(Analyse(b).Select(m => m.MethodName), Does.Contain("FromCache"));
     }
 
     [Test]

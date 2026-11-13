@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Common;
@@ -28,7 +29,7 @@ namespace CognitiveCodeAnalysis.Cache;
 /// (several report types in one CI job), not for incremental runs after an edit.
 /// </para>
 /// <para>
-/// An entry is valid for one file, one run digest, one analysis configuration, one build of the tool and one runtime.
+/// An entry is valid for one file, one run digest, one configuration, one build of the tool and one runtime.
 /// Entries live at <c>&lt;directory&gt;/&lt;key[0..2]&gt;/&lt;key&gt;.json</c>. A disabled cache never touches the file system.
 /// Coupling is not cached: it is computed across all files and is cheap next to the per-method metrics.
 /// </para>
@@ -86,14 +87,19 @@ public sealed class MetricsCache
         return new Run(this, contentHashes, runDigest, AnalysisConfigurationHash(configuration));
     }
 
-    // Only the settings that change the unscored metrics belong here; scores, thresholds and display flags are applied after the cache.
+    // The whole configuration, every key in sorted order, so a setting added later can never give a stale hit.
+    // Changing a threshold or a display flag therefore misses even though those are applied after the cache.
     private static string AnalysisConfigurationHash(CognitiveConfiguration configuration) =>
-        Sha256(JsonSerializer.Serialize(new
-        {
-            configuration.CountElseAsNesting,
-            configuration.CountElseIfAsNesting,
-            ExcludePatterns = configuration.ExcludePatterns,
-        }));
+        Sha256(Canonical(JsonSerializer.SerializeToNode(configuration))!.ToJsonString());
+
+    private static JsonNode? Canonical(JsonNode? node) => node switch
+    {
+        JsonObject obj => new JsonObject(obj
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => KeyValuePair.Create(pair.Key, Canonical(pair.Value)))),
+        JsonArray array => new JsonArray(array.Select(Canonical).ToArray()),
+        _ => node?.DeepClone(),
+    };
 
     private static string Sha256(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
 

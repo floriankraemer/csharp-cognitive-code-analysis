@@ -297,8 +297,9 @@ Turn it on with `cache.enabled: true` or `--cache` and off with `--no-cache`; th
 Add it to `.gitignore`; the directory is safe to delete at any time.
 
 - Each entry is one JSON file at `<directory>/<first two characters of the key>/<key>.json`.
-- The key is a SHA-256 hash of the file path, the hash of the content of the file, a digest of the content of every analysed file, the settings that change the unscored metrics (`excludePatterns`, `countElseAsNesting`, `countElseIfAsNesting`), the version of the tool and the .NET runtime.
-- Scores, thresholds, display options, coverage, baselines and the report type are applied after the cache, so changing them does not invalidate it.
+- The key is a SHA-256 hash of the file path, the hash of the content of the file, a digest of the content of every analysed file, the whole configuration (every key except `cache`), the version of the tool and the .NET runtime.
+- Coverage, baselines and the report type are applied after the cache, so changing them does not invalidate it.
+- Any other setting change, including thresholds and display options, invalidates the entries, so a setting added later can never give a stale result.
 - Class coupling is not cached; it is computed across all files on every run.
 - A corrupt, unreadable or outdated entry counts as missing and is overwritten.
 - Entries are written to a temporary file and moved into place, so a run that is interrupted leaves no partial entry.
