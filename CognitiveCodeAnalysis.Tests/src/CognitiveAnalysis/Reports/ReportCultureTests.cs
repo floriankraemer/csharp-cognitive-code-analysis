@@ -39,6 +39,8 @@ public class ReportCultureTests
         yield return new TestCaseData(new Func<IReport>(() => new SarifReport()), GoldenNormalization.SarifAssemblyVersion).SetName("sarif");
         yield return new TestCaseData(new Func<IReport>(() => new GitlabCodeQualityReport()), GoldenNormalization.None).SetName("gitlab");
         yield return new TestCaseData(new Func<IReport>(() => new GithubActionsReport()), GoldenNormalization.None).SetName("github");
+        yield return new TestCaseData(new Func<IReport>(() => new CheckstyleReport()), GoldenNormalization.None).SetName("checkstyle");
+        yield return new TestCaseData(new Func<IReport>(() => new JUnitReport()), GoldenNormalization.None).SetName("junit");
     }
 
     [TestCaseSource(nameof(Reports))]

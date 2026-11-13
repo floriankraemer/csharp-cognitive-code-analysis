@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<checkstyle version="8.0">
+  <file name="src/a &amp; &quot;b&quot; &lt;c&gt;.cs">
+    <error line="3" column="1" severity="error" message="Method Run has cognitive complexity 12.0 (threshold: 5.0)" source="CognitiveComplexity" />
+  </file>
+  <file name="src/x:y,z 100%.cs">
+    <error line="9" column="1" severity="warning" message="Method Go has cognitive complexity 6.0 (threshold: 5.0)" source="CognitiveComplexity" />
+  </file>
+</checkstyle>

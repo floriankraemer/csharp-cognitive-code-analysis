@@ -124,9 +124,13 @@ internal static class GoldenReportAssert
 
     internal static string NormalizeSarifVersion(string content)
         => Regex.Replace(
-            content,
-            "\"version\"\\s*:\\s*\"[^\"]*\"",
-            "\"version\": \"GOLDEN_VERSION\"",
+            Regex.Replace(
+                content,
+                "\"version\"\\s*:\\s*\"[^\"]*\"",
+                "\"version\": \"GOLDEN_VERSION\"",
+                RegexOptions.CultureInvariant),
+            "(\"%SRCROOT%\"\\s*:\\s*\\{\\s*\"uri\"\\s*:\\s*)\"[^\"]*\"",
+            "$1\"GOLDEN_SOURCE_ROOT\"",
             RegexOptions.CultureInvariant);
 
     internal static string NormalizeGeneratedAt(string content)

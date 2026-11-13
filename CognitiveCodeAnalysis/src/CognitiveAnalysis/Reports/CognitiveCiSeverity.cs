@@ -21,6 +21,23 @@ internal static class CognitiveCiSeverity
     internal static string GithubCommandKind(CognitiveMetrics m, CognitiveConfiguration c) =>
         m.totalScore > c.ScoreThreshold ? "warning" : "notice";
 
+    /// <summary>A method above the score threshold, the only methods the issue formats list.</summary>
+    internal static bool IsViolation(CognitiveMetrics m, CognitiveConfiguration c) =>
+        m.totalScore > c.ScoreThreshold;
+
+    /// <summary>A violation at twice the threshold or more is an error, a smaller one a warning.</summary>
+    internal static bool IsError(CognitiveMetrics m, CognitiveConfiguration c) =>
+        m.totalScore >= 2 * c.ScoreThreshold;
+
+    /// <summary>The short message of the issue formats that name the method only, such as Checkstyle and JUnit.</summary>
+    internal static string ComplexityMessage(CognitiveMetrics m, CognitiveConfiguration c) =>
+        string.Format(
+            CultureInfo.InvariantCulture,
+            "Method {0} has cognitive complexity {1:F1} (threshold: {2:F1})",
+            m.MethodName,
+            m.totalScore,
+            c.ScoreThreshold);
+
     internal static string BuildMessage(
         CognitiveMetrics m,
         CognitiveConfiguration c,
