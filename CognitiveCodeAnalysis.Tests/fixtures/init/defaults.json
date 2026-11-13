@@ -1,0 +1,77 @@
+{
+    "cognitive": {
+        "excludeFilePatterns": [],
+        "excludePatterns": [],
+        "scoreThreshold": 0.5,
+        "showOnlyMethodsExceedingThreshold": true,
+        "showHalsteadComplexity": false,
+        "showCyclomaticComplexity": false,
+        "showCouplingMetrics": false,
+        "showDetailedCognitiveMetrics": true,
+        "groupByClass": true,
+        "countElseAsNesting": false,
+        "countElseIfAsNesting": false,
+        "metrics": {
+            "linesOfCode": {
+                "threshold": 60,
+                "scale": 25.0,
+                "enabled": true
+            },
+            "argumentCount": {
+                "threshold": 4,
+                "scale": 1.0,
+                "enabled": true
+            },
+            "returnCount": {
+                "threshold": 2,
+                "scale": 5.0,
+                "enabled": true
+            },
+            "localVariableCount": {
+                "threshold": 4,
+                "scale": 5.0,
+                "enabled": false
+            },
+            "propertyAccessCount": {
+                "threshold": 4,
+                "scale": 15.0,
+                "enabled": false
+            },
+            "fieldAccessCount": {
+                "threshold": 4,
+                "scale": 15.0,
+                "enabled": false
+            },
+            "ifCount": {
+                "threshold": 3,
+                "scale": 1.0,
+                "enabled": true
+            },
+            "nestingLevels": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": true
+            },
+            "elseCount": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": true
+            },
+            "loopCount": {
+                "threshold": 2,
+                "scale": 1.0,
+                "enabled": false
+            },
+            "switchCount": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": false
+            },
+            "tryCatchCount": {
+                "threshold": 1,
+                "scale": 1.0,
+                "enabled": false
+            }
+        }
+    }
+}

@@ -67,6 +67,24 @@ CognitiveCodeAnalysis .\src -r Json -o .\baseline.json
 CognitiveCodeAnalysis .\src -b .\baseline.json -r Html -o .\report.html
 ```
 
+## Creating a config file
+
+`init` writes a `cognitive-metrics-settings.json` with the built-in defaults, so you can start from a complete file.
+
+```powershell
+# Ask for the main settings, then write ./cognitive-metrics-settings.json
+CognitiveCodeAnalysis init
+
+# Write the defaults without questions to a given file
+CognitiveCodeAnalysis init --silent -p .\config\cognitive-metrics-settings.json
+
+# Replace an existing file
+CognitiveCodeAnalysis init --silent -f
+```
+
+An existing file is kept unless `--force` is given.
+The questions and all options are described in [docs/Configuration.md](docs/Configuration.md#creating-a-config-file).
+
 ## Churn: complex code that changes often
 
 The `churn` command multiplies the cognitive score of each class with the number of git commits that changed its file.

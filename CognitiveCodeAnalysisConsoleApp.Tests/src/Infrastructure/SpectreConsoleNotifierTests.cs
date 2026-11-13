@@ -17,6 +17,7 @@ internal class SpectreConsoleNotifierTests
         ("generated", n => n.WriteReportGenerated("Html", "/o [x].html"), "Html report generated: /o [x].html"),
         ("config used", n => n.WriteConfigUsed("defaults [x]"), "Config: defaults [x]"),
         ("config created", n => n.WriteConfigFileCreated("/c [x].json"), "Config file created: /c [x].json"),
+        ("init created", n => n.WriteInitConfigCreated("/c [x].json"), "Created config at: /c [x].json"),
     ];
 
     public static IEnumerable<TestCaseData> Cases()
