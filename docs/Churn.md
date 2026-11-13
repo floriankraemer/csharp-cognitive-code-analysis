@@ -55,6 +55,7 @@ The console shows the classes with a score and a churn above zero.
 | `-o`, `--output-file <file>` | none | The file the report is written to. Requires `--report-type`. Missing directories are created. |
 | `-c`, `--config <file>` | `./cognitive-metrics-settings.json` if it exists | Configuration file, see [Configuration](./Configuration.md). |
 | `--coverage-cobertura <file>` | none | Cobertura XML coverage report, see [Risk](#risk). |
+| `--coverage-clover <file>` | none | Clover XML coverage report instead of Cobertura, see [Coverage](./Coverage.md). |
 | `-h`, `--help` | | Show the help and exit. |
 
 An invalid date, a date in the future, an unknown VCS, an unknown report type or a report type without an output file (or the other way round) prints a message and exits with a non-zero status.

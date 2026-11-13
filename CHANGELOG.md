@@ -83,6 +83,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`--coverage-clover <file>` for `analyse` and `churn`.**
+  The Clover reader takes the class figures from the statement and conditional metrics and the method figures from the `method` and `stmt` lines, and it understands the `signature` attribute of OpenClover.
+  The option cannot be combined with `--coverage-cobertura` (`Only one coverage format can be specified at a time.`).
+  `--coverage-cobertura` detects Cobertura and Visual Studio files as before.
+- **The HTML and Markdown reports show `Line Coverage` and `Branch Coverage` columns after `Churn` when a coverage file was given.**
+- **`analyse` warns when a coverage file matches only some of the analysed classes** (`Coverage report <file> matched M of N analysed classes.`).
+- All coverage readers skip a `DOCTYPE` without loading DTDs or external entities and without expanding entities, so a report cannot read local files or run an entity bomb.
+  A coverage file that is not well-formed is reported as `Invalid coverage file <file>: <reason>` and the command exits with a non-zero code.
+- See [docs/Coverage.md](docs/Coverage.md).
 - **`--sort-by <field>` and `--sort-order asc|desc`** order the rows of the console, CSV, HTML, Markdown, JSON, Checkstyle and JUnit reports by total score, class, method, file, line, Halstead volume, cyclomatic complexity or the count or score of any metric.
   Without `--sort-by` every report keeps its order.
 - **`--debug`** prints an execution summary to stderr after the run: total time, time per phase and the counts of files and methods.

@@ -115,7 +115,7 @@ public class ReportParityFixTests
 
         string header = md.Split('\n').First(l => l.StartsWith("| Method", StringComparison.Ordinal));
         Assert.That(header, Is.EqualTo(
-            "| Method | Score | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn |"));
+            "| Method | Score | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage |"));
         Assert.That(md, Does.Not.Contain("4 (1.500)"));
     }
 

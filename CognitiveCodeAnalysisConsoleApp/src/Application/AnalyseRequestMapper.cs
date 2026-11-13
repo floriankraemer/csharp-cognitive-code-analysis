@@ -36,7 +36,8 @@ internal static class AnalyseRequestMapper
             GenerateBaseline: settings.GenerateBaseline,
             SortBy: settings.SortBy,
             SortOrder: settings.SortOrder,
-            Debug: settings.Debug
+            Debug: settings.Debug,
+            CoverageClover: settings.CoverageClover
         );
     }
 }

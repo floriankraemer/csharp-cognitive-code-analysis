@@ -16,5 +16,6 @@ public sealed record AnalysisRequest(
     bool GenerateBaseline = false,
     string? SortBy = null,
     string SortOrder = "asc",
-    bool Debug = false
+    bool Debug = false,
+    string? CoverageClover = null
 );

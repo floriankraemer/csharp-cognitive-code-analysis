@@ -17,5 +17,6 @@ public sealed record PreparedAnalysis(
     string? CoverageCobertura,
     bool IsConsoleTextReport,
     bool BaselineAutoDetected = false,
-    string? BaselineWarning = null
+    string? BaselineWarning = null,
+    string? CoverageClover = null
 );

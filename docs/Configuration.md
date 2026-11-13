@@ -161,7 +161,7 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--coverage-cobertura <path>`: optional coverage file (Cobertura with counts, Cobertura with rates such as coverlet writes, or Visual Studio XML).
   Methods match by name and by a first coverage line inside the method.
   Methods without branches show no branch coverage, and their churn uses the line coverage.
-  A coverage file that loads but matches no method produces a warning.
+  A coverage file that loads but matches no method produces a warning, and so does one that matches only some of the analysed classes.
 - `--sort-by <field>`: sort the rows of the report by a field instead of by total score.
   Fields: `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are case-insensitive; the score column names of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
@@ -172,6 +172,9 @@ dotnet run --project .\CognitiveCodeAnalysisConsoleApp -- [searchPath] [options]
 - `--debug`: after the run, print an execution summary to stderr with the total time, the time of each phase and statistics (files found, analysed and failed, methods analysed).
   Phases that run side by side, such as cognitive and coupling analysis, can overlap, so the phase times need not add up to the total.
 - `--version`: print the version without the `+sha` suffix and exit.
+- `--coverage-clover <path>`: optional Clover coverage file.
+  It cannot be combined with `--coverage-cobertura`.
+  See [Coverage.md](Coverage.md) for the formats, the matching and the columns the HTML and Markdown reports gain.
 - `--show-halstead`: force `showHalsteadComplexity` on for this run (overrides config).
 - `--show-cyclomatic`: force `showCyclomaticComplexity` on for this run (overrides config).
 - `--show-coupling`: force `showCouplingMetrics` on for this run (overrides config).

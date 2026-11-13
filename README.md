@@ -42,7 +42,7 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   Cobertura reports with counts (`lines-valid`, `branches-valid`, ...) and rate-only reports such as the ones coverlet writes (`line-rate`, `branch-rate`) are read, and so are Visual Studio coverage XML files.
   A method is matched by its name and by a first coverage line inside the method's source lines.
   A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
-  When a coverage file is read but no method matches, the tool prints a warning.
+  When a coverage file is read but no method matches, or only some of the classes match, the tool prints a warning.
 - `--sort-by <field>` — Sort the rows of the report by a field instead of by total score.
   The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are matched case-insensitively.
@@ -57,6 +57,9 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `--debug` — After the run, print an execution summary to stderr: the total time, the time of each phase (searching, compiling, analysing, scoring, coverage, baseline, report) and the counts of files found, analysed and failed and of methods analysed.
   `-v|--verbose` is unchanged and still logs every step as it happens.
 - `--version` — Print the version of the tool, without the commit suffix, and exit.
+- `--coverage-clover <path>` — Optional Clover coverage file; cannot be combined with `--coverage-cobertura`.
+  HTML and Markdown reports then show `Line Coverage` and `Branch Coverage` columns.
+  See [docs/Coverage.md](docs/Coverage.md).
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
