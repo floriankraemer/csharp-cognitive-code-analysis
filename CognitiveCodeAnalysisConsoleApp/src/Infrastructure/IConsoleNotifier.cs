@@ -17,4 +17,6 @@ internal interface IConsoleNotifier
     void WriteConfigUsed(string configSourceDisplay);
 
     void WriteConfigFileCreated(string fullPath);
+
+    void WriteInitConfigCreated(string fullPath);
 }

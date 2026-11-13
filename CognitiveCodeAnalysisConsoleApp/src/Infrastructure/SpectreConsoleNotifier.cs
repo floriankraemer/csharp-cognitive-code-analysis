@@ -44,6 +44,12 @@ internal sealed class SpectreConsoleNotifier : IConsoleNotifier
             $"Config file created: {fullPath}"
         );
 
+    public void WriteInitConfigCreated(string fullPath)
+        => WriteLine(
+            $"[green]Created config at:[/] {Markup.Escape(fullPath)}",
+            $"Created config at: {fullPath}"
+        );
+
     private static void WriteLine(string markup, string plain)
     {
         if (AnsiConsole.Profile.Capabilities.Interactive)

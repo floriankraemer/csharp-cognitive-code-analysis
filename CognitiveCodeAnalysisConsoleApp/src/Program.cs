@@ -28,7 +28,12 @@ namespace CognitiveCodeAnalysisConsoleApp;
 /// </summary>
 public class Program
 {
-    public static int Main(string[] args)
+    public static int Main(string[] args) => Run(args, new SpectreConsoleEnvironment());
+
+    /// <summary>
+    /// Runs the command line with the given console environment. Tests pass their own to drive interactive prompts.
+    /// </summary>
+    public static int Run(string[] args, IConsoleEnvironment consoleEnvironment)
     {
         var serviceCollection = new ServiceCollection();
 
@@ -57,6 +62,7 @@ public class Program
         serviceCollection.AddSingleton<IReportGenerationService, SpectreReportGenerationService>();
         serviceCollection.AddSingleton<AnalyseApplicationService>();
         serviceCollection.AddSingleton(TimeProvider.System);
+        serviceCollection.AddSingleton(consoleEnvironment);
 
         // Create a type registrar and register any dependencies.
         // A type registrar is an adapter for a DI framework.
@@ -71,6 +77,9 @@ public class Program
             configurator
                 .AddCommand<ChurnCommand>("churn")
                 .WithDescription("Calculates the churn (cognitive score times number of git changes) of classes.");
+            configurator
+                .AddCommand<InitCommand>("init")
+                .WithDescription("Creates a cognitive-metrics-settings.json, asking for the main settings unless --silent.");
         });
 
         return app.Run(args);
