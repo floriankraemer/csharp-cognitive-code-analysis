@@ -14,10 +14,11 @@ namespace CognitiveCodeAnalysis.Tests.CognitiveAnalysis.Reports;
 /// <summary>CSV score column, Markdown alignment and baseline deltas, and the detail-column switch.</summary>
 public class ReportParityFixTests
 {
-    private static string Render(IReport report, bool grouped, bool detailed = true, bool baseline = false)
+    private static string Render(IReport report, bool grouped, bool detailed = true, bool baseline = false, bool understandability = true)
     {
         var config = ReportGoldenFixtures.FullConfig(grouped);
         config.ShowDetailedCognitiveMetrics = detailed;
+        config.ShowUnderstandability = understandability;
         return GoldenReportAssert.RenderReport(
             report,
             ReportGoldenFixtures.FullCollection(),
@@ -29,7 +30,7 @@ public class ReportParityFixTests
     [Test]
     public void Csv_AppendsLinesOfCodeScoreAfterAllExistingColumns()
     {
-        string[] lines = Render(new CsvReport(), grouped: false).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = Render(new CsvReport(), grouped: false, understandability: false).Split('\n', StringSplitOptions.RemoveEmptyEntries);
         string[] header = SplitCsv(lines[0]);
         string[] alpha = SplitCsv(lines.Single(l => l.Contains(",Alpha,")));
 
@@ -45,10 +46,44 @@ public class ReportParityFixTests
     [Test]
     public void Csv_WithBaseline_AppendsTheScoreAndItsDeltaAtTheEnd()
     {
-        string[] header = SplitCsv(Render(new CsvReport(), grouped: false, baseline: true).Split('\n')[0]);
+        string[] header = SplitCsv(Render(new CsvReport(), grouped: false, baseline: true, understandability: false).Split('\n')[0]);
 
         Assert.That(header[^2..], Is.EqualTo(new[] { "LinesOfCodeScore", "LinesOfCodeScoreDelta" }));
         Assert.That(header[^3], Is.EqualTo("ChurnScoreDelta"));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Csv_WithUnderstandability_AppendsItsValueAndRiskLevelAfterEveryOtherColumn(bool baseline)
+    {
+        string[] lines = Render(new CsvReport(), grouped: false, baseline: baseline).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] header = SplitCsv(lines[0]);
+        string[] alpha = SplitCsv(lines.Single(l => l.Contains(",Alpha,")));
+        string[] delta = SplitCsv(lines.Single(l => l.Contains(",Delta,")));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(header[^2..], Is.EqualTo(new[] { "Understandability", "UnderstandabilityRiskLevel" }));
+            Assert.That(header[^3], Is.EqualTo(baseline ? "LinesOfCodeScoreDelta" : "LinesOfCodeScore"));
+            Assert.That(alpha[^2..], Is.EqualTo(new[] { "16", "very_high" }));
+            Assert.That(delta[^2..], Is.EqualTo(new[] { "0", "low" }));
+            Assert.That(alpha, Has.Length.EqualTo(header.Length));
+        }
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Markdown_AndHtml_WithoutUnderstandability_HaveNoUnderstandabilityColumn(bool grouped)
+    {
+        string md = Render(new MarkdownReport(), grouped, understandability: false);
+        string html = Render(new HtmlReport(), grouped, understandability: false);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(md, Does.Not.Contain("Understandability").And.Not.Contain("very_high"));
+            Assert.That(html, Does.Not.Contain("Understandability").And.Not.Contain("very_high"));
+            Assert.That(CountCells(html, "<td>L10 Alpha</td>"), Is.EqualTo(CountHeaderCells(html)));
+        }
     }
 
     [TestCase(true)]
@@ -115,7 +150,7 @@ public class ReportParityFixTests
 
         string header = md.Split('\n').First(l => l.StartsWith("| Method", StringComparison.Ordinal));
         Assert.That(header, Is.EqualTo(
-            "| Method | Score | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage |"));
+            "| Method | Score | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage | Understandability |"));
         Assert.That(md, Does.Not.Contain("4 (1.500)"));
     }
 

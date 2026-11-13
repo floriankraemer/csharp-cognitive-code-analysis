@@ -130,6 +130,35 @@ public class CliBehaviourTests
         }
     }
 
+    [Test]
+    public void ShowUnderstandability_FromTheCommandLineOrTheConfigFile_AppendsTheColumn()
+    {
+        const string allMethods = """ "showOnlyMethodsExceedingThreshold": false """;
+
+        string Markdown(string name, params string[] extra)
+        {
+            var (exitCode, output) = Run([_dir, "-f", "Markdown", "-o", P(name), .. extra]);
+            using (output)
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+            }
+
+            return File.ReadAllText(P(name));
+        }
+
+        string fromDefault = Markdown("default.md", "-c", WriteConfig(allMethods));
+        string fromFlag = Markdown("flag.md", "-c", WriteConfig(allMethods), "--show-understandability");
+        string fromConfig = Markdown("config.md", "-c", WriteConfig(allMethods + """, "showUnderstandability": true """));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fromDefault, Does.Not.Contain("Understandability"));
+            // if +1, nested if +2, else +1, foreach +1.
+            Assert.That(fromFlag, Does.Contain("| Understandability |").And.Contain("| 5 (low) |"));
+            Assert.That(fromConfig, Is.EqualTo(fromFlag));
+        }
+    }
+
     // ---- report type ----
 
     [TestCase("html")]

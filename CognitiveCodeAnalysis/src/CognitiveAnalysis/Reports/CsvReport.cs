@@ -107,6 +107,12 @@ public sealed class CsvReport : IReport
         // Appended last so that readers of the earlier columns by position are not affected.
         AddMetricHeaders(headers, "LinesOfCodeScore", includeDeltas);
 
+        if (configuration.ShowUnderstandability)
+        {
+            headers.Add("Understandability");
+            headers.Add("UnderstandabilityRiskLevel");
+        }
+
         return headers;
     }
 
@@ -186,6 +192,12 @@ public sealed class CsvReport : IReport
         }
 
         AddMetricValue(row, m.linesOfCodeScore.ToString("F3", CultureInfo.InvariantCulture), comparison?.LinesOfCodeScore, "F3", includeDeltas);
+
+        if (configuration.ShowUnderstandability)
+        {
+            row.Add(m.Understandability.Total.ToString(CultureInfo.InvariantCulture));
+            row.Add(m.Understandability.RiskLevel);
+        }
 
         return row;
     }

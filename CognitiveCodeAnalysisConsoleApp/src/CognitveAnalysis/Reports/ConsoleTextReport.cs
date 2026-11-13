@@ -198,6 +198,11 @@ public class ConsoleTextReport() : IReport
             rowData.Add(FormatChurnScore(metrics, comparison));
         }
 
+        if (configuration.ShowUnderstandability)
+        {
+            rowData.Add(metrics.Understandability.ToString());
+        }
+
         table.AddRow(rowData.ToArray());
 
         return table;
@@ -450,13 +455,16 @@ public class ConsoleTextReport() : IReport
             table.AddColumn("Cyclomatic");
         }
 
-        if (!hasCoverageData)
+        if (hasCoverageData)
         {
-            return table;
+            table.AddColumn("Coverage");
+            table.AddColumn("Churn");
         }
 
-        table.AddColumn("Coverage");
-        table.AddColumn("Churn");
+        if (configuration.ShowUnderstandability)
+        {
+            table.AddColumn("Understandability");
+        }
 
         return table;
     }

@@ -6,7 +6,8 @@
       "src/CodeCoverage/**/*.cs",
       "src/HalsteadAnalysis/**/*.cs",
       "src/CouplingAnalysis/**/*.cs",
-      "src/Churn/**/*.cs"
+      "src/Churn/**/*.cs",
+      "src/UnderstandabilityAnalysis/**/*.cs"
     ],
     "reporters": ["html", "progress", "json"],
     "thresholds": { "high": 90, "low": 80, "break": 80 }
