@@ -346,7 +346,9 @@ public class ConsoleTextReportTests
     {
         using var capture = new ConsoleOutputCapture(width, interactive);
         new ConsoleTextReport().RenderMetrics(string.Empty, Collection(), config, null);
-        return capture.Text;
+
+        // Some CI environments make Spectre emit text decorations (dim) even without color support.
+        return System.Text.RegularExpressions.Regex.Replace(capture.Text, "\u001b\\[[0-9;]*m", string.Empty);
     }
 
     private static string RedirectedGoldenPath(string name)
