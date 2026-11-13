@@ -20,6 +20,12 @@ public class CognitiveConfiguration
     public bool ShowCouplingMetrics { get; set; }
 
     /// <summary>
+    /// Shows the understandability (SonarSource cognitive complexity) column in the console, HTML and Markdown reports
+    /// and its fields in the CSV report.
+    /// </summary>
+    public bool ShowUnderstandability { get; set; }
+
+    /// <summary>
     /// Shows the detail columns (lines, arguments, returns, nesting, ...) in the console, HTML and Markdown reports.
     /// </summary>
     public bool ShowDetailedCognitiveMetrics { get; set; } = true;
@@ -29,6 +35,16 @@ public class CognitiveConfiguration
     /// The order of the rows in the reports, set by <c>--sort-by</c> for one run. When null, reports order by total score, highest first.
     /// </summary>
     public MetricsSorter? Sorter { get; set; }
+
+    /// <summary>
+    /// Reporters supplied by plugin assemblies, selectable with <c>-r &lt;key&gt;</c>.
+    /// </summary>
+    public CustomReportersConfiguration CustomReporters { get; set; } = new();
+
+    /// <summary>
+    /// The directory of the configuration file, the base of relative plugin paths. Null for the built-in defaults.
+    /// </summary>
+    public string? ConfigDirectory { get; internal set; }
 
     /// <summary>
     /// Notes collected while loading the configuration, such as deprecated metric keys that were accepted.

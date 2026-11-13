@@ -15,12 +15,14 @@ internal static class AnalyseRequestMapper
 
         if (settings.ShowHalstead.HasValue
             || settings.ShowCyclomatic.HasValue
-            || settings.ShowCoupling.HasValue)
+            || settings.ShowCoupling.HasValue
+            || settings.ShowUnderstandability.HasValue)
         {
             displayOverrides = new AnalysisDisplayOverrides(
                 ShowHalstead: settings.ShowHalstead,
                 ShowCyclomatic: settings.ShowCyclomatic,
-                ShowCoupling: settings.ShowCoupling
+                ShowCoupling: settings.ShowCoupling,
+                ShowUnderstandability: settings.ShowUnderstandability
             );
         }
 

@@ -7,6 +7,7 @@ using CognitiveCodeAnalysis.CognitiveAnalysis.Baseline;
 using CognitiveCodeAnalysis.Configuration;
 using CognitiveCodeAnalysis.CouplingAnalysis;
 using CognitiveCodeAnalysis.HalsteadAnalysis;
+using CognitiveCodeAnalysis.UnderstandabilityAnalysis;
 using CognitiveCodeAnalysisConsoleApp.CognitiveAnalysis.Reports;
 
 namespace CognitiveCodeAnalysisConsoleApp.Tests.Reports;
@@ -108,6 +109,29 @@ public class ConsoleTextReportTests
             Assert.That(text, Does.Contain("Methods Exceeding Threshold: 1 (25.0%)"));
             Assert.That(text, Does.Contain("Classes with Methods Exceeding Threshold: 1 (50.0%)"));
             Assert.That(text, Does.Contain("Threshold: 5.000"));
+        }
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Understandability_IsAppendedAsTheLastColumnOnlyWhenEnabled(bool grouped)
+    {
+        CognitiveMetricsCollection collection = Collection();
+        collection.Single(m => m.MethodName == "Alpha").Understandability =
+            new Understandability(Structural: 5, Hybrid: 2, Fundamental: 3, Nesting: 6, Recursion: 1);
+        CognitiveConfiguration on = Config(grouped, full: false);
+        on.ShowUnderstandability = true;
+
+        string shown = Render(collection, on);
+        string hidden = Render(collection, Config(grouped, full: false));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(shown, Does.Contain("Understandability"));
+            Assert.That(shown, Does.Contain("16 (very_high)"));
+            Assert.That(shown, Does.Contain("0 (low)"));
+            Assert.That(shown.IndexOf("Churn", StringComparison.Ordinal), Is.LessThan(shown.IndexOf("Understandability", StringComparison.Ordinal)));
+            Assert.That(hidden, Does.Not.Contain("Understandability").And.Not.Contain("very_high"));
         }
     }
 

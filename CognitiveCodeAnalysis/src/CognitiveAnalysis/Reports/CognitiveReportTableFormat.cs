@@ -56,6 +56,11 @@ internal static class CognitiveReportTableFormat
             headers.Add("Branch Coverage");
         }
 
+        if (configuration.ShowUnderstandability)
+        {
+            headers.Add("Understandability");
+        }
+
         return headers;
     }
 
@@ -112,6 +117,11 @@ internal static class CognitiveReportTableFormat
             );
             row.Add(CoverageValue(metrics.lineCoveragePercentage, comparison?.LineCoveragePercentage));
             row.Add(CoverageValue(metrics.branchCoveragePercentage, comparison?.BranchCoveragePercentage));
+        }
+
+        if (configuration.ShowUnderstandability)
+        {
+            row.Add(metrics.Understandability.ToString());
         }
 
         return row;

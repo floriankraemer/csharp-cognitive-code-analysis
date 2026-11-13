@@ -12,7 +12,7 @@ namespace CognitiveCodeAnalysisConsoleApp.Tests.Application;
 public class AnalyseRequestMapperTests
 {
     private static AnalyseCommandSettings Settings(
-        string? reportType = null, bool? halstead = null, bool? cyclomatic = null, bool? coupling = null) => new()
+        string? reportType = null, bool? halstead = null, bool? cyclomatic = null, bool? coupling = null, bool? understandability = null) => new()
     {
         GenerateConfig = new FlagValue<string?>(),
         SourcePath = "src",
@@ -24,6 +24,7 @@ public class AnalyseRequestMapperTests
         ShowHalstead = halstead,
         ShowCyclomatic = cyclomatic,
         ShowCoupling = coupling,
+        ShowUnderstandability = understandability,
         Verbose = true,
         GenerateBaseline = true,
         SortBy = "line",
@@ -64,17 +65,21 @@ public class AnalyseRequestMapperTests
         Assert.That(AnalyseRequestMapper.FromSettings(Settings()).DisplayOverrides, Is.Null);
     }
 
-    [TestCase(true, null, null)]
-    [TestCase(null, false, null)]
-    [TestCase(null, null, true)]
-    [TestCase(true, false, true)]
-    public void FromSettings_AnyDisplayFlag_CreatesOverridesPreservingUnsetFlags(bool? halstead, bool? cyclomatic, bool? coupling)
+    [TestCase(true, null, null, null)]
+    [TestCase(null, false, null, null)]
+    [TestCase(null, null, true, null)]
+    [TestCase(null, null, null, true)]
+    [TestCase(null, null, null, false)]
+    [TestCase(true, false, true, true)]
+    public void FromSettings_AnyDisplayFlag_CreatesOverridesPreservingUnsetFlags(bool? halstead, bool? cyclomatic, bool? coupling, bool? understandability)
     {
-        var overrides = AnalyseRequestMapper.FromSettings(Settings(halstead: halstead, cyclomatic: cyclomatic, coupling: coupling)).DisplayOverrides;
+        var overrides = AnalyseRequestMapper.FromSettings(Settings(
+            halstead: halstead, cyclomatic: cyclomatic, coupling: coupling, understandability: understandability)).DisplayOverrides;
 
         Assert.That(overrides, Is.Not.Null);
         Assert.That(overrides!.ShowHalstead, Is.EqualTo(halstead));
         Assert.That(overrides.ShowCyclomatic, Is.EqualTo(cyclomatic));
         Assert.That(overrides.ShowCoupling, Is.EqualTo(coupling));
+        Assert.That(overrides.ShowUnderstandability, Is.EqualTo(understandability));
     }
 }

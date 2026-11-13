@@ -44,7 +44,7 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
   A method without branches has no branch coverage ("n/a"), and its churn score uses the line coverage instead.
   When a coverage file is read but no method matches, or only some of the classes match, the tool prints a warning.
 - `--sort-by <field>` — Sort the rows of the report by a field instead of by total score.
-  The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
+  The fields are `score`, `class`, `method`, `file`, `line`, `halstead` (volume), `cyclomatic`, `understandability`, the count of every metric (`linesOfCode`, `argumentCount`, `returnCount`, `localVariableCount`, `propertyAccessCount`, `fieldAccessCount`, `ifCount`, `elseCount`, `nestingLevels`, `loopCount`, `switchCount`, `tryCatchCount`) and the score of every metric (`<metric>Score`, for example `ifCountScore` or `nestingLevelsScore`).
   Field names are matched case-insensitively.
   The score columns of the CSV and JSON reports (`ifScore`, `nestingScore`, ...) are accepted as well.
   Numbers compare numerically and text ignores the letter case.
@@ -63,6 +63,8 @@ If you run a **published** executable named `CognitiveCodeAnalysis`, the same ar
 - `--show-halstead` — Turn on Halstead columns for this run (overrides config).
 - `--show-cyclomatic` — Turn on cyclomatic complexity column for this run (overrides config).
 - `--show-coupling` — Turn on class coupling metrics for this run (overrides config).
+- `--show-understandability` — Turn on the understandability column (SonarSource cognitive complexity) for this run (overrides config).
+  See [docs/Understandability.md](docs/Understandability.md).
 
 Unknown options and surplus arguments are ignored, and the tool prints a warning that lists them.
 All output is culture-invariant: numbers always use a dot as the decimal separator, whatever the culture of the machine.
@@ -143,6 +145,17 @@ Reports: `Json`, `Csv`, `Html`, `Markdown`, `SvgTreemap`.
 `CognitiveCodeAnalysis <path> ...` without a command still runs the analysis.
 Do not confuse this git churn with the `Churn` column of the analysis reports, which is the score weighted with the missing coverage (called risk churn in the `churn` command).
 See [docs/Churn.md](docs/Churn.md) for all options, the git details and the risk levels.
+
+## Custom reporters
+
+Your own report format can be added without changing the tool.
+Write a class that implements `ICustomCognitiveReporter` (for `analyse`) or `ICustomChurnReporter` (for `churn`), register it under `cognitive.customReporters` in the configuration file and select it with `-r <key>`.
+
+```json
+{ "cognitive": { "customReporters": { "cognitive": { "hotspots": { "type": "Acme.HotspotReporter", "assembly": "plugins/HotspotReporter.dll" } } } } }
+```
+
+See [docs/CustomReporters.md](docs/CustomReporters.md) for the interface, a complete example and the rules for resolving the key.
 
 ## Resources 🔗
 

@@ -268,6 +268,11 @@ public class HtmlReport() : IReport
             html.AppendLine($"                        <td>{CoverageValueHtml(metrics.lineCoveragePercentage, comparison?.LineCoveragePercentage)}</td>");
             html.AppendLine($"                        <td>{CoverageValueHtml(metrics.branchCoveragePercentage, comparison?.BranchCoveragePercentage)}</td>");
         }
+
+        if (configuration.ShowUnderstandability)
+        {
+            html.AppendLine($"                        <td>{HtmlEncode(metrics.Understandability.ToString())}</td>");
+        }
         html.AppendLine("                    </tr>");
     }
 

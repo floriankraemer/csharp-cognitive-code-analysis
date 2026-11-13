@@ -13,7 +13,7 @@ internal sealed class AnalyseCommandSettings : CommandSettings
 {
     // An attribute argument must be a constant; a test keeps this list equal to MetricsSorter.FieldNames.
     internal const string SortFields =
-        "score, class, method, file, line, halstead, cyclomatic, "
+        "score, class, method, file, line, halstead, cyclomatic, understandability, "
         + "linesOfCode, argumentCount, returnCount, localVariableCount, propertyAccessCount, fieldAccessCount, "
         + "ifCount, elseCount, nestingLevels, loopCount, switchCount, tryCatchCount, "
         + "linesOfCodeScore, argumentCountScore, returnCountScore, localVariableCountScore, propertyAccessCountScore, "
@@ -68,6 +68,10 @@ internal sealed class AnalyseCommandSettings : CommandSettings
     [Description("Show class coupling metrics in reports (overrides config when set)")]
     [CommandOption("--show-coupling")]
     public bool? ShowCoupling { get; init; }
+
+    [Description("Show the understandability (SonarSource cognitive complexity) in reports (overrides config when set)")]
+    [CommandOption("--show-understandability")]
+    public bool? ShowUnderstandability { get; init; }
 
     [Description("Sort the rows of the reports by a field. Without it every report keeps its default order. Fields: " + SortFields + ".")]
     [CommandOption("--sort-by <FIELD>")]

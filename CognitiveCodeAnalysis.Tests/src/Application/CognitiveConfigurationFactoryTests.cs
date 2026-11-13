@@ -47,6 +47,7 @@ public class CognitiveConfigurationFactoryTests
         Assert.That(configuration.ShowHalsteadComplexity, Is.False);
         Assert.That(configuration.ShowCyclomaticComplexity, Is.False);
         Assert.That(configuration.ShowCouplingMetrics, Is.False);
+        Assert.That(configuration.ShowUnderstandability, Is.False);
     }
 
     [Test]
@@ -73,6 +74,30 @@ public class CognitiveConfigurationFactoryTests
         var configuration = CognitiveConfigurationFactory.Load(configFile: null, overrides);
 
         Assert.That(configuration.ShowCyclomaticComplexity, Is.True);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Load_WithUnderstandabilityOverride_ReplacesTheConfiguredValue(bool show)
+    {
+        string file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        File.WriteAllText(file, $$"""{ "cognitive": { "showUnderstandability": {{(!show).ToString().ToLowerInvariant()}} } }""");
+        try
+        {
+            var withoutOverride = CognitiveConfigurationFactory.Load(file);
+            var withOverride = CognitiveConfigurationFactory.Load(file, new AnalysisDisplayOverrides(ShowUnderstandability: show));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(withoutOverride.ShowUnderstandability, Is.EqualTo(!show));
+                Assert.That(withOverride.ShowUnderstandability, Is.EqualTo(show));
+                Assert.That(withOverride.ShowCyclomaticComplexity, Is.False);
+            }
+        }
+        finally
+        {
+            File.Delete(file);
+        }
     }
 
     [Test]

@@ -95,6 +95,13 @@ public sealed class CognitiveBaselineMethodSnapshot
     public double? BranchCoveragePercentage { get; init; }
 
     public double? ChurnScore { get; init; }
+
+    /// <summary>
+    /// The understandability (SonarSource cognitive complexity); absent in snapshots written before it was measured.
+    /// </summary>
+    public int? Understandability { get; init; }
+
+    public string? UnderstandabilityRiskLevel { get; init; }
 }
 
 public sealed class CognitiveBaselineClassCouplingSnapshot

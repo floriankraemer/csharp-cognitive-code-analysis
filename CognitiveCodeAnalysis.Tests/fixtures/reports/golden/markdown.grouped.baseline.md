@@ -6,10 +6,10 @@
 
 **Coupling:** In=3 ▲2, Out=5, Stability=0.625 ▼0.175
 
-| Method | Score | Lines | Ifs | Else | Loops | Switch | Try/Catch | Arguments | Nesting | Returns | Locals | Fields | Props | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| L10 Alpha | 8.500 ▲1.500 | 90 | 4 ▲3 (1.500) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 120.46 ▲20.46 | 14.50 ▼2.00 | 1746.60 | 7.0 | 0.900 ▲0.500 | 80.5% | 60.0% |
-| L42 Beta | 0.600 ▼0.500 | 1 | 0 (0.000) | 0 (0.000) | 2 (0.300) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 2.0 | 0.500 | 100.0% ▲10.0 | n/a |
+| Method | Score | Lines | Ifs | Else | Loops | Switch | Try/Catch | Arguments | Nesting | Returns | Locals | Fields | Props | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage | Understandability |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| L10 Alpha | 8.500 ▲1.500 | 90 | 4 ▲3 (1.500) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 120.46 ▲20.46 | 14.50 ▼2.00 | 1746.60 | 7.0 | 0.900 ▲0.500 | 80.5% | 60.0% | 16 (very_high) |
+| L42 Beta | 0.600 ▼0.500 | 1 | 0 (0.000) | 0 (0.000) | 2 (0.300) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 2.0 | 0.500 | 100.0% ▲10.0 | n/a | 7 (medium) |
 
 ### Class: Repo
 
@@ -17,8 +17,8 @@
 
 **Coupling:** In=1, Out=0, Stability=0.000
 
-| Method | Score | Lines | Ifs | Else | Loops | Switch | Try/Catch | Arguments | Nesting | Returns | Locals | Fields | Props | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| L30 Delta | 0.450 | 1 | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 1.0 | n/a | n/a | n/a |
-| L5 Gamma | 0.200 | 1 | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 1.0 | 0.100 | n/a | 12.2% |
+| Method | Score | Lines | Ifs | Else | Loops | Switch | Try/Catch | Arguments | Nesting | Returns | Locals | Fields | Props | Halstead Volume | Halstead Difficulty | Halstead Effort | Cyclomatic Complexity | Churn | Line Coverage | Branch Coverage | Understandability |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| L30 Delta | 0.450 | 1 | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 1.0 | n/a | n/a | n/a | 0 (low) |
+| L5 Gamma | 0.200 | 1 | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | 0 (0.000) | n/a | n/a | n/a | 1.0 | 0.100 | n/a | 12.2% | 0 (low) |
 

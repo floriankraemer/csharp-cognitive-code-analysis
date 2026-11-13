@@ -7,6 +7,7 @@ using CognitiveCodeAnalysis.Churn;
 using CognitiveCodeAnalysis.CodeCoverage;
 using CognitiveCodeAnalysis.CognitiveAnalysis;
 using CognitiveCodeAnalysis.Configuration;
+using CognitiveCodeAnalysis.Reporting;
 using CognitiveCodeAnalysisConsoleApp.Infrastructure;
 
 using Spectre.Console;
@@ -62,6 +63,8 @@ internal sealed class ChurnCommand(
             consoleNotifier.WriteWarning(warning);
         }
 
+        string? customReporter = ResolveCustomReporter(settings, configuration);
+
         List<string> files = facade.FindSourceFiles(sourcePaths, configuration.ExcludeFilePatterns, progress: null);
         if (files.Count == 0)
         {
@@ -79,6 +82,15 @@ internal sealed class ChurnCommand(
             WarnAboutClassesWithoutCoverage(churn);
         }
 
+        if (customReporter is not null)
+        {
+            string outputFile = Path.GetFullPath(settings.OutputFile!);
+            CustomReporterLoader.RunChurn(
+                customReporter, configuration, outputFile, churn, coverage is not null, settings.SinceDate);
+            consoleNotifier.WriteReportGenerated("Churn", outputFile);
+            return Success;
+        }
+
         if (settings.ReportTypeValue is { } type)
         {
             string outputFile = Path.GetFullPath(settings.OutputFile!);
@@ -89,6 +101,33 @@ internal sealed class ChurnCommand(
 
         AnsiConsole.Write(ChurnTable.Build(churn, coverage is not null));
         return Success;
+    }
+
+    /// <summary>
+    /// The key of the custom reporter that <c>-r</c> names, or null for a built-in type or none. Built-in names win, so a
+    /// custom key with such a name is an error, but only when that name is requested.
+    /// </summary>
+    private static string? ResolveCustomReporter(ChurnCommandSettings settings, CognitiveConfiguration configuration)
+    {
+        string? requested = settings.ReportType;
+        if (requested is null)
+        {
+            return null;
+        }
+
+        Dictionary<string, CustomReporterEntry> custom = configuration.CustomReporters.Churn;
+        if (settings.ReportTypeValue is { } type)
+        {
+            if (custom.Keys.Any(key => ChurnReportTypes.TryParse(key, out ChurnReportType other) && other == type))
+            {
+                throw CustomReporterLoader.Collision(type.ToString(), "churn");
+            }
+
+            return null;
+        }
+
+        // Validation has already checked that an unknown type is a custom key.
+        return requested;
     }
 
     private ClassCoverageIndex? LoadCoverage(ChurnCommandSettings settings)

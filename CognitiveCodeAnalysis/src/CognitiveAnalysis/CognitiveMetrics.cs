@@ -3,6 +3,7 @@
 /// </copyright>
 
 using CognitiveCodeAnalysis.HalsteadAnalysis;
+using CognitiveCodeAnalysis.UnderstandabilityAnalysis;
 
 namespace CognitiveCodeAnalysis.CognitiveAnalysis;
 
@@ -62,6 +63,11 @@ public class CognitiveMetrics
 
     public HalsteadMetrics? Halstead { get; set; }
 
+    /// <summary>
+    /// The cognitive complexity as specified by SonarSource; it does not enter the score.
+    /// </summary>
+    public Understandability Understandability { get; set; }
+
     public double? lineCoveragePercentage = null;
     public double? branchCoveragePercentage = null;
 
@@ -89,7 +95,8 @@ public class CognitiveMetrics
         double? lineCoveragePercentage = null,
         double? branchCoveragePercentage = null,
         double? churnScore = null,
-        HalsteadMetrics? halstead = null
+        HalsteadMetrics? halstead = null,
+        Understandability? understandability = null
     )
     {
         MethodName = methodName;
@@ -114,5 +121,6 @@ public class CognitiveMetrics
         this.branchCoveragePercentage = branchCoveragePercentage;
         this.churnScore = churnScore;
         Halstead = halstead;
+        Understandability = understandability ?? Understandability.None;
     }
 }
